@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { MenuCategory, MenuCategoryMeta, MenuItem } from "@/types";
 import { getBrowserSupabase } from "@/lib/supabase/browser";
-import { adminButtonClass, adminError, adminInputClass, adminSecondaryClass } from "./admin-api";
+import { adminButtonClass, adminError, adminInputClass, adminRequest, adminSecondaryClass } from "./admin-api";
 import { menuCategories as defaultCategories } from "@/data/menu";
 
 interface MenuFormModalProps {
@@ -34,27 +34,32 @@ export default function MenuFormModal({
   const categoriesList = categories && categories.length > 0 ? categories : defaultCategories;
 
   async function upload(file: File): Promise<void> {
-    const client = getBrowserSupabase();
-    if (!client) {
-      setUploadError("Supabase belum aktif.");
-      return;
-    }
     if (file.size > 5_242_880 || !/^image\/(jpeg|png|webp|avif)$/.test(file.type)) {
       setUploadError("Foto harus JPG, PNG, WebP, atau AVIF maksimal 5 MB.");
       return;
     }
     setUploading(true);
     setUploadError("");
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const path = `menu/${crypto.randomUUID()}.${ext}`;
-    const { error } = await client.storage.from("cafe-assets").upload(path, file, { contentType: file.type });
-    if (error) {
-      setUploadError(adminError(error));
-    } else {
-      const publicUrl = client.storage.from("cafe-assets").getPublicUrl(path).data.publicUrl;
-      setItem((current) => ({ ...current, image: publicUrl }));
+    try {
+      const client = getBrowserSupabase();
+      if (client) {
+        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `menu/${crypto.randomUUID()}.${ext}`;
+        const { error } = await client.storage.from("cafe-assets").upload(path, file, { contentType: file.type });
+        if (error) throw error;
+        setItem((current) => ({ ...current, image: client.storage.from("cafe-assets").getPublicUrl(path).data.publicUrl }));
+      } else {
+        // Mode lokal: simpan ke public/uploads/menu lewat API admin.
+        const form = new FormData();
+        form.append("file", file);
+        const { url } = await adminRequest<{ url: string }>("upload", { method: "POST", body: form });
+        setItem((current) => ({ ...current, image: url }));
+      }
+    } catch (cause: unknown) {
+      setUploadError(adminError(cause));
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   }
 
   return (

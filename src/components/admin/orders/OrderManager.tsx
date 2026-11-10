@@ -94,6 +94,16 @@ export default function OrderManager({ muted, canManageMenu, onToggleMuted }: Or
     return () => { void client.removeChannel(channel); };
   }, [client, load]);
 
+  // Mode lokal (tanpa realtime Supabase): segarkan papan pesanan tiap 5 detik, termasuk pesanan dari WhatsApp.
+  useEffect(() => {
+    if (client) return;
+    const timer = window.setInterval(() => {
+      if (document.hidden) return;
+      void adminRequest<{ orders: Order[] }>("orders").then((result) => setOrders(sortOrders(result.orders))).catch(() => undefined);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [client]);
+
   const selected = useMemo(() => orders.find((order) => order.id === selectedId), [orders, selectedId]);
 
   async function updateOrder(order: Order, status?: OrderStatus, markPaid = false): Promise<void> {

@@ -1,167 +1,81 @@
-﻿# Deploy Bot WhatsApp CafeSite ke VPS (Oracle Cloud Always Free, Ubuntu)
+﻿# Deploy Bot WhatsApp CafeSite (VPS Ubuntu + PM2)
 
-Panduan ini untuk menjalankan `server/` (bot WhatsApp standalone, terpisah dari Next.js) 24/7 di VPS memakai PM2, idempotent setelah reboot.
+Bot (`server/`) dan website Next.js berbagi **satu file SQLite**, jadi keduanya harus berjalan di mesin yang sama. Penjelasan lengkap, arsitektur, dan hasil uji: [`docs/WHATSAPP_BOT_OPENWA_REPORT.md`](../docs/WHATSAPP_BOT_OPENWA_REPORT.md).
 
-## 1. Persiapan VPS
-
-```bash
-sudo apt update
-sudo apt install -y git curl chromium-browser
-```
-
-Kalau `chromium-browser` tidak tersedia di repo Ubuntu versi Anda (kadang di Ubuntu 22.04+ paketnya bernama `chromium`), coba:
+## 1. Persiapan
 
 ```bash
-sudo apt install -y chromium
-```
-
-atau install Google Chrome sebagai gantinya (lihat dokumentasi resmi Google untuk repo `.deb`-nya).
-
-Install Node.js (versi 20+; project ini dikembangkan dengan Node 24):
-
-```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
-```
-
-Install PM2 secara global:
-
-```bash
+sudo apt update && sudo apt install -y git curl chromium-browser   # atau: chromium / google-chrome
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt install -y nodejs   # Node 22.5+ wajib (node:sqlite)
 sudo npm install -g pm2
 ```
 
-## 2. Clone & build
+`zstd` **tidak perlu** dipasang (bot menanganinya sendiri). Cek path browser: `which chromium-browser` atau `which google-chrome`.
+
+## 2. Pasang dan bangun
 
 ```bash
-git clone <url-repo-anda> cafesite
-cd cafesite/server
-npm ci
-npm run build
+git clone <url-repo> cafesite && cd cafesite
+npm ci && npm run build          # website
+cd server && npm ci && npm run build
 ```
 
-## 3. Konfigurasi environment
+## 3. Konfigurasi
 
 ```bash
-cp .env.example .env.local
-nano .env.local
+# server/.env.local
+cp .env.example .env.local && nano .env.local
 ```
 
-Isi **semua** variabel di `.env.local` sesuai kebutuhan (lihat `.env.example` untuk daftar lengkap dan penjelasan tiap variabel). Yang penting untuk VPS:
+Isi minimal: `BOT_CONTROL_TOKEN` (acak, ≥16 karakter), `PUPPETEER_EXECUTABLE_PATH`, dan `DB_PATH` bila bukan `../.data/cafesite.dev.db`. Opsional: `NVIDIA_*`, `EMBEDDING_*`.
 
-- `PUPPETEER_EXECUTABLE_PATH` — arahkan ke binary Chromium/Chrome yang baru diinstall:
-  - Chromium: `/usr/bin/chromium-browser` (atau `/usr/bin/chromium` tergantung nama paket)
-  - Google Chrome: `/usr/bin/google-chrome`
-  
-  Cek path pastinya dengan `which chromium-browser` atau `which google-chrome` setelah instalasi.
+Di `.env.local` **root** (Next.js): `CONTENT_SOURCE=sqlite`, `LOCAL_ADMIN_EMAIL`, `LOCAL_ADMIN_PASSWORD`, `WA_BOT_CONTROL_URL=http://127.0.0.1:8787`, dan `WA_BOT_CONTROL_TOKEN` yang **sama persis** dengan `BOT_CONTROL_TOKEN`.
 
-- `NVIDIA_API_KEY`, `NVIDIA_MODEL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `WA_BOT_USER_ID`, `EMBEDDING_*` — isi sesuai environment production Anda.
-- `LOG_LEVEL` — opsional, default `info`. Set ke `warn` di production kalau log terlalu ramai.
-- `RATE_LIMIT_MAX_PER_MINUTE` / `RATE_LIMIT_WINDOW_MS` — opsional, default 5 pesan per 60 detik per nomor.
+Jangan commit kedua file `.env.local`.
 
-**JANGAN commit `.env.local`** — sudah ada di `.gitignore`.
-
-## 4. Migrasi session WhatsApp (kalau pindah dari mesin lama)
-
-Kalau bot sudah pernah login (scan QR) di mesin development, Anda tidak perlu scan ulang di VPS — cukup pindahkan folder session:
+## 4. Jalankan
 
 ```bash
-# Di mesin lama, backup dulu:
-tar -czf session-backup.tar.gz server/session/
-
-# Pindahkan session-backup.tar.gz ke VPS (scp/rsync), lalu di VPS:
-cd cafesite/server
-tar -xzf session-backup.tar.gz
+cd cafesite/server && pm2 start ecosystem.config.js
+cd .. && pm2 start npm --name cafesite-web -- start
+pm2 save && pm2 startup     # jalankan baris sudo yang dicetak
 ```
 
-**JANGAN commit folder `server/session/` ke git** — berisi kredensial sesi WhatsApp yang sangat sensitif (setara akses penuh ke akun WhatsApp itu). Sudah ada di `.gitignore`.
+## 5. Tautkan WhatsApp
 
-Kalau ini deploy pertama kali (belum pernah login sama sekali), lewati langkah ini — nanti scan QR langsung di VPS lewat `pm2 logs` (lihat langkah 6).
+Buka `https://<domain>/dashboard` → **Operasional → WhatsApp Bot → Hubungkan WhatsApp**, pindai QR (WhatsApp → Perangkat tertaut). Tidak perlu `pm2 logs`. Setelah tersambung sekali, bot menyambung sendiri tiap restart/reboot.
 
-## 5. Jalankan dengan PM2
+Pindah mesin tanpa scan ulang: salin folder `server/session/` **dan** file `.data/cafesite.dev.db` saat bot berhenti. Folder `session/` setara akses penuh ke akun WhatsApp — jangan di-commit, jangan dibagikan.
+
+## 6. Verifikasi
 
 ```bash
-cd cafesite/server
-pm2 start ecosystem.config.js
-pm2 save
+pm2 status                          # cafesite-wa-bot: online
+pm2 logs cafesite-wa-bot --lines 30 # "Bot siap" dan "WhatsApp tersambung."
+cd server && npm test               # 93 tes
 ```
 
-`pm2 save` menyimpan daftar proses yang sedang jalan supaya bisa di-restore otomatis setelah reboot.
+Dari ponsel lain kirim `halo bot` ke nomor bot → harus dijawab perkenalan.
 
-Supaya PM2 sendiri otomatis jalan lagi setelah VPS reboot (idempotent — tidak perlu langkah manual apa pun setelah `sudo reboot`):
+## 7. Update
 
 ```bash
-pm2 startup
+git pull && npm ci && npm run build
+cd server && npm ci && npm run build && pm2 restart cafesite-wa-bot
 ```
 
-Perintah ini akan mencetak 1 baris perintah `sudo env PATH=... pm2 startup systemd -u <user> --hp <home>` — **copy-paste dan jalankan baris itu persis seperti yang dicetak**, itu yang mendaftarkan PM2 sebagai systemd service.
+`SIGINT/SIGTERM` ditangani (`src/index.ts`): worker berhenti, sesi WhatsApp ditutup, database ditutup, lalu proses keluar.
 
-Setelah itu, `sudo reboot` VPS kapan pun akan otomatis menyalakan kembali bot ini tanpa langkah manual.
+Catatan pengembangan: `npm run dev` berjalan tanpa watch supaya sesi WhatsApp tidak terputus saat file diedit; pakai `npm run dev:watch` hanya bila sedang mengubah kode bot. Sesi dicadangkan otomatis (`session/*.bak`).
 
-## 6. Login WhatsApp (kalau belum pernah scan QR)
+## Pemecahan masalah
 
-```bash
-pm2 logs cafesite-wa-bot
-```
+| Gejala | Solusi |
+|---|---|
+| *Port 8787 sudah dipakai* | Ada bot lama: `pm2 delete cafesite-wa-bot` atau hentikan proses `tsx watch` di terminal |
+| *browser is already running* setelah crash | `pkill -f chrom`, lalu `pm2 restart cafesite-wa-bot` |
+| Dashboard *Token kontrol tidak cocok* | Samakan kedua token |
+| Sering restart karena memori | Naikkan `max_memory_restart` di `ecosystem.config.js` (Chromium bisa >200 MB) |
+| Perlu pasang ulang nomor | Dashboard → *Keluar & ganti nomor*, atau hentikan bot lalu kosongkan `server/session/` |
 
-QR code akan tercetak di log dalam bentuk ASCII. Scan dengan WhatsApp di HP (Perangkat Tertaut → Tautkan Perangkat). Setelah `ready` muncul di log, tekan `Ctrl+C` untuk keluar dari `pm2 logs` (bot tetap jalan di background, `Ctrl+C` di sini hanya menghentikan tail log, bukan proses PM2).
-
-## 7. Verifikasi
-
-```bash
-pm2 status
-```
-
-Harus menunjukkan `cafesite-wa-bot` dengan status `online`.
-
-```bash
-pm2 logs cafesite-wa-bot --lines 50
-```
-
-Cek log terbaru — harus ada baris `Bot WhatsApp siap dan tersambung.`
-
-Test kirim pesan `@bot ping` dari WhatsApp ke nomor bot — harus dibalas `pong` dalam hitungan detik.
-
-## 8. Update deploy (setelah ada perubahan kode)
-
-```bash
-cd cafesite/server
-git pull
-npm ci
-npm run build
-pm2 restart cafesite-wa-bot
-```
-
-`pm2 restart` memicu graceful shutdown (`SIGINT`/`SIGTERM` ditangani di `src/whatsapp/shutdown.ts`) sebelum proses baru dimulai, jadi Chromium lama ditutup dengan benar — tidak akan meninggalkan lock file di folder `session/`.
-
-## Troubleshooting
-
-### Error saat start: "The browser is already running for ...\session" atau serupa
-
-Ini terjadi kalau proses sebelumnya mati mendadak (`kill -9`, VPS crash, out-of-memory) tanpa sempat menjalankan graceful shutdown, sehingga Chromium child process masih memegang lock folder `server/session/`.
-
-Solusi:
-1. Pastikan tidak ada proses Chromium lain yang masih jalan: `pkill -f chromium` (atau `pkill -f chrome`).
-2. Restart PM2: `pm2 restart cafesite-wa-bot`.
-
-Kalau masih terjadi berulang, cek apakah `max_memory_restart: "300M"` di `ecosystem.config.js` terlalu ketat untuk beban server Anda (Chromium headless bisa makan >150-200MB sendiri) — naikkan nilainya kalau perlu, restart yang terlalu sering karena OOM lebih rawan meninggalkan lock file dibanding shutdown yang direncanakan.
-
-### Bot tidak balas apa-apa untuk sebagian pesan
-
-Cek log untuk baris "Pesan ditahan oleh rate-limit." — ini bukan bug, itu rate-limit bekerja sesuai desain (default: diam total kalau > 5 pesan/menit dari nomor yang sama, lihat komentar di `src/queue/rateLimit.ts` untuk alasan kenapa "diam" dipilih daripada membalas pesan peringatan).
-
-### Auth failure / perlu scan ulang QR
-
-Kalau log menunjukkan "Autentikasi gagal - perlu scan ulang QR.", bot **sengaja berhenti mencoba reconnect otomatis** (retry buta pada auth_failure tidak akan menyelesaikan masalah — WhatsApp di HP mungkin logout manual, atau sesi kedaluwarsa). Hapus folder `server/session/` lalu `pm2 restart cafesite-wa-bot` dan scan ulang QR dari `pm2 logs`.
-
-## Kontrol bot per nomor
-
-- `@bot pertanyaan` di awal pesan: jawab pesan tersebut satu kali; tidak otomatis mengaktifkan mode percakapan.
-- `@bot` saja: aktifkan balasan bot untuk nomor/chat pribadi tersebut. Pesan berikutnya boleh tanpa awalan.
-- `@tutup`: nonaktifkan, kosongkan sesi order sementara, dan abaikan jawaban AI lama yang masih diproses. Perintah tetap bekerja saat rate-limit tercapai.
-- Setelah 5 menit tanpa pesan masuk, sesi nonaktif otomatis tanpa pesan tambahan. Balasan bot tidak memperpanjang waktu. Pesan baru yang datang tepat/setelah batas waktu membutuhkan `@bot` lagi.
-- Health check kini `@bot ping` → `pong`. Chat biasa saat nonaktif diabaikan, termasuk intent order. Grup/status/pesan sendiri tetap diabaikan.
-- State aktivasi dan deduplikasi disimpan di memori satu proses: restart menonaktifkan semua nomor. ID pesan dideduplikasi selama 1 jam; tidak ada retry kirim otomatis ketika status pengiriman tidak pasti.
-- Jalankan satu instance bot saja (jangan menjalankan `npm run dev` bersamaan dengan PM2/start untuk nomor yang sama). Deduplikasi memori tidak lintas proses.
-
-Tes: `npm run build` lalu `node --test tests/bot-access.test.cjs` dari folder server. Setelah deploy, restart satu proses bot dan uji dua nomor berbeda.
-
+Percakapan: pelanggan mengetik `halo bot` untuk mengaktifkan, `tutup bot` untuk mengakhiri; sesi habis otomatis setelah 10 menit tanpa pesan. Satu instance bot saja per nomor.

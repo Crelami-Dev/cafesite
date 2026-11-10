@@ -9,9 +9,15 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    ".vercel/**",
+    "server/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored design tooling and its unchanged browser assets are not app source.
+    ".agents/skills/**",
+    ".taste-skill/**",
+    "public/assets/**",
   ]),
 ]);
 

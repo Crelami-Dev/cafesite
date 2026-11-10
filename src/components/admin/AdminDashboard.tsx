@@ -40,7 +40,7 @@ const groups: { title: string; ids: AdminModule[] }[] = [
   { title: "Analitik & tim", ids: ["reports", "modules"] },
 ];
 
-export default function AdminDashboard(): React.JSX.Element {
+export default function AdminDashboard({ localMode = false }: { localMode?: boolean }): React.JSX.Element {
   const [account, setAccount] = useState<AdminBootstrap | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -54,12 +54,13 @@ export default function AdminDashboard(): React.JSX.Element {
   const latestOrderStatuses = useRef(new Map<string, string | null>());
   const activeModule = useRef<AdminModule>("orders");
   const { muted, toggleMuted, unlock, play } = useOrderSound();
-  const client = getBrowserSupabase();
+  const client = localMode ? null : getBrowserSupabase();
   const router = useRouter();
   useEffect(() => { activeModule.current = active; }, [active]);
 
   const loadAccount = useCallback(
     async (): Promise<void> => {
+      if (localMode) { setAccount({ profile: { id: "local-admin", role: "admin" }, modules: [] }); setAuthenticated(true); setLoading(false); return; }
       if (!client) {
         setLoading(false);
         return;
@@ -82,7 +83,7 @@ export default function AdminDashboard(): React.JSX.Element {
         setLoading(false);
       }
     },
-    [client],
+    [client, localMode],
   );
 
   useEffect(() => {
@@ -137,6 +138,27 @@ export default function AdminDashboard(): React.JSX.Element {
     return () => { cancelled = true; void client.removeChannel(channel); };
   }, [account, canUseOrders, client, play]);
 
+  // Mode lokal: hitung pesanan menunggu lewat polling (pengganti realtime Supabase).
+  useEffect(() => {
+    if (client || !localMode || !account) return;
+    let first = true;
+    const check = (): void => {
+      if (document.hidden) return;
+      void adminRequest<{ orders: Order[] }>("orders").then(({ orders }) => {
+        const waiting = new Set(orders.filter((order) => order.status === "waiting").map((order) => order.id));
+        const hasNew = [...waiting].some((id) => !knownOrderIds.current.has(id));
+        if (hasNew && !first) { if (activeModule.current !== "orders") setNewOrderPulse(true); play(); }
+        orders.forEach((order) => knownOrderIds.current.add(order.id));
+        waitingIds.current = waiting;
+        setPendingOrders(waiting.size);
+        first = false;
+      }).catch(() => undefined);
+    };
+    check();
+    const timer = window.setInterval(check, 5000);
+    return () => window.clearInterval(timer);
+  }, [account, client, localMode, play]);
+
   useEffect(() => {
     const enableAudio = (): void => { void unlock(); };
     window.addEventListener("pointerdown", enableAudio, { once: true });
@@ -147,6 +169,7 @@ export default function AdminDashboard(): React.JSX.Element {
   const canUseMenu = account?.profile.role === "admin" || account?.modules.some((module) => module.id === "menu" && module.enabled) === true;
 
   async function signOut(): Promise<void> {
+    if (localMode) { await fetch("/api/local-auth", { method: "DELETE" }); router.replace("/auth"); return; }
     if (!client) return;
     setBusy(true);
     const result = await client.auth.signOut();

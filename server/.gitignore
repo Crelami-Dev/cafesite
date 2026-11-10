@@ -5,3 +5,5 @@ dist/
 .env.*.local
 session/
 *.log
+.wwebjs_cache/
+_live_*.ts

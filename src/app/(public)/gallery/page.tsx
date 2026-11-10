@@ -1,27 +1,30 @@
 import type { Metadata } from "next";
-import { GalleryHeader } from "@/components/gallery/GalleryHeader";
+import { PageIntro } from "@/components/public/PageIntro";
 import { GallerySection } from "@/components/gallery/GallerySection";
-import { InstagramTeaser } from "@/components/gallery/InstagramTeaser";
+import { getPublicContent } from "@/lib/content";
+import { uniqueGalleryPhotos } from "@/lib/gallery";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Galeri Suasana & Foto Kafe",
+  title: "Galeri Suasana CafeSite",
   description:
-    "Galeri foto CafeSite: interior hangat bata ekspos, kopi yang diseduh pelan, sudut-sudut semi-outdoor, hingga menu andalan. Lihat vibes tempat sebelum kamu mampir.",
+    "Lihat foto ruang, kopi, dan makanan CafeSite sebelum datang.",
   path: "/gallery",
-  keywords: ["foto cafe", "suasana kafe", "interior cafe jakarta", "foto kopi"],
+  keywords: ["galeri cafe", "interior cafe jakarta selatan", "suasana ngopi cipete"],
 });
 
-/**
- * GalleryPage — Halaman Galeri Foto Suasana (Server Component)
- * Sesuai SITEMAP §3.4: GalleryHeader → GalleryFilterBar & GalleryGrid → InstagramTeaser.
- */
-export default function GalleryPage() {
+export default async function GalleryPage(): Promise<React.JSX.Element> {
+  const { gallery } = await getPublicContent();
+  const photos = await uniqueGalleryPhotos(gallery);
+
   return (
     <>
-      <GalleryHeader />
-      <GallerySection />
-      <InstagramTeaser />
+      <PageIntro
+        label="Galeri CafeSite"
+        title="Ruang & suasana kedai."
+        description="Pilih kategori foto. Ketuk foto untuk melihat lebih dekat."
+      />
+      <GallerySection initialPhotos={photos} />
     </>
   );
 }

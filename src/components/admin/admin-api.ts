@@ -4,15 +4,23 @@ export const adminInputClass = "min-h-11 w-full rounded-xl border border-charcoa
 export const adminButtonClass = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-terracotta px-4 py-2.5 text-sm font-semibold text-offwhite-pure transition hover:bg-terracotta-hover disabled:cursor-wait disabled:opacity-50";
 export const adminSecondaryClass = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-charcoal-border px-4 py-2.5 text-sm font-medium text-offwhite transition hover:border-latte hover:bg-charcoal-light disabled:cursor-wait disabled:opacity-50";
 
+/**
+ * Request ke /api/admin/*. Mode lokal (SQLite, default): autentikasi lewat cookie sesi httpOnly.
+ * Mode Supabase (NEXT_PUBLIC_DATA_SOURCE=supabase): token Bearer dari sesi Supabase.
+ */
 export async function adminRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const client = getBrowserSupabase();
-  if (!client) throw new Error("La connexion Supabase belum disiapkan.");
-  const { data: { session } } = await client.auth.getSession();
-  if (!session) throw new Error("Sesi berakhir. Silakan masuk kembali.");
+  const headers: Record<string, string> = options.body instanceof FormData ? {} : { "Content-Type": "application/json" };
+  if (client) {
+    const { data: { session } } = await client.auth.getSession();
+    if (!session) throw new Error("Sesi berakhir. Silakan masuk kembali.");
+    headers.Authorization = `Bearer ${session.access_token}`;
+  }
   const response = await fetch(`/api/admin/${path}`, {
     ...options,
     cache: "no-store",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, ...options.headers },
+    credentials: "same-origin",
+    headers: { ...headers, ...(options.headers as Record<string, string> | undefined) },
   });
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {

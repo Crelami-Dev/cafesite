@@ -1,19 +1,10 @@
+import type { EmbeddingConfig } from "../config/env";
 import { logger, describeError } from "../whatsapp/logger";
 
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_ATTEMPTS = 2; // percobaan pertama + 1x retry
 
-// nvidia/nemotron-3-embed-1b: dimensi native 2048, TIDAK mendukung reduced
-// dimensions via API cloud (dikonfirmasi dari NVIDIA NIM support matrix
-// resmi - berbeda dari klaim di model card umum). Jangan kirim parameter
-// "dimensions" di request, dan tabel rag_documents wajib vector(2048).
-export const EMBEDDING_DIMENSIONS = 2048;
-
-export interface EmbeddingConfig {
-  apiKey: string;
-  model: string;
-  baseUrl: string;
-}
+export type { EmbeddingConfig };
 
 export type EmbeddingInputType = "query" | "passage";
 
@@ -65,11 +56,6 @@ async function callEmbeddingApi(config: EmbeddingConfig, texts: string[], inputT
     return sorted.map((item, index) => {
       if (!Array.isArray(item.embedding)) {
         throw new Error(`Embedding API tidak mengembalikan vektor yang valid untuk input ke-${index}.`);
-      }
-      if (item.embedding.length !== EMBEDDING_DIMENSIONS) {
-        throw new Error(
-          `Embedding API mengembalikan dimensi ${item.embedding.length}, diharapkan ${EMBEDDING_DIMENSIONS}. Cek EMBEDDING_MODEL/EMBEDDING_DIMENSIONS.`,
-        );
       }
       return item.embedding;
     });

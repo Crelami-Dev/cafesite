@@ -32,7 +32,7 @@ export function CopyAddressButton({
       type="button"
       onClick={handleCopy}
       aria-label={copied ? "Alamat tersalin" : "Salin alamat ke papan klip"}
-      className={`inline-flex items-center gap-1.5 rounded-md border border-charcoal-border/80 bg-charcoal px-3 py-1.5 text-xs font-medium text-offwhite-muted transition-all hover:border-terracotta/60 hover:text-offwhite hover:bg-charcoal-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta active:scale-95 ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-md border border-charcoal-border/80 bg-charcoal px-3 py-1.5 text-xs font-medium text-offwhite-muted transition-all hover:border-terracotta/60 hover:text-offwhite hover:bg-charcoal-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta focus-visible:ring-2 focus-visible:ring-terracotta active:scale-95 ${className}`}
     >
       {copied ? (
         <>

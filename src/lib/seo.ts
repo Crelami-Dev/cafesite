@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SITE_URL, siteConfig } from "@/config/site";
 import { cafeInfo } from "@/data/cafe";
+import type { CafeInfo } from "@/types";
 
 const OG_IMAGE = `${SITE_URL}/opengraph-image`;
 const OG_IMAGE_SIZE = { width: 1200, height: 630 };
@@ -31,9 +32,11 @@ export function createPageMetadata({
   const ogTitle = `${title} — ${siteConfig.siteName}`;
 
   return {
-    title: `${title} — ${siteConfig.siteName}`,
+    title,
     description: description ?? siteConfig.description,
-    keywords: keywords ? [...siteConfig.keywords, ...keywords] : siteConfig.keywords,
+    keywords: keywords
+      ? [...siteConfig.keywords, ...keywords]
+      : siteConfig.keywords,
     alternates: {
       canonical: url,
     },
@@ -61,26 +64,26 @@ const DAY_ORDER = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as const;
  * JSON-LD CafeOrCoffeeShop (LocalBusiness) — di-inject di layout agar tiap
  * halaman mengiklankan entitas kafe yang sama ke Google & AI search.
  */
-export function buildLocalBusinessJsonLd(): Record<string, unknown> {
-  const openingHoursSpecification = cafeInfo.openingHours
-  .map((hour, index) =>
-    hour.isOpen && hour.openTime && hour.closeTime
-      ? {
-          "@type": "OpeningHoursSpecification" as const,
-          dayOfWeek: DAY_ORDER[index],
-          opens: hour.openTime,
-          closes: hour.closeTime,
-        }
-      : null
-  )
-  .filter(
-    (entry): entry is NonNullable<typeof entry> => entry !== null
-  );
+export function buildLocalBusinessJsonLd(
+  cafe: CafeInfo = cafeInfo,
+): Record<string, unknown> {
+  const openingHoursSpecification = cafe.openingHours
+    .map((hour, index) =>
+      hour.isOpen && hour.openTime && hour.closeTime
+        ? {
+            "@type": "OpeningHoursSpecification" as const,
+            dayOfWeek: DAY_ORDER[index],
+            opens: hour.openTime,
+            closes: hour.closeTime,
+          }
+        : null,
+    )
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
   return {
     "@context": "https://schema.org",
     "@type": "CafeOrCoffeeShop",
-    name: cafeInfo.name,
+    name: cafe.name,
     alternateName: siteConfig.siteName,
     url: SITE_URL,
     image: OG_IMAGE,
@@ -89,13 +92,13 @@ export function buildLocalBusinessJsonLd(): Record<string, unknown> {
     priceRange: "$$",
     address: {
       "@type": "PostalAddress",
-      streetAddress: cafeInfo.address,
-      addressLocality: cafeInfo.city,
+      streetAddress: cafe.address,
+      addressLocality: cafe.city,
       addressCountry: "ID",
     },
     openingHoursSpecification,
-    telephone: cafeInfo.whatsappFormatted,
-    sameAs: [cafeInfo.instagramUrl, cafeInfo.googleMapsUrl],
+    telephone: cafe.whatsappFormatted,
+    sameAs: [cafe.instagramUrl, cafe.googleMapsUrl],
   };
 }
 
@@ -105,7 +108,7 @@ export function buildLocalBusinessJsonLd(): Record<string, unknown> {
  * Wi-Fi, colokan, smoking area, musholla, rombongan, dll).
  */
 export function buildFaqJsonLd(
-  faqs: Array<{ question: string; answer: string }>
+  faqs: Array<{ question: string; answer: string }>,
 ): Record<string, unknown> {
   return {
     "@context": "https://schema.org",

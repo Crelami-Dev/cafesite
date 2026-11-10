@@ -1,59 +1,23 @@
-import { Button } from "@/components/ui/Button";
+import Link from "next/link";
 import { Container } from "@/components/ui/Container";
-import { ArrowRightIcon, QuoteIcon } from "@/components/ui/icons";
+import { CafePhoto } from "@/components/public/CafePhoto";
 
-/**
- * AboutPreview Section — Server Component
- * Teks di kiri, pull-quote tenang di kanan (tanpa panel foto artifisial).
- * Latar espresso solid — tanpa gradasi.
- */
-export function AboutPreview() {
+export function AboutPreview(): React.JSX.Element {
   return (
-    <section
-      id="about-preview"
-      aria-label="Tentang CafeSite"
-      className="border-b border-charcoal-border/30 bg-espresso py-16 md:py-24"
-    >
-      <Container size="default">
-        <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
-          <div className="lg:col-span-7">
-            <span className="mb-3 inline-block text-xs uppercase tracking-widest text-terracotta">
-              Tentang Kami
-            </span>
-            <h2 className="max-w-xl font-serif text-3xl font-medium tracking-tight text-offwhite sm:text-4xl lg:text-5xl">
-              Bukan sekadar tempat ngopi sambil lalu.
-            </h2>
-            <p className="mt-6 max-w-xl text-base leading-relaxed text-offwhite/80">
-              CafeSite awalnya cuma obrolan satu sore, soal pengen bikin tempat
-              yang betah disinggahi lama. Kopinya nggak usah cepet-cepet abis,
-              yang penting obrolannya lanjut.
-            </p>
-            <p className="mt-4 max-w-xl text-base leading-relaxed text-offwhite/80">
-              Kerja, ngobrol panjang, atau nyendiri baca — kekamu mau. Kami
-              cuma nemuin bijinya biar pas; soal suasana biar yang ngikut.
-            </p>
-            <Button
-              variant="outline"
-              size="lg"
-              href="/about"
-              className="mt-8"
-            >
-              <span>Baca Cerita Kami</span>
-              <ArrowRightIcon className="h-4 w-4 text-latte" />
-            </Button>
+    <section id="tentang-ruang" aria-labelledby="about-preview-heading" className="marketing-section bg-charcoal">
+      <Container>
+        <div className="grid gap-6 lg:grid-cols-2 lg:gap-16">
+          <h2 id="about-preview-heading" className="public-h2 max-w-sm">Kenali kedainya<br />sebelum mampir.</h2>
+          <div className="max-w-md">
+            <p className="text-base leading-relaxed text-offwhite-muted">Dari area duduk sampai sudut bar. Lihat suasana CafeSite dan pilih tempat untuk ngopi nanti.</p>
+            <Link href="/gallery" className="link mt-5 inline-flex min-h-11 items-center text-sm">Lihat galeri <span className="ml-3" aria-hidden="true">↗</span></Link>
           </div>
-
-          <figure className="lg:col-span-5">
-            <div className="flex h-full flex-col justify-between rounded-md border border-latte/20 bg-charcoal/40 p-8 md:p-10">
-              <QuoteIcon className="h-8 w-8 text-latte/50" />
-              <blockquote className="mt-8 font-serif text-xl font-medium leading-snug text-offwhite md:text-2xl">
-                &ldquo;Kopinya nggak pura-pura, suasananya nggak ngejar-ngejar.&rdquo;
-              </blockquote>
-              <figcaption className="mt-8 text-xs uppercase tracking-widest text-latte">
-                Filosofi CafeSite
-              </figcaption>
-            </div>
-          </figure>
+        </div>
+        <div className="mt-8 grid gap-4 md:mt-10 md:grid-cols-[1.4fr_1fr] md:gap-6">
+          <CafePhoto src="/Image/Gallery/gal-01-window-table.jpg" alt="Area duduk dekat jendela kedai" className="aspect-[4/3] md:aspect-auto md:min-h-96" moment sizes="(min-width: 1248px) 686px, (min-width: 768px) 58vw, calc(100vw - 48px)" />
+          <Link href="/about" className="m-zoom relative block overflow-hidden" aria-label="Tentang CafeSite">
+            <CafePhoto src="/Image/Gallery/gal-02-morning-brew.jpg" alt="Proses menyeduh kopi di area bar" className="aspect-[4/3] md:aspect-[4/5]" sizes="(min-width: 1248px) 490px, (min-width: 768px) 42vw, calc(100vw - 48px)" />
+          </Link>
         </div>
       </Container>
     </section>

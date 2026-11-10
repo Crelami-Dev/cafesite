@@ -41,7 +41,7 @@ export function LocationCTA({ initialStatus }: LocationCTAProps) {
 
               <div className="mt-8 space-y-4 border-t border-charcoal-border/40 pt-6">
                 <div className="flex items-start gap-3 text-sm text-offwhite">
-                  <MapPinIcon className="mt-0.5 h-5 w-5 shrink-0 text-latte" />
+                  <MapPinIcon className="mt-0.5 h-5 w-5 shrink-0 text-terracotta" />
                   <div>
                     <p className="font-medium text-offwhite">
                       {cafeInfo.address}, {cafeInfo.city}
@@ -55,7 +55,7 @@ export function LocationCTA({ initialStatus }: LocationCTAProps) {
                 </div>
 
                 <div className="flex items-center gap-3 text-sm text-offwhite">
-                  <ClockIcon className="h-5 w-5 shrink-0 text-latte" />
+                  <ClockIcon className="h-5 w-5 shrink-0 text-terracotta" />
                   <p className="text-offwhite">
                     <span className="font-medium">
                       {todaySchedule
@@ -91,7 +91,7 @@ export function LocationCTA({ initialStatus }: LocationCTAProps) {
                 isExternal
                 className="w-full"
               >
-                <MapPinIcon className="h-4 w-4 text-latte" />
+                <MapPinIcon className="h-4 w-4 text-terracotta" />
                 <span>Buka Google Maps</span>
               </Button>
             </div>

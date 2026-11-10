@@ -6,20 +6,20 @@
 
 ---
 
-## 1. Skala Warna (Color Palette & Semantic Tokens) — MANDATORY DESIGN DIRECTION
+## 1. Skala Warna (Color Palette & Semantic Tokens) — THE TRIPARTITE 3-COLOR RULE
 
-Palette ini dikunci sebagai identitas visual resmi **CafeSite** yang selaras dengan karakter logo (hitam doff/charcoal + putih doff/warm white), estetika Instagram (terracotta/merah bata), dan atmosfer kultur kopi (coffee brown, deep espresso, latte cream).
+Website ini mengunci sistem visual pada **3 warna utama (2 warna wajib fondasi + 1 warna pendukung katalis)** sesuai arahan desain kontras tinggi, menghindari kekacauan palet bertumpuk:
 
-### 1.1. Core Palette Tokens
+### 1.1. Core 3-Color Palette Tokens
 
 ```typescript
-// tailwind.config.ts -> theme.extend.colors
+// tailwind.config.ts / src/app/globals.css -> @theme
 export const colors = {
-  // 1. Charcoal Black (#20201E) — Primary Dark Surface (60%)
-  // Karakter: matte black, warm, slightly gray, sophisticated. Bukan pure black (#000000).
-  // Role: primary background, hero background, navbar, footer, dark section, major visual anchor.
+  // 1. Charcoal Black (#20201E) — Primary Dark Canvas (60% WAJIB)
+  // Karakter: matte black, warm, sophisticated. Bukan pure black (#000000).
+  // Role: kanvas utama, hero background, navbar, footer, container kartu gelap.
   charcoal: {
-    darkest: '#141413',  // Layer terdalam, batas kontras
+    darkest: '#141413',  // Layer terdalam, batas kontras footer
     DEFAULT: '#20201E',  // Primary background / canvas utama
     light: '#2C2C29',    // Background kartu di atas dark surface
     lighter: '#383834',  // Card hover / active state
@@ -27,91 +27,65 @@ export const colors = {
     muted: '#63635E',    // Teks tersier / placeholder
   },
 
-  // 2. Warm Off-White (#F1EEE8) — Primary Text & Light Canvas (25%)
-  // Karakter: warm, soft, premium. Bukan pure white (#FFFFFF) dominan.
-  // Role: primary text pada dark background, light section background, heading, nav text, icon, button text.
+  // 2. Warm Off-White (#F1EEE8) — Primary Text & Structure (30% WAJIB)
+  // Karakter: warm, soft, premium. Bukan stark hospital white (#FFFFFF).
+  // Role: teks utama di atas charcoal, heading, border kontras, kanvas kartu terang.
   offwhite: {
     pure: '#FAF8F5',     // White highlight / card light surface
-    DEFAULT: '#F1EEE8',  // Warna teks utama di atas charcoal / Background light section
+    DEFAULT: '#F1EEE8',  // Warna teks utama / background section terang
     subtle: '#E8E3D9',   // Border pembatas pada tema terang
-    muted: '#C5BFB2',    // Teks sekunder / keterangan kecil di atas dark surface
+    muted: '#C5BFB2',    // Teks sekunder / keterangan kecil
     darker: '#A8A295',   // Ikon dan ornamen redup
   },
 
-  // 3. Terracotta / Brick Red (#A6533F) — Primary Accent (10%)
-  // Karakter: earthy, berkarakter, hangat. BUKAN warna utama seluruh halaman.
-  // Role: primary accent, primary CTA, active state, important highlight, selected category.
+  // 3. Terracotta / Brick Red (#A6533F) — Catalyst Pop Accent (10% PENDUKUNG)
+  // Karakter: earthy, hangat, energetic. Berfungsi seperti 'neon pop' pada poster kontras tinggi.
+  // Role: tombol aksi utama (Primary CTA), active tab, badge jam buka, focal highlight.
   terracotta: {
-    light: '#C46B55',    // Tint ornamen / subtle glow
+    light: '#C46B55',    // Tint aksen di atas latar gelap
     DEFAULT: '#A6533F',  // Tombol aksi utama (Primary CTA), highlight penting
     hover: '#8E4230',    // Hover state subtle (WCAG AAA contrast)
     dark: '#733324',     // Aksen pekat
     subtle: '#F6EAE7',   // Latar badge terracotta pada section terang
   },
 
-  // 4. Coffee Brown (#70483A) — Secondary Accent (5%)
-  // Karakter: menjembatani charcoal dengan terracotta, memberikan nuansa kopi yang kuat.
-  // Role: secondary accent, dark surface, secondary button, subtle background, border khusus.
-  coffee: {
-    light: '#8C5E4E',    // Garis aksen sekunder
-    DEFAULT: '#70483A',  // Secondary accent, border kartu spesial
-    hover: '#5A372B',    // Hover state
-    dark: '#45281E',     // Nuansa espresso pekat
-  },
+  // Catatan: Warna sekunder lama (coffee, latte, espresso) telah disederhanakan
+  // menjadi variasi layer dari Charcoal dan Off-White untuk menjaga kemurnian 3 warna.
 
-  // 5. Latte Cream (#C8A98A) — Supporting Color
-  // Karakter: soft cream, jangan membuat seluruh UI terlihat beige.
-  // Role: supporting background, highlight, subtle card surface, decorative element, muted accent.
-  latte: {
-    light: '#E6D7C7',    // Background tag ringan
-    DEFAULT: '#C8A98A',  // Tag kategori, garis pemisah dekoratif, teks aksen
-    dark: '#A68463',     // Teks latte yang kontras di latar terang
-  },
-
-  // 6. Deep Espresso (#332722) — Deep Surface & Contrast
-  // Karakter: transisi kaya antara charcoal black dan coffee brown.
-  // Role: deep surface, secondary dark section, footer variation, card/background contrast, subtle dark UI.
-  espresso: {
-    light: '#42332D',    // Hover / card surface
-    DEFAULT: '#332722',  // Deep surface / secondary dark section
-    dark: '#241B18',     // Deep border / shadow undertone
-  },
-
-  // Status & Utility Colors (Khusus technical UI, bukan visual brand utama)
+  // Status & Utility Colors (Khusus technical indicator, bukan identitas visual)
   status: {
-    open: '#38A169',     // Hijau untuk badge "Buka Sekarang"
-    openBg: '#1C3829',   // Background badge buka tema gelap
-    closed: '#E53E3E',   // Merah untuk badge "Tutup"
-    closedBg: '#3C1E1E', // Background badge tutup
+    open: '#38A169',     // Hijau untuk dot "Buka Sekarang"
+    openBg: '#1C3829',   // Background dot buka tema gelap
+    closed: '#E53E3E',   // Merah untuk dot "Tutup"
+    closedBg: '#3C1E1E', // Background dot tutup
   }
 };
 ```
 
-### 1.2. Aturan Hierarki Warna (Color Hierarchy)
-- **60% — Charcoal / Dark Canvas (`#20201E`, `#332722`):** Menjaga website tetap *dark, warm, minimal, premium, mature*.
-- **25% — Off-White / Cream (`#F1EEE8`):** Teks utama dan kanvas terang selingan.
-- **10% — Terracotta (`#A6533F`):** Aksen terarah untuk mengarahkan pandangan ke aksi penting (CTA & interaksi).
-- **5% — Coffee / Latte Supporting Colors (`#70483A`, `#C8A98A`):** Jembatan organik nuansa kopi.
+### 1.2. Aturan Hierarki Warna (The 60 - 30 - 10 Rule)
+- **60% — Charcoal Black (`#20201E`):** Kanvas gelap utama, menjaga atmosfer website tetap *mature, warm, clean, dan grounded*.
+- **30% — Warm Off-White (`#F1EEE8`):** Tipografi display, paragraf isi, garis border pemisah, dan panel kontras.
+- **10% — Terracotta Brick (`#A6533F`):** Warna pendukung katalis yang membuat 2 warna wajib tampil hidup, menggugah selera, dan memicu aksi klik (CTA).
+- **PANTANGAN:** Dilarang menambahkan warna ke-4 ke palet visual.
 
 ### 1.3. Konteks Warna per Section (Color Context per Section)
-Setiap section wajib memiliki identitas warna yang jelas, tidak mencampur semua palet sekaligus:
-- **Hero Section:** Charcoal (`#20201E`) + Off-White (`#F1EEE8`) + Aksen Terracotta (`#A6533F`).
-- **Menu Section:** Cream / Light Off-White (`#F1EEE8`) + Charcoal (`#20201E`) + Coffee Brown (`#70483A`).
-- **About Section:** Off-White (`#F1EEE8`) + Charcoal (`#20201E`) + Latte Cream (`#C8A98A`).
-- **Gallery Section:** Charcoal (`#20201E`) + Fokus pada visual fotografi asli.
-- **Location & Reservation CTA:** Terracotta Box (`#A6533F`) + Off-White (`#F1EEE8`) untuk *punchy conversion*.
-- **Footer Section:** Charcoal Darkest (`#141413`) atau Deep Espresso (`#332722`) + Off-White Muted.
+- **Hero Section:** Charcoal Canvas (`#20201E`) + Off-White Type (`#F1EEE8`) + Terracotta CTA (`#A6533F`).
+- **Menu Section:** Charcoal Light Card (`#2C2C29`) + Off-White Price & Name (`#F1EEE8`) + Terracotta Category Tag (`#A6533F`).
+- **About Section:** Charcoal Canvas (`#20201E`) + Off-White Body + Terracotta Accent Quote.
+- **Gallery Section:** Charcoal Canvas (`#20201E`) + Foto Dokumenter Asli.
+- **Location & CTA:** Charcoal Base + Terracotta Button (`#A6533F`) + Off-White Text.
+- **Footer Section:** Charcoal Darkest (`#141413`) + Off-White Muted Type (`#C5BFB2`).
 
 ### 1.4. Aturan Tombol (Button Rules)
 - **Primary CTA:**
   - Background: `terracotta.DEFAULT` (`#A6533F`)
   - Text: `offwhite.DEFAULT` (`#F1EEE8`)
-  - Hover: `terracotta.hover` (`#8E4230`) — subtle, tanpa gradient.
+  - Hover: `terracotta.hover` (`#8E4230`) — solid, tanpa gradient.
 - **Secondary CTA:**
   - Background: `transparent`
-  - Border: `offwhite.DEFAULT` (`#F1EEE8`) atau `latte.DEFAULT` (`#C8A98A`)
+  - Border: `border-offwhite/40`
   - Text: `offwhite.DEFAULT` (`#F1EEE8`)
-  - Hover: Background subtle `rgba(241, 238, 232, 0.08)`, border solid.
+  - Hover: `bg-offwhite/10`, `border-offwhite`.
 
 ### 1.5. Aturan Latar Belakang (Background Rules)
 - **Background Utama yang Diprioritaskan:** `#20201E`, `#F1EEE8`, `#332722`.

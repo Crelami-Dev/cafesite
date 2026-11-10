@@ -1,4 +1,6 @@
-﻿# WhatsApp Bot: upload PDF dari dashboard
+> **ARSIP.** Dokumen ini menggambarkan versi lama (Supabase). Bot sekarang memakai SQLite dan ditautkan lewat dashboard; panduan terkini: `docs/WHATSAPP_BOT_OPENWA_REPORT.md`.
+
+# WhatsApp Bot: upload PDF dari dashboard
 
 1. Jalankan `supabase/06_wa_bot_dashboard.sql` di Supabase SQL Editor setelah `01_schema.sql` dan `04_rag_documents.sql`. Migrasi idempotent; embedding tetap `halfvec(2048)`. CLI ingest juga kini membutuhkan migrasi 06.
 2. Deploy website. Admin melihat **Operasional > WhatsApp Bot**. Staff hanya bisa melihat/mengaksesnya jika `staff_modules.wa_bot.enabled=true` (default false). Jika UI akses tim belum menyediakan toggle, admin dapat mengatur lewat endpoint existing `PUT /api/admin/manage?resource=modules`, body `{"id":"wa_bot","enabled":true}`, dengan bearer token admin.

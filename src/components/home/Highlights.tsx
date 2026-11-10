@@ -72,7 +72,7 @@ export function Highlights() {
                 key={item.id}
                 className="border-t border-charcoal-border/40 pt-4"
               >
-                <Icon className="h-5 w-5 text-latte" />
+                <Icon className="h-5 w-5 text-terracotta" />
                 <h3 className="mt-2.5 text-[15px] font-medium leading-snug text-offwhite">
                   {item.title}
                 </h3>

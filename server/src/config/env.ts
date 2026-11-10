@@ -1,27 +1,30 @@
+import path from "node:path";
 import { config as loadDotenv } from "dotenv";
 
 loadDotenv({ path: ".env.local" });
 loadDotenv();
 
-interface BotEnv {
-  waBotPhone: string;
-  puppeteerExecutablePath: string | undefined;
+export interface BotEnv {
+  /** Nomor bot hanya untuk tampilan (opsional). Pairing dilakukan lewat QR di dashboard. */
+  waBotPhone: string | undefined;
+  waSessionId: string;
+  waSessionDir: string;
+  dbPath: string;
+  botControlHost: string;
+  botControlPort: number;
+  botControlToken: string;
   nvidiaApiKey: string | undefined;
   nvidiaModel: string | undefined;
-  supabaseUrl: string | undefined;
-  supabaseServiceRoleKey: string | undefined;
-  waBotUserId: string | undefined;
   embeddingModel: string | undefined;
   embeddingApiKey: string | undefined;
   embeddingBaseUrl: string | undefined;
+  ragPollMs: number;
   rateLimitMaxPerMinute: number;
   rateLimitWindowMs: number;
+  botIdleMs: number;
+  botReminderMs: number;
   logLevel: "info" | "warn" | "error";
 }
-
-const DEFAULT_RATE_LIMIT_MAX_PER_MINUTE = 5;
-const DEFAULT_RATE_LIMIT_WINDOW_MS = 60_000;
-const DEFAULT_LOG_LEVEL = "info";
 
 function readOptionalInt(name: string, fallback: number): number {
   const value = process.env[name];
@@ -30,121 +33,60 @@ function readOptionalInt(name: string, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function readLogLevel(): "info" | "warn" | "error" {
-  const value = process.env.LOG_LEVEL?.trim().toLowerCase();
-  if (value === "info" || value === "warn" || value === "error") return value;
-  return DEFAULT_LOG_LEVEL;
-}
-
-function readRequired(name: string): string {
-  const value = process.env[name];
-  if (value === undefined || value.trim() === "") {
-    throw new Error(`Environment variable "${name}" wajib diisi. Cek file server/.env.local.`);
-  }
-  return value.trim();
-}
-
 function readOptional(name: string): string | undefined {
   const value = process.env[name];
   if (value === undefined || value.trim() === "") return undefined;
   return value.trim();
 }
 
+function readLogLevel(): BotEnv["logLevel"] {
+  const value = process.env.LOG_LEVEL?.trim().toLowerCase();
+  return value === "warn" || value === "error" ? value : "info";
+}
+
 /**
- * Fase 1 hanya butuh WA_BOT_PHONE. Variabel lain (NVIDIA AI, Supabase,
- * embedding RAG, dst) disiapkan untuk fase berikutnya - dibaca sebagai
- * optional di sini supaya bot tetap bisa start meski belum diisi, tapi
- * tersedia begitu dibutuhkan.
+ * Hanya BOT_CONTROL_TOKEN yang wajib: tanpa token, dashboard tidak bisa mengendalikan bot dan
+ * port kontrol akan terbuka tanpa perlindungan. Variabel AI/embedding opsional; bot tetap
+ * menjawab dari menu dan dokumen lokal kalau kunci AI belum diisi.
  */
 export function loadEnv(): BotEnv {
+  const token = readOptional("BOT_CONTROL_TOKEN");
+  if (!token || token.length < 16) {
+    throw new Error('Environment variable "BOT_CONTROL_TOKEN" wajib diisi minimal 16 karakter (samakan dengan WA_BOT_CONTROL_TOKEN di .env.local Next.js).');
+  }
   return {
-    waBotPhone: readRequired("WA_BOT_PHONE"),
-    puppeteerExecutablePath: readOptional("PUPPETEER_EXECUTABLE_PATH"),
+    waBotPhone: readOptional("WA_BOT_PHONE")?.replace(/^0/, "62"),
+    waSessionId: readOptional("WA_SESSION_ID") ?? "cafesite",
+    waSessionDir: path.resolve(readOptional("WA_SESSION_DIR") ?? "./session"),
+    dbPath: path.resolve(readOptional("DB_PATH") ?? "../.data/cafesite.dev.db"),
+    botControlHost: readOptional("BOT_CONTROL_HOST") ?? "127.0.0.1",
+    botControlPort: readOptionalInt("BOT_CONTROL_PORT", 8787),
+    botControlToken: token,
     nvidiaApiKey: readOptional("NVIDIA_API_KEY"),
     nvidiaModel: readOptional("NVIDIA_MODEL"),
-    supabaseUrl: readOptional("SUPABASE_URL"),
-    supabaseServiceRoleKey: readOptional("SUPABASE_SERVICE_ROLE_KEY"),
-    waBotUserId: readOptional("WA_BOT_USER_ID"),
     embeddingModel: readOptional("EMBEDDING_MODEL"),
     embeddingApiKey: readOptional("EMBEDDING_API_KEY"),
     embeddingBaseUrl: readOptional("EMBEDDING_BASE_URL"),
-    rateLimitMaxPerMinute: readOptionalInt("RATE_LIMIT_MAX_PER_MINUTE", DEFAULT_RATE_LIMIT_MAX_PER_MINUTE),
-    rateLimitWindowMs: readOptionalInt("RATE_LIMIT_WINDOW_MS", DEFAULT_RATE_LIMIT_WINDOW_MS),
+    ragPollMs: Math.max(1000, readOptionalInt("RAG_POLL_MS", 3000)),
+    rateLimitMaxPerMinute: readOptionalInt("RATE_LIMIT_MAX_PER_MINUTE", 5),
+    rateLimitWindowMs: readOptionalInt("RATE_LIMIT_WINDOW_MS", 60_000),
+    botIdleMs: readOptionalInt("BOT_IDLE_MINUTES", 10) * 60_000,
+    botReminderMs: readOptionalInt("BOT_REMINDER_MINUTES", 8) * 60_000,
     logLevel: readLogLevel(),
   };
 }
 
-interface NemotronConfig {
-  apiKey: string;
-  model: string;
+export interface AiConfig { apiKey: string; model: string }
+export interface EmbeddingConfig { apiKey: string; model: string; baseUrl: string }
+
+/** null = AI belum dikonfigurasi; pemanggil jatuh ke jawaban lokal dari menu dan dokumen. */
+export function getAiConfig(env: BotEnv): AiConfig | null {
+  return env.nvidiaApiKey && env.nvidiaModel ? { apiKey: env.nvidiaApiKey, model: env.nvidiaModel } : null;
 }
 
-/**
- * Divalidasi lazy (bukan saat startup) supaya bot tetap bisa jalan dan
- * menjawab guard-only walau NVIDIA_API_KEY/MODEL belum diisi - baru
- * throw begitu pesan lolos guard dan benar-benar butuh panggil AI.
- */
-export function getNemotronConfig(env: BotEnv): NemotronConfig {
-  if (env.nvidiaApiKey === undefined) {
-    throw new Error('Environment variable "NVIDIA_API_KEY" wajib diisi untuk menjawab lewat AI. Cek file server/.env.local.');
-  }
-  if (env.nvidiaModel === undefined) {
-    throw new Error('Environment variable "NVIDIA_MODEL" wajib diisi untuk menjawab lewat AI. Cek file server/.env.local.');
-  }
-  return { apiKey: env.nvidiaApiKey, model: env.nvidiaModel };
+/** null = RAG berjalan dengan pencarian kata kunci saja. */
+export function getEmbeddingConfig(env: BotEnv): EmbeddingConfig | null {
+  return env.embeddingApiKey && env.embeddingModel && env.embeddingBaseUrl
+    ? { apiKey: env.embeddingApiKey, model: env.embeddingModel, baseUrl: env.embeddingBaseUrl }
+    : null;
 }
-
-interface EmbeddingConfig {
-  apiKey: string;
-  model: string;
-  baseUrl: string;
-}
-
-/**
- * Divalidasi lazy juga, dipakai oleh src/rag/embed.ts. Kalau belum diisi,
- * retrieve() di chatHandler cukup melewati konteks RAG (tidak crash bot),
- * dan script ingest CLI akan throw jelas karena memang tidak bisa jalan
- * tanpa config ini.
- */
-export function getEmbeddingConfig(env: BotEnv): EmbeddingConfig {
-  if (env.embeddingApiKey === undefined) {
-    throw new Error('Environment variable "EMBEDDING_API_KEY" wajib diisi untuk RAG. Cek file server/.env.local.');
-  }
-  if (env.embeddingModel === undefined) {
-    throw new Error('Environment variable "EMBEDDING_MODEL" wajib diisi untuk RAG. Cek file server/.env.local.');
-  }
-  if (env.embeddingBaseUrl === undefined) {
-    throw new Error('Environment variable "EMBEDDING_BASE_URL" wajib diisi untuk RAG. Cek file server/.env.local.');
-  }
-  return { apiKey: env.embeddingApiKey, model: env.embeddingModel, baseUrl: env.embeddingBaseUrl };
-}
-
-interface SupabaseConfig {
-  url: string;
-  serviceRoleKey: string;
-}
-
-export function getSupabaseConfig(env: BotEnv): SupabaseConfig {
-  if (env.supabaseUrl === undefined) {
-    throw new Error('Environment variable "SUPABASE_URL" wajib diisi untuk RAG. Cek file server/.env.local.');
-  }
-  if (env.supabaseServiceRoleKey === undefined) {
-    throw new Error('Environment variable "SUPABASE_SERVICE_ROLE_KEY" wajib diisi untuk RAG. Cek file server/.env.local.');
-  }
-  return { url: env.supabaseUrl, serviceRoleKey: env.supabaseServiceRoleKey };
-}
-
-/**
- * Divalidasi lazy juga, dipakai orderFlow sebagai `actor` di RPC
- * create_cafe_order/update_cafe_order. WhatsApp bukan user Supabase, jadi
- * semua order dari bot memakai satu akun bot tetap (dibuat manual di
- * Supabase Auth dashboard) - user_id-nya ditaruh di env ini.
- */
-export function getBotUserId(env: BotEnv): string {
-  if (env.waBotUserId === undefined) {
-    throw new Error('Environment variable "WA_BOT_USER_ID" wajib diisi untuk memproses pesanan. Cek file server/.env.local.');
-  }
-  return env.waBotUserId;
-}
-
-export type { BotEnv };

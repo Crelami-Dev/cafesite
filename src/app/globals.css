@@ -1,7 +1,12 @@
 @import "tailwindcss";
+@import "../../public/assets/motion/motion.css";
 
 @theme {
-  /* 1. Charcoal Black (#20201E) - 60% Primary Dark Canvas */
+  /* ========================================================================= */
+  /* TRIPARTITE 3-COLOR SYSTEM (THE 60 - 30 - 10 RULE)                        */
+  /* ========================================================================= */
+
+  /* 1. Charcoal Black (#20201E) - 60% Core Dark Canvas & Structure */
   --color-charcoal-darkest: #141413;
   --color-charcoal: #20201E;
   --color-charcoal-light: #2C2C29;
@@ -9,35 +14,19 @@
   --color-charcoal-border: #454540;
   --color-charcoal-muted: #63635E;
 
-  /* 2. Warm Off-White (#F1EEE8) - 25% Primary Text & Light Surface */
+  /* 2. Warm Off-White (#F1EEE8) - 30% Core Text, Contrast & Light Surfaces */
   --color-offwhite-pure: #FAF8F5;
   --color-offwhite: #F1EEE8;
   --color-offwhite-subtle: #E8E3D9;
   --color-offwhite-muted: #C5BFB2;
   --color-offwhite-darker: #A8A295;
 
-  /* 3. Terracotta / Brick Red (#A6533F) - 10% Primary Accent & CTA */
+  /* 3. Terracotta Brick (#A6533F) - 10% Supporting Catalyst Pop & Primary Action */
   --color-terracotta-light: #C46B55;
   --color-terracotta: #A6533F;
   --color-terracotta-hover: #8E4230;
   --color-terracotta-dark: #733324;
   --color-terracotta-subtle: #F6EAE7;
-
-  /* 4. Coffee Brown (#70483A) - 5% Secondary Accent & Depth */
-  --color-coffee-light: #8C5E4E;
-  --color-coffee: #70483A;
-  --color-coffee-hover: #5A372B;
-  --color-coffee-dark: #45281E;
-
-  /* 5. Latte Cream (#C8A98A) - Supporting Highlight & Badges */
-  --color-latte-light: #E6D7C7;
-  --color-latte: #C8A98A;
-  --color-latte-dark: #A68463;
-
-  /* 6. Deep Espresso (#332722) - Deep Surface & Footer Contrast */
-  --color-espresso-light: #42332D;
-  --color-espresso: #332722;
-  --color-espresso-dark: #241B18;
 
   /* Font Pairing */
   --font-serif: var(--font-playfair), serif;
@@ -113,6 +102,117 @@ body {
 
 .animate-shake-vertical {
   animation: shake-vertical 0.5s ease-in-out;
+}
+
+/* CafeSite public experience. Dashboard styles stay independent. */
+.cafe-public {
+  --bg: var(--color-charcoal);
+  --ink: var(--color-offwhite);
+  --surface: var(--color-charcoal-light);
+  --accent: var(--color-terracotta);
+  --action: var(--color-terracotta);
+  --line: color-mix(in srgb, var(--ink) 18%, transparent);
+  --ease: cubic-bezier(.2,.8,.2,1);
+  --display: var(--font-serif);
+  --gut: 24px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.public-container { width: min(100% - 48px, 1200px); margin-inline: auto; }
+html:has(.cafe-public) { scroll-behavior:auto; }
+.cafe-public { --nav-h: 72px; }
+.site-header { position: fixed; inset: 0 0 auto; height: var(--nav-h); z-index: 60; background: var(--bg); border-bottom: 1px solid var(--line); }
+.site-bar { width: min(100% - 48px, 1200px); height: 100%; margin-inline: auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.site-links { display: none; align-items: center; gap: 32px; }
+.site-actions { display: flex; align-items: center; gap: 12px; justify-self: end; }
+.nav-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; color: var(--color-offwhite-muted); background-image: linear-gradient(var(--color-terracotta-light), var(--color-terracotta-light)); background-repeat: no-repeat; background-position: 0 calc(100% - 8px); background-size: 0 1px; transition: color .2s var(--ease), background-size .25s var(--ease); }
+.cafe-public .nav-link:hover, .cafe-public .nav-link[aria-current="page"] { color: var(--ink); background-size: 100% 1px; text-decoration: none; }
+.cafe-public .btn.btn--nav { display: none; min-height: 44px; padding: 8px 20px; gap: 8px; font-size: 14px; }
+.nav-toggle { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); transition: background-color .2s var(--ease); }
+@media(min-width:640px) { .cafe-public .btn.btn--nav { display: inline-flex; } }
+@media(min-width:1024px) { .site-bar { display: grid; grid-template-columns: 1fr auto 1fr; } .site-links { display: flex; } .nav-toggle, .mobile-navigation { display: none; } }
+.nav-toggle:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.mobile-navigation { position: fixed; inset: 0; z-index: 80; background: var(--bg); padding: 12px 24px 24px; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; }
+.mobile-navigation__head { display: flex; align-items: center; justify-content: space-between; height: 48px; }
+.mobile-navigation__link { display: flex; align-items: center; justify-content: space-between; min-height: 64px; border-bottom: 1px solid var(--line); font-family: var(--font-serif); font-size: 30px; }
+.mobile-navigation__link[aria-current="page"] { color: var(--color-terracotta-light); }
+.public-main { padding-top: var(--nav-h); }
+.cafe-public .btn { min-height: 48px; padding: 12px 24px; gap: 16px; font-size: 14px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; text-align: center; }
+.cafe-public .btn--primary { background: var(--color-terracotta); color: var(--color-offwhite); }
+.cafe-public .btn--secondary { border: 1px solid var(--line); }
+.cafe-public a[aria-current="page"] { text-decoration: underline; text-decoration-color: var(--color-terracotta-light); text-underline-offset: 8px; }
+.preview-notice { padding: 8px 24px; text-align: center; color: var(--color-offwhite-muted); background: var(--color-charcoal-darkest); font-size: 13px; }
+.public-h1 { font-family: var(--font-serif); font-size: clamp(36px,4.4vw,64px); font-weight: 400; line-height: 1.12; letter-spacing: -.035em; text-wrap: balance; }
+.public-h2 { font-family: var(--font-serif); font-size: clamp(28px,3vw,40px); font-weight: 400; line-height: 1.2; letter-spacing: -.025em; text-wrap: balance; }
+.section-label { font-size: 13px; font-weight: 500; color: var(--color-offwhite-muted); }
+/* Rail geser (mobile saja): kartu berikutnya mengintip dari tepi, snap native tanpa timer. */
+@media(max-width:767px) {
+ .m-rail { display:flex; flex-direction:row; gap:16px; overflow-x:auto; scroll-snap-type:x mandatory; margin-inline:-24px; padding-inline:24px; scroll-padding-inline:24px; padding-bottom:4px; scrollbar-width:none; overscroll-behavior-x:contain; }
+ .m-rail::-webkit-scrollbar { display:none; }
+ .m-rail > * { flex:0 0 min(82%, 320px); min-width:0; scroll-snap-align:start; }
+ .m-rail--sm > * { flex-basis:min(70%, 260px); }
+ .m-rail--uniform > * { aspect-ratio:4 / 5; height:auto; }
+}
+.public-lead { font-size: 18px; line-height: 1.65; color: var(--color-offwhite-muted); }
+.cafe-hero { display:flex; flex-direction:column; min-height:max(calc(100svh - var(--nav-h)), 640px); background:var(--bg); }
+.cafe-hero__photo { position:relative; flex:1 1 0; min-height:260px; overflow:hidden; background:var(--surface); }
+.cafe-hero__photo img { object-fit:cover; object-position:center 58%; transition:transform 1.2s var(--ease); }
+.cafe-hero__photo:hover img { transform:scale(1.025); }
+.cafe-hero__body { padding-block:32px 40px; }
+.cafe-hero__grid { display:grid; gap:24px; }
+.cafe-hero .public-h1 { font-size:clamp(34px,4.6vw,64px); max-width:16ch; }
+.cafe-hero__facts { display:flex; flex-wrap:wrap; gap:6px 20px; margin-top:20px; font-size:14px; color:var(--color-offwhite-muted); }
+.cafe-hero__facts span::before { content:""; display:inline-block; width:6px; height:6px; margin-right:8px; border-radius:50%; background:var(--color-terracotta-light); vertical-align:middle; }
+.cafe-hero__actions { display:flex; flex-direction:column; gap:12px; margin-top:24px; }
+.cafe-hero__actions .btn { width:100%; }
+@media(min-width:640px) { .cafe-hero__actions { flex-direction:row; align-items:center; gap:24px; } .cafe-hero__actions .btn { width:auto; } }
+@media(min-width:1024px) { .cafe-hero__body { padding-block:40px 48px; } .cafe-hero__grid { grid-template-columns:repeat(12,minmax(0,1fr)); column-gap:24px; align-items:end; } .cafe-hero__grid > :first-child { grid-column:1 / span 7; } .cafe-hero__grid > :last-child { grid-column:9 / -1; } .cafe-hero__photo { min-height:340px; } }
+.cafe-public[data-preview="true"] .public-main { padding-top:calc(var(--nav-h) + 38px); }
+.cafe-public[data-preview="true"] .cafe-hero { min-height:max(calc(100svh - var(--nav-h) - 38px), 640px); }
+.cafe-public .preview-notice { position:absolute; top:var(--nav-h); inset-inline:0; min-height:38px; display:flex; align-items:center; justify-content:center; }
+.marketing-section { padding-block: clamp(64px, 8vw, 104px); position: relative; }
+.section-top { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+.page-intro { padding-block: 72px 60px; }
+.public-footer { padding-block: 56px 32px; background: var(--color-charcoal-darkest); border-top: 1px solid var(--line); }
+.phone-action { position: fixed; z-index: 40; bottom: 0; inset-inline: 0; padding: 12px 24px calc(12px + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--line); opacity: 0; pointer-events: none; transform: translateY(calc(100% + env(safe-area-inset-bottom))); transition: transform .24s var(--ease), opacity .18s var(--ease), visibility 0s linear .24s; visibility: hidden; }
+.phone-action--visible { opacity: 1; pointer-events: auto; transform: translateY(0); transition-delay: 0s, 0s, 0s; visibility: visible; }
+.cafe-public [id] { scroll-margin-top: 100px; }
+.cafe-public :where(input,select,textarea) { color-scheme: dark; }
+.menu-anchor { min-height:44px; display:inline-flex; align-items:center; padding:8px 16px; border:1px solid var(--line); border-radius:6px; }
+.public-menu-section { padding-block:64px; border-top:1px solid var(--line); }
+.public-menu-row { display:grid; grid-template-columns:1fr auto; gap:12px; padding-block:24px; border-bottom:1px solid var(--line); }
+.public-menu-row h3 { font-size:18px; font-weight:500; line-height:1.4; }
+.public-menu-row p { font-size:16px; color:var(--color-offwhite-muted); line-height:1.6; }
+.order-grid { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:48px; align-items:start; }
+.order-summary { position:sticky; top:104px; border:1px solid var(--line); background:var(--surface); padding:24px; border-radius:8px; }
+.cafe-public .order-field { width:100%; min-height:48px; padding:12px; background:var(--bg); border:1px solid var(--line); border-radius:6px; color:var(--ink); margin-top:8px; font-size:16px; }
+.order-modal { position:fixed; inset:0; z-index:100; display:grid; place-items:center; padding:24px; background:color-mix(in srgb,var(--bg) 85%,transparent); }
+.order-modal form { width:100%; max-width:480px; max-height:90svh; overflow-y:auto; padding:28px; background:var(--surface); border:1px solid var(--line); border-radius:8px; }
+.cafe-public .link { text-decoration:underline; text-underline-offset:5px; }
+.cafe-public :where(a, button, input, select, textarea):focus-visible { scroll-margin-block:100px; }
+.cafe-public .taste-btn-press:not(.btn):active { background:var(--color-charcoal-lighter); }
+@media(max-width:1023px) {
+ .order-grid { grid-template-columns:1fr; }
+ .order-summary { position:static; }
+ .marketing-section { padding-block: 64px; }
+}
+@media(max-width:639px) {
+ .cafe-public { --nav-h: 60px; }
+ .site-bar { width: min(100% - 32px, 1200px); }
+ .public-h1 { font-size:36px; }
+ .public-lead { font-size:16px; }
+ .section-top { display:block; }
+ .section-top>.link { margin-top:16px; }
+ .page-intro { padding-block:40px; }
+ .marketing-section { padding-block:48px; }
+ .public-footer { padding-block:56px 96px; }
+ .order-modal { padding:12px; align-items:end; }
+ .order-modal form { padding:24px; }
+ .cafe-public .order-card .order-card-image { width:76px; height:96px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ html { scroll-behavior:auto; }
+ .phone-action { transition: none; }
 }
 
 @media print {

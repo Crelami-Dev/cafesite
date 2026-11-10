@@ -3,7 +3,7 @@
 import type { AdminMenuRecord, Order } from "@/types";
 import AdminNotice from "../AdminNotice";
 import { adminButtonClass, adminSecondaryClass } from "../admin-api";
-import { formatRupiah, fulfillmentLabel, queueLabel } from "./order-format";
+import { formatPhone, formatRupiah, fulfillmentLabel, queueLabel, whatsappLink } from "./order-format";
 
 interface OrderDetailDrawerProps {
   order: Order;
@@ -26,13 +26,14 @@ export default function OrderDetailDrawer({ order, menuIndex, busy, menuBusyId, 
           <div className="min-w-0">
             <p className="text-xs text-latte">Rincian pesanan</p>
             <h2 id="order-detail-title" className="mt-1 font-serif text-3xl">{queueLabel(order.queue_number)}</h2>
-            <p className="mt-2 truncate text-sm text-offwhite-muted">{order.customer_name} · {fulfillmentLabel(order)}</p>
+            <p className="mt-2 truncate text-sm text-offwhite-muted">{order.customer_name} · {fulfillmentLabel(order)}{order.source === "whatsapp" ? " · via WhatsApp" : ""}</p>
           </div>
           <button type="button" className="min-h-11 shrink-0 px-2 text-sm text-offwhite-muted hover:text-offwhite" onClick={onClose}>Tutup</button>
         </header>
 
         <section className="grid gap-2 border-b border-charcoal-border py-5 text-sm">
-          <p><span className="text-offwhite-darker">Nomor HP:</span> <a className="text-latte hover:text-latte-light" href={`tel:${order.phone}`}>{order.phone}</a></p>
+          <p><span className="text-offwhite-darker">Pemesan:</span> <strong>{order.customer_name}</strong></p>
+          <p><span className="text-offwhite-darker">Nomor HP:</span> <a className="text-latte hover:text-latte-light" href={`tel:${order.phone}`}>{formatPhone(order.phone)}</a> · <a className="text-latte hover:text-latte-light" href={whatsappLink(order.phone)} target="_blank" rel="noopener noreferrer">Chat WhatsApp</a></p>
           <p><span className="text-offwhite-darker">Pembayaran:</span> {order.payment_status === "paid" ? "Sudah lunas" : "Bayar di kasir"}</p>
           <p><span className="text-offwhite-darker">Total:</span> <strong>{formatRupiah(order.total)}</strong></p>
         </section>

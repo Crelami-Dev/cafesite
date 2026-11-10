@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cafeInfo } from "@/data/cafe";
+import type { OpeningHour } from "@/types";
 import { isOpenNow, OpenStatusResult } from "@/lib/utils";
 
 /**
@@ -13,18 +14,20 @@ import { isOpenNow, OpenStatusResult } from "@/lib/utils";
  */
 export function OpenNowBadge({
   initialStatus,
+  hours = cafeInfo.openingHours,
 }: {
   initialStatus: OpenStatusResult;
+  hours?: OpeningHour[];
 }) {
   const [status, setStatus] = useState<OpenStatusResult>(initialStatus);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setStatus(isOpenNow(cafeInfo.openingHours));
+      setStatus(isOpenNow(hours));
     }, 60_000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [hours]);
 
   return (
     <div

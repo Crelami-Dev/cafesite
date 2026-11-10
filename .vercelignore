@@ -1,0 +1,5 @@
+# Vercel Ignore file
+/.next
+/server
+/node_modules
+*.log

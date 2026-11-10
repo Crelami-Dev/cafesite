@@ -38,7 +38,7 @@ export function FAQSection() {
                 key={faq.id}
                 className="group rounded-md border border-charcoal-border/50 bg-charcoal-light/25 p-4 sm:p-5 text-left transition-all duration-200 open:border-terracotta/40 open:bg-charcoal-light/40 hover:border-charcoal-border"
               >
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-serif text-sm font-medium text-offwhite sm:text-base hover:text-terracotta-light focus-visible:outline-none focus-visible:text-terracotta">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-serif text-sm font-medium text-offwhite sm:text-base hover:text-terracotta-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta focus-visible:text-terracotta">
                   <span>{faq.question}</span>
                   <span className="shrink-0 text-offwhite-muted transition-transform duration-200 group-open:rotate-180">
                     <ChevronDownIcon className="h-4 w-4" />

@@ -8,9 +8,7 @@ module.exports = {
       kill_timeout: 3000,
       restart_delay: 3000,
       autorestart: true,
-      // Bot ini hanya boleh 1 instance - session WhatsApp (LocalAuth) terikat
-      // ke satu proses Chromium, cluster mode akan bikin beberapa proses
-      // rebutan folder server/session/.
+      // Hanya boleh 1 instance: sesi WhatsApp (folder server/session/) terikat ke satu proses Chromium.
       instances: 1,
       exec_mode: "fork",
     },

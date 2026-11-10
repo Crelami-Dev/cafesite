@@ -1,19 +1,20 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { loadEnv, getEmbeddingConfig, getSupabaseConfig } from "../config/env";
-import { createServiceRoleClient } from "../supabase/client";
+import { loadEnv, getEmbeddingConfig } from "../config/env";
+import { openDatabase } from "../db/database";
 import { logger, describeError } from "../whatsapp/logger";
-import { ingestPdf } from "./pipeline";
+import { ingestDocument } from "./pipeline";
+import { makeEmbedder } from "./retrieve";
 
+/** CLI: npm run rag:ingest <file.pdf|file.md> - memasukkan dokumen langsung ke SQLite tanpa dashboard. */
 async function main(): Promise<void> {
   const argument = process.argv[2];
-  if (!argument) throw new Error("Argumen path dokumen wajib diisi. Contoh: npm run rag:ingest docs/info.md atau docs/info.pdf");
+  if (!argument) throw new Error("Argumen path dokumen wajib diisi. Contoh: npm run rag:ingest docs/info.md");
   const filePath = path.resolve(argument);
-  const source = path.basename(filePath);
   const env = loadEnv();
-  const client = createServiceRoleClient(getSupabaseConfig(env));
-  await ingestPdf(client, getEmbeddingConfig(env), await readFile(filePath), source);
-  logger.info("Ingest selesai.", { source });
+  const db = openDatabase(env.dbPath);
+  const result = await ingestDocument(db, makeEmbedder(getEmbeddingConfig(env)), await readFile(filePath), path.basename(filePath));
+  logger.info("Ingest selesai.", { source: path.basename(filePath), chunks: result.chunks, embedded: result.embedded });
 }
 void main().catch((error: unknown) => {
   logger.error("Ingest gagal.", { error: describeError(error) });

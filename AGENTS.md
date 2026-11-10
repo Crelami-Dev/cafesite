@@ -42,11 +42,29 @@ Baca `RPD.md` untuk requirement lengkap sebelum mengerjakan fitur baru.
 - [ ] Apakah layout tidak overflow horizontal di mobile (375px)?
 - [ ] Apakah tidak ada layout shift dari gambar (width/height/aspect-ratio sudah diset)?
 - [ ] Apakah metadata (title/description) sudah diisi kalau menyentuh halaman baru?
-- [ ] Apakah warna yang dipakai sesuai design token, bukan hex manual?
+- [ ] Apakah warna yang dipakai strictly mematuhi sistem 3 warna (Charcoal, Off-White, Terracotta), bukan hex manual atau warna baru?
 
 ---
 
-## 5. Batasan — Jangan Ditambahkan Tanpa Diminta Eksplisit
+## 5. Aturan Sistem Desain (Disiplin 3 Warna) & FigCraft
+
+Semua implementasi visual (baik di FigCraft maupun di kode JSX) WAJIB mematuhi dokumen lengkap di [`.agents/DESIGN_SYSTEM_RULES.md`](.agents/DESIGN_SYSTEM_RULES.md).
+
+### 5.1. Formula 3 Warna Wajib (60 - 30 - 10)
+- **60% Charcoal Black (`#20201E`)** — Latar kanvas utama, navbar, footer, card surface (`bg-charcoal`, `charcoal-light`).
+- **30% Warm Off-White (`#F1EEE8`)** — Teks heading, paragraf, garis pemisah halus (border), dan kontras kartu terang (`text-offwhite`, `border-offwhite/*`).
+- **10% Terracotta Brick (`#A6533F`)** — Warna pendukung katalis pop: Tombol aksi utama (CTA), active state, badge operasional, aksen visual (`bg-terracotta`, `text-terracotta`).
+- **PANTANGAN:** DILARANG menambah warna ke-4 ke palet visual. Variasi kedalaman hanya boleh menggunakan tingkat kontras/surface atau opacity dari Charcoal dan Off-White.
+
+### 5.2. Alur FigCraft / Figma-to-Code
+- FigCraft desktop terhubung melalui loopback port `47800` (`127.0.0.1:47800`).
+- Semua frame utama dibuat berpasangan: **Desktop 1440px** dan **Mobile 390px** dengan auto-layout penuh.
+- Dilarang menginstal paket icon baru — gunakan ikon dari `src/components/ui/icons.tsx`.
+- Validasi tampilan kode terhadap tampilan FigCraft 1:1 sebelum menandai task selesai.
+
+---
+
+## 6. Batasan — Jangan Ditambahkan Tanpa Diminta Eksplisit
 
 Fitur-fitur ini masuk **Phase 2 (berbayar)** dan TIDAK boleh diimplementasikan di versi gratis kecuali diminta secara eksplisit:
 
@@ -60,16 +78,17 @@ Kalau ada request yang mengarah ke fitur-fitur di atas, tanyakan dulu ke user ap
 
 ---
 
-## 6. Referensi Cepat
+## 7. Referensi Cepat
 
 | Butuh info soal... | Baca file |
 |---|---|
 | Requirement bisnis, target user, kriteria sukses | `RPD.md` |
+| Aturan Sistem Desain & Disiplin 3 Warna | `.agents/DESIGN_SYSTEM_RULES.md` |
 | Task apa yang harus dikerjakan & urutannya | `TASK.md` |
 | Struktur folder, data model, rendering strategy | `ARSITEKTUR.md` |
 | Tone & suara copywriting | `BRAND_VOICE.md` |
 | Spesifikasi & brief foto dari client | `PHOTO_BRIEF.md` |
-| Aturan kerja & konvensi kode | `AGENT.md` (dokumen ini) |
+| Aturan kerja & konvensi kode | `AGENTS.md` (dokumen ini) |
 
 <!-- BEGIN:nextjs-agent-rules -->
 

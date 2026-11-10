@@ -1,157 +1,100 @@
-import type { Message, Chat } from "whatsapp-web.js";
-import { loadEnv, getNemotronConfig, type BotEnv } from "./config/env";
-import { createBotClient } from "./whatsapp/client";
-import { logger, setLogLevel, describeError } from "./whatsapp/logger";
-import { hashIdentity, summarizeMessageLength } from "./whatsapp/privacy";
-import { registerGracefulShutdown } from "./whatsapp/shutdown";
-import { handleChat } from "./ai/chatHandler";
-import type { NemotronConfig } from "./ai/nemotronClient";
-import { isOrderIntent } from "./order/intent";
-import { clearSession, hasActiveSession } from "./order/session";
-import { handleOrderMessage } from "./order/orderFlow";
-import { checkRateLimit, pruneRateLimitState, type RateLimitConfig } from "./queue/rateLimit";
-
-import { BotAccess } from "./whatsapp/botAccess";
-
-const access = new BotAccess(clearSession);
-
-const GENERIC_ERROR_REPLY = "Sebentar ya, saya lagi gangguan koneksi. Coba lagi.";
-const AI_NOT_CONFIGURED_REPLY = "Maaf, layanan tanya-jawab AI belum aktif saat ini. Coba lagi nanti ya.";
-const PONG_REPLY = "pong";
-const RATE_LIMIT_PRUNE_INTERVAL_MS = 5 * 60_000;
-
-// Deduplicate and apply per-number opt-in before rate limiting or async work.
-export async function handleIncomingMessage(
-  env: BotEnv,
-  rateLimitConfig: RateLimitConfig,
-  nemotronConfig: NemotronConfig | null,
-  message: Message,
-): Promise<void> {
-  if (message.from === "status@broadcast") return;
-  if (message.fromMe) return;
-  if (message.isStatus) return;
-  if (message.from.endsWith("@g.us")) return;
-  if (typeof message.body !== "string") return;
-
-  const identity = hashIdentity(message.from);
-  const decision = access.accept(message.from, message.id?._serialized ?? "", message.body);
-  if (decision.kind === "ignore") return;
-  // @tutup must take effect even if this sender has exhausted their rate limit.
-  if (decision.kind === "disabled") {
-    await message.reply("Bot dinonaktifkan untuk nomor ini. Ketik @bot untuk mengaktifkan kembali.").catch((error: unknown) => {
-      logger.error("Gagal mengirim konfirmasi penutupan.", { identity, error: describeError(error) });
-    });
-    return;
-  }
-
-  // Rate-limit dicek sebelum panggilan async apapun supaya nomor yang
-  // sedang spam tidak membebani bot dengan request tambahan.
-  const rateLimit = checkRateLimit(message.from, rateLimitConfig);
-  if (!rateLimit.allowed) {
-    logger.warn("Pesan ditahan oleh rate-limit.", { identity, waitMs: rateLimit.waitMs });
-    return;
-  }
-
-  if (decision.kind === "enabled") {
-    await message.reply("Bot aktif untuk nomor ini. Silakan kirim pertanyaan. Ketik @tutup untuk berhenti; bot otomatis nonaktif setelah 5 menit tanpa chat.").catch((error: unknown) => {
-      logger.error("Gagal mengirim konfirmasi aktivasi.", { identity, error: describeError(error) });
-    });
-    return;
-  }
-  if (decision.kind !== "message") return;
-  const text = decision.text;
-
-  // Metadata chat bersifat opsional (misalnya untuk typing indicator).
-  // Jangan hentikan proses pesan jika getChat gagal karena struktur internal WhatsApp Web.
-  let chat: Chat | null = null;
-  try {
-    chat = await message.getChat();
-    if (chat?.isGroup) return;
-  } catch (error: unknown) {
-    logger.warn("Metadata chat tidak dapat dimuat (typing indicator dilewati).", {
-      identity,
-      error: describeError(error),
-    });
-  }
-
-  logger.info("Pesan masuk diterima.", { identity, ...summarizeMessageLength(message.body) });
-
-  if (text.toLowerCase() === "ping") {
-    if (!access.canReply(message.from, decision.token)) return;
-    await message.reply(PONG_REPLY).catch((error: unknown) => {
-      logger.error("Gagal membalas ping.", { identity, error: describeError(error) });
-    });
-    return;
-  }
-
-  let userName = "Pelanggan";
-  try {
-    const contact = await message.getContact();
-    userName = contact.pushname || contact.name || "Pelanggan";
-  } catch (error: unknown) {
-    logger.warn("Gagal mengambil data kontak, pakai nama default.", { identity, error: describeError(error) });
-  }
-
-  const shouldUseOrderFlow = hasActiveSession(message.from) || isOrderIntent(text);
-
-  if (!access.canReply(message.from, decision.token)) return;
-  let reply = GENERIC_ERROR_REPLY;
-  try {
-    if (chat && typeof chat.sendStateTyping === "function") {
-      await chat.sendStateTyping().catch(() => undefined);
-    }
-
-    if (shouldUseOrderFlow) {
-      reply = await handleOrderMessage(env, message.from, text);
-    } else {
-      reply = nemotronConfig === null
-        ? AI_NOT_CONFIGURED_REPLY
-        : await handleChat(nemotronConfig, userName, text);
-    }
-  } catch (error: unknown) {
-    logger.error("Gagal memproses pesan.", { identity, error: describeError(error) });
-  } finally {
-    if (chat && typeof chat.clearState === "function") {
-      await chat.clearState().catch(() => undefined);
-    }
-  }
-
-  if (!access.canReply(message.from, decision.token)) return;
-  try {
-    await message.reply(reply);
-    logger.info("Balasan terkirim.", { identity });
-  } catch (error: unknown) {
-    // A rejected send can already have reached WhatsApp. Never blindly send twice.
-    logger.error("Status pengiriman balasan tidak pasti; tidak dikirim ulang otomatis.", { identity, error: describeError(error) });
-  }
-}
+import { loadEnv, getAiConfig, getEmbeddingConfig } from "./config/env";
+import { openDatabase } from "./db/database";
+import { createOpenWaDriver, createRuntime } from "./whatsapp/client";
+import { createBot } from "./bot";
+import { notifyReadyOrders } from "./order/notify";
+import { startControlServer } from "./control/server";
+import { startRagWorker } from "./rag/worker";
+import { makeEmbedder } from "./rag/retrieve";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { logger, describeError, setLogLevel } from "./whatsapp/logger";
 
 async function main(): Promise<void> {
   const env = loadEnv();
   setLogLevel(env.logLevel);
-  logger.info("Bot CafeSite mulai dijalankan.", { phone: env.waBotPhone, logLevel: env.logLevel });
+  const db = openDatabase(env.dbPath);
+  const ai = getAiConfig(env);
+  const embedder = makeEmbedder(getEmbeddingConfig(env));
+  let bot: ReturnType<typeof createBot>;
+  /** Kirim gagal sesaat (koneksi WhatsApp bergoyang) dicoba sekali lagi supaya pelanggan tidak dibiarkan tanpa balasan. */
+  const sendWithRetry = async (chatId: string, text: string): Promise<void> => {
+    try { await runtime.sendText(chatId, text); }
+    catch (first: unknown) {
+      logger.warn("Kirim pesan gagal, mencoba sekali lagi.", { error: describeError(first) });
+      await new Promise((resolve) => setTimeout(resolve, 2_000));
+      await runtime.sendText(chatId, text);
+    }
+  };
+  const runtime = createRuntime(createOpenWaDriver(env), (message) => bot.handle(message));
+  bot = createBot({ db, env, ai, embedder, send: sendWithRetry });
+  const stats = { startedAt: new Date().toISOString() };
 
-  let nemotronConfig: NemotronConfig | null = null;
-  try {
-    nemotronConfig = getNemotronConfig(env);
-  } catch (error: unknown) {
-    logger.warn("Konfigurasi AI belum lengkap. Bot tetap jalan, tapi pertanyaan cafe akan dibalas pesan 'belum aktif'.", {
-      error: describeError(error),
-    });
-  }
+  // Ingat apakah pengguna ingin bot menyala, agar reboot/restart tersambung sendiri tanpa membuka dashboard.
+  const flag = path.join(env.waSessionDir, "autostart");
+  const setAutostart = (on: boolean): void => { try { if (on) { mkdirSync(env.waSessionDir, { recursive: true }); writeFileSync(flag, "1"); } else rmSync(flag, { force: true }); } catch { /* non-fatal */ } };
+  const controlled = {
+    ...runtime,
+    start: async () => { setAutostart(true); await runtime.start(); },
+    stop: async () => { setAutostart(false); await runtime.stop(); },
+    logout: async () => { setAutostart(false); await runtime.logout(); },
+  };
 
-  const rateLimitConfig: RateLimitConfig = { maxPerMinute: env.rateLimitMaxPerMinute, windowMs: env.rateLimitWindowMs };
-  logger.info("Rate-limit diaktifkan.", { ...rateLimitConfig });
-  setInterval(() => pruneRateLimitState(rateLimitConfig), RATE_LIMIT_PRUNE_INTERVAL_MS).unref();
+  const control = startControlServer(controlled, {
+    host: env.botControlHost,
+    port: env.botControlPort,
+    token: env.botControlToken,
+    phone: env.waBotPhone,
+    stats: () => ({
+      ...stats,
+      messagesHandled: bot.stats.messagesHandled,
+      ai: ai ? "aktif" : "lokal (NVIDIA_API_KEY belum diisi)",
+      embedding: embedder ? "aktif" : "kata kunci",
+      documents: Number(db.prepare("SELECT COUNT(*) AS n FROM rag_jobs WHERE status = 'done'").get()?.n ?? 0),
+    }),
+  });
+  const failControl = (error: NodeJS.ErrnoException): void => {
+    logger.error(error.code === "EADDRINUSE"
+      ? `Port kontrol ${env.botControlPort} sudah dipakai: ada bot lain yang masih berjalan. Hentikan dulu bot lama (satu sesi WhatsApp tidak boleh dipakai dua bot sekaligus, nanti WhatsApp ter-logout).`
+      : "Server kontrol gagal.", { error: describeError(error) });
+    process.exit(1);
+  };
+  control.on("error", failControl);
+  // Pastikan hanya ada SATU bot: port harus berhasil dikunci SEBELUM menyentuh sesi WhatsApp (mematikan Chrome sisa, memulihkan berkas sesi).
+  await new Promise<void>((resolve) => { control.once("listening", resolve); control.once("error", () => undefined); });
+  const worker = startRagWorker(db, embedder, env.ragPollMs);
 
-  setInterval(() => access.prune(), 30_000).unref();
+  const timer = setInterval(() => bot.tick(), 30_000);
+  timer.unref();
+  // Kasir menandai pesanan "siap" di dashboard -> pelanggan diberi tahu lewat WhatsApp (nomor HP yang diisi saat memesan).
+  let notifying = false;
+  const notifyTimer = setInterval(() => {
+    if (notifying || runtime.status().state !== "connected") return;
+    notifying = true;
+    void notifyReadyOrders(db, (chatId, text) => runtime.sendText(chatId, text)).finally(() => { notifying = false; });
+  }, 5_000);
+  notifyTimer.unref();
 
-  const bot = createBotClient(env, (message) => handleIncomingMessage(env, rateLimitConfig, nemotronConfig, message));
-  registerGracefulShutdown(bot.client, bot.cancelReconnect);
-  await bot.start();
+  let closing = false;
+  const shutdown = (signal: string): void => {
+    if (closing) return;
+    closing = true;
+    logger.info("Bot dihentikan.", { signal });
+    clearInterval(timer);
+    clearInterval(notifyTimer);
+    worker.stop();
+    control.close();
+    void runtime.stop().finally(() => { db.close(); process.exit(0); });
+    setTimeout(() => process.exit(0), 8_000).unref();
+  };
+  process.once("SIGINT", () => shutdown("SIGINT"));
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+
+  logger.info("Bot siap. Hubungkan WhatsApp lewat Dashboard > WhatsApp Bot.", { control: `${env.botControlHost}:${env.botControlPort}`, db: env.dbPath });
+  if (existsSync(flag)) await runtime.start();
 }
 
-if (require.main === module) void main().catch((error: unknown) => {
-  logger.error("Bot gagal start.", { error: describeError(error) });
-  process.exitCode = 1;
+void main().catch((error: unknown) => {
+  logger.error("Bot gagal dimulai.", { error: describeError(error) });
+  process.exit(1);
 });

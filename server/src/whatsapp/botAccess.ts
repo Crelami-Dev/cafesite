@@ -1,53 +1,33 @@
-﻿export type BotDecision =
+export type BotDecision =
   | { kind: "ignore" }
   | { kind: "enabled" | "disabled" }
   | { kind: "message"; text: string; token: object };
-interface Conversation { active: boolean; expiresAt: number; token: object; }
-export const BOT_IDLE_MS = 5 * 60_000;
+
+interface Conversation { expiresAt: number; token: object; reminded: boolean; }
 const DEDUP_MS = 60 * 60_000;
 
-/** In-memory state for one bot process. Commands are handled before any await. */
+/** Session state is intentionally in memory: no personal chat history is retained. */
 export class BotAccess {
   private readonly conversations = new Map<string, Conversation>();
   private readonly seen = new Map<string, number>();
-  constructor(private readonly onClose: (from: string) => void = () => undefined) {}
+  constructor(private readonly idleMs: number, private readonly reminderMs: number, private readonly onClose: (from: string) => void = () => undefined) {}
 
   accept(from: string, id: string, body: string, now = Date.now()): BotDecision {
-    if (!id) return { kind: "ignore" };
-    const key = `${from}:${id}`;
-    if ((this.seen.get(key) ?? 0) > now) return { kind: "ignore" };
-    this.seen.set(key, now + DEDUP_MS);
-    let session = this.conversations.get(from);
-    if (session && session.expiresAt <= now) {
-      this.conversations.delete(from); this.onClose(from); session = undefined;
-    }
+    if (!id || (this.seen.get(`${from}:${id}`) ?? 0) > now) return { kind: "ignore" };
+    this.seen.set(`${from}:${id}`, now + DEDUP_MS);
     const text = body.trim();
-    if (/^@tutup$/i.test(text)) {
-      this.conversations.delete(from); this.onClose(from);
-      return { kind: "disabled" };
-    }
-    if (/^@bot$/i.test(text)) {
-      this.conversations.set(from, { active: true, expiresAt: now + BOT_IDLE_MS, token: session?.token ?? {} });
-      return { kind: "enabled" };
-    }
-    const prefix = /^@bot\s+/i.test(text);
-    if (!session?.active && !prefix) return { kind: "ignore" };
-    const current = session ?? { active: false, expiresAt: now + BOT_IDLE_MS, token: {} };
-    current.expiresAt = now + BOT_IDLE_MS;
-    this.conversations.set(from, current);
-    const content = prefix ? text.replace(/^@bot\s+/i, "").trim() : text;
-    return content ? { kind: "message", text: content, token: current.token } : { kind: "ignore" };
-  }
-
-  canReply(from: string, token: object, now = Date.now()): boolean {
+    const existing = this.conversations.get(from);
+    if (existing && existing.expiresAt <= now) { this.conversations.delete(from); this.onClose(from); }
+    if (/^(tutup bot|@tutup)$/i.test(text)) { this.conversations.delete(from); this.onClose(from); return { kind: "disabled" }; }
+    if (/^halo bot[!. ]*$/i.test(text)) { this.conversations.set(from, { expiresAt: now + this.idleMs, token: existing?.token ?? {}, reminded: false }); return { kind: "enabled" }; }
     const session = this.conversations.get(from);
-    return session?.token === token && session.expiresAt > now;
+    if (!session) return { kind: "ignore" };
+    session.expiresAt = now + this.idleMs;
+    session.reminded = false;
+    return text ? { kind: "message", text, token: session.token } : { kind: "ignore" };
   }
 
-  prune(now = Date.now()): void {
-    for (const [key, expiry] of this.seen) if (expiry <= now) this.seen.delete(key);
-    for (const [from, session] of this.conversations) {
-      if (session.expiresAt <= now) { this.conversations.delete(from); this.onClose(from); }
-    }
-  }
+  canReply(from: string, token: object, now = Date.now()): boolean { const session = this.conversations.get(from); return session?.token === token && session.expiresAt > now; }
+  dueReminders(now = Date.now()): string[] { const due: string[] = []; for (const [from, session] of this.conversations) if (!session.reminded && session.expiresAt - now <= this.idleMs - this.reminderMs && session.expiresAt > now) { session.reminded = true; due.push(from); } return due; }
+  prune(now = Date.now()): void { for (const [key, expiry] of this.seen) if (expiry <= now) this.seen.delete(key); for (const [from, session] of this.conversations) if (session.expiresAt <= now) { this.conversations.delete(from); this.onClose(from); } }
 }

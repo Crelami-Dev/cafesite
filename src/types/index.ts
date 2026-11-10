@@ -106,6 +106,7 @@ export interface LocationFaqItem {
 export type WhatsAppContext = "general" | "reservation" | "menu_inquiry" | "group_booking";
 
 export interface PublicContent {
+  cafeConfirmed: boolean;
   cafe: CafeInfo;
   menu: MenuItem[];
   gallery: GalleryPhoto[];
@@ -114,6 +115,10 @@ export interface PublicContent {
   location: TransportGuideItem[];
   configured: boolean;
 }
+
+export interface PublicIntroProps { label: string; title: string; description: string }
+export interface CafePhotoProps { src: string; alt: string; className?: string; moment?: boolean; priority?: boolean; sizes?: string }
+export interface VisitPanelProps { cafe: CafeInfo; configured: boolean }
 
 export interface PublicContentProviderProps {
   data: PublicContent;

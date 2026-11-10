@@ -1,4 +1,15 @@
-import { apiError, authorizeStaff, bodyJson, dbError, json } from "@/lib/server/api";
-import { textValue, uuidValue } from "@/lib/server/validation";
-export async function GET(request:Request):Promise<Response>{try{const {db}=await authorizeStaff(request,"orders");const {data,error}=await db.from("orders").select("*, order_items(*)").order("created_at",{ascending:false}).limit(100);dbError(error);const orders=(data??[]).map(({order_items,...order})=>({...order,items:order_items??[]}));return json({orders});}catch(error){return apiError(error)}}
-export async function PATCH(request:Request):Promise<Response>{try{const {db}=await authorizeStaff(request,"orders");const input=await bodyJson(request);const id=uuidValue(input.id);const status=input.status===undefined?null:textValue(input.status,"Status",20);const markPaid=input.markPaid===true;const {data,error}=await db.rpc("update_cafe_order",{order_uuid:id,next_status:status,mark_paid:markPaid});dbError(error);return json({order:data});}catch(error){return apiError(error)}}
+import { listLocalOrders, updateLocalOrder } from "@/lib/server/local-admin";
+import { localError, localJson } from "@/lib/server/local-api";
+import { requireLocalAdmin } from "@/lib/server/local-session";
+import { objectValue } from "@/lib/server/validation";
+
+export async function GET(request: Request): Promise<Response> {
+  try { await requireLocalAdmin(request); return localJson(listLocalOrders()); } catch (error) { return localError(error); }
+}
+
+export async function PATCH(request: Request): Promise<Response> {
+  try {
+    await requireLocalAdmin(request);
+    return localJson(updateLocalOrder(objectValue(await request.json().catch(() => null))));
+  } catch (error) { return localError(error); }
+}

@@ -2,26 +2,29 @@
   "name": "cafesite-wa-bot",
   "version": "0.1.0",
   "private": true,
-  "description": "Bot WhatsApp CafeSite (wa-webjs) - standalone Node.js service, terpisah dari Next.js.",
+  "description": "Bot WhatsApp CafeSite (OpenWA + SQLite) - service Node.js terpisah dari Next.js, dikendalikan lewat dashboard.",
   "type": "commonjs",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
     "rag:ingest": "tsx src/rag/ingest.ts",
-    "rag:watch": "tsx src/rag/watch.ts"
+    "dev:watch": "tsx watch src/index.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.116.0",
     "dotenv": "^16.4.5",
     "pdf-parse": "^2.4.5",
-    "qrcode-terminal": "^0.12.0",
-    "whatsapp-web.js": "^1.26.0"
+    "@open-wa/wa-automate": "^5.1.0",
+    "openai": "^6.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
-    "@types/qrcode-terminal": "^0.12.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=22.5"
   }
 }

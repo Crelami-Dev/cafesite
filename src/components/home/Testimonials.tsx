@@ -2,20 +2,25 @@
 
 import { useRef } from "react";
 import { Container } from "@/components/ui/Container";
-import { SectionHeading } from "@/components/ui/SectionHeading";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
   StarIcon,
 } from "@/components/ui/icons";
-import { testimonials } from "@/data/testimonials";
+import type { Testimonial } from "@/types";
 
 /**
  * Testimonials Section — Client Component
  * Carousel scroll-snap tanpa library: swipe native + tombol panah.
  */
-export function Testimonials() {
+export function Testimonials({
+  testimonials,
+}: { testimonials?: Testimonial[] } = {}): React.JSX.Element | null {
   const trackRef = useRef<HTMLDivElement | null>(null);
+
+  if (!testimonials || testimonials.length === 0) {
+    return null;
+  }
 
   function scrollByDir(dir: number) {
     const track = trackRef.current;
@@ -28,18 +33,19 @@ export function Testimonials() {
   return (
     <section
       id="testimonials"
-      aria-label="Ulasan Pengunjung"
+      aria-labelledby="testimonials-heading"
       className="border-b border-charcoal-border/30 bg-charcoal py-16 md:py-24"
     >
       <Container size="default">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <SectionHeading
-            eyebrow="KATA MEREKA"
-            title="Kata mereka yang sering mampir"
-            description="Bukan dari kami, tapi dari yang tiap minggu mampir. Dengerin aja."
-            align="left"
-            className="lg:mb-0"
-          />
+          <div>
+            <h2 id="testimonials-heading" className="public-h2">
+              Kata mereka yang <em className="italic font-serif">sering</em> mampir.
+            </h2>
+            <p className="mt-3.5 max-w-2xl text-sm leading-relaxed text-offwhite-muted md:text-base">
+              Bukan dari kami, tapi dari yang tiap minggu mampir. Dengerin aja.
+            </p>
+          </div>
           <div className="hidden shrink-0 gap-3 lg:flex">
             <button
               type="button"
@@ -72,7 +78,7 @@ export function Testimonials() {
               data-card
               className="flex w-[85%] shrink-0 snap-start flex-col rounded-md border border-charcoal-border/50 bg-charcoal-light/50 p-6 sm:w-[calc((100%-16px)/2)] lg:w-[calc((100%-32px)/3)]"
             >
-              <div className="flex items-center gap-2 text-latte">
+              <div className="flex items-center gap-2 text-terracotta-light">
                 <StarIcon className="h-4 w-4" />
                 <span className="text-xs font-medium text-offwhite">
                   {item.rating.toFixed(1)}

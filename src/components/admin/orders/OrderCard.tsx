@@ -1,5 +1,5 @@
 import type { Order, OrderStatus } from "@/types";
-import { formatRupiah, fulfillmentLabel, nextOrderAction, queueLabel, urgencyClass, waitingLabel } from "./order-format";
+import { formatPhone, formatRupiah, fulfillmentLabel, nextOrderAction, queueLabel, urgencyClass, waitingLabel } from "./order-format";
 
 interface OrderCardProps {
   order: Order;
@@ -20,7 +20,9 @@ export default function OrderCard({ order, now, busy, error, onOpen, onUpdate }:
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="font-serif text-2xl leading-none text-offwhite">{queueLabel(order.queue_number)}</p>
-            <p className="mt-1.5 truncate text-xs text-offwhite-darker">{order.customer_name} · {fulfillmentLabel(order)}</p>
+            <p className="mt-2 truncate text-sm font-semibold text-offwhite">{order.customer_name}</p>
+            <p className="mt-0.5 truncate text-xs text-latte">{formatPhone(order.phone)}</p>
+            <p className="mt-0.5 truncate text-xs text-offwhite-darker">{fulfillmentLabel(order)}{order.source === "whatsapp" ? " · via WhatsApp" : ""}</p>
           </div>
           <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold whitespace-nowrap ${active ? urgencyClass(order.created_at, now) : "border-charcoal-border bg-charcoal-light text-offwhite-muted"}`}>
             {active ? waitingLabel(order.created_at, now) : "Tuntas"}

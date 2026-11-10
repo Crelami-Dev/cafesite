@@ -1,4 +1,4 @@
-﻿# TASK.md — Task Breakdown
+# TASK.md — Task Breakdown
 ## Project: CafeSite
 
 Status: `Not Started` | `In Progress` | `Done`
@@ -195,8 +195,9 @@ Update status di setiap task seiring progress.
 ## Tugas Terbaru — Draft (masih dipikirkan)
 
 ### WA Bot — Plan (+ Prompt per Phase) di `WA_BOT_PLAN.md`
-> Bot WhatsApp (wa-webjs) di folder `server/` terpisah dari Next.js. AI memakai Nemotron 3.5 Lightning via **NVIDIA API langsung** (`integrate.api.nvidia.com`, model `nvidia/nemotron-3.5-lightning-30b-a3b`, env `NVIDIA_API_KEY`/`NVIDIA_MODEL`). RAG di Supabase + pgvector. Order dev pakai keyword `bayar` (payment gateway iPaymu ditunda, lihat `ipaymu.md`).
+> Bot WhatsApp (OpenWA) di folder `server/` terpisah dari Next.js. Dashboard menangani pairing QR melalui control API privat; NVIDIA, Supabase, dan token bot tetap hanya di server. Order menggunakan COD dengan keyword `konfirmasi`.
 > - [x] Riset model Nemotron (Lightning/Nano Omni/Ultra) + harga & model ID
+> - [x] Migrasi OpenWA, kontrol QR dashboard privat, sesi `halo bot`, semantic cache RAG, dan checkout COD `konfirmasi`.
 > - [x] Implementasi Phase 1 (folder `server/` + wa-webjs login/QR/reconnect) & Phase 2 (AI Hub Nemotron via NVIDIA API + guard topik) — build 0 error
 > - [x] Implementasi Phase 3 (RAG: `server/src/rag/` + SQL `supabase/04_rag_documents.sql`, embedding NVIDIA `nv-embedqa-e5-v5`, CLI `rag:ingest`) — build 0 error
 
@@ -274,8 +275,61 @@ Update status di setiap task seiring progress.
 
 ## Perbaikan kontrol percakapan WhatsApp
 - [x] Deduplikasi ID pesan sebelum async, hilangkan fallback kirim ulang yang berpotensi membalas dua kali.
+- [x] Kompatibilitas ID pesan WhatsApp Web terbaru (`$1` maupun `_serialized`) agar pesan masuk tidak terfilter diam-diam.
 - [x] Awalan @bot untuk satu pertanyaan; @bot saja aktifkan mode per nomor, @tutup nonaktifkan bahkan saat rate-limit.
 - [x] Timeout 5 menit tanpa chat, pembersihan sesi sementara, dan pembatalan balasan AI yang masih diproses.
 - [x] Build bot sukses; 5 tes regresi lolos (isolasi nomor, awalan, timeout, deduplikasi, pengiriman tanpa fallback, tutup saat AI berjalan/rate-limit).
 - [ ] Uji pengiriman WhatsApp langsung setelah restart proses bot deployment.
 
+## Redesign UI Publik CafeSite
+
+- [x] Terapkan sistem visual charcoal/off-white/terracotta, kontainer bersama, dan tipografi editorial pada tujuh route publik.
+- [x] Satukan navigasi, CTA Pesan sekarang, menu mobile dengan focus trap, dan action bar yang mengikuti visibilitas CTA.
+- [x] Susun ulang Home, Menu, Tentang, Galeri, dan Lokasi; kurasi galeri berdasarkan hash foto lokal agar duplikat tidak muncul.
+- [x] Rapikan Order: ringkasan desktop, bar keranjang mobile, quantity, catatan, COD, serta checkout yang mempertahankan kode meja QR.
+- [x] Rapikan Status Pesanan: antrean, tahapan, ringkasan item, pembayaran, retry, serta subscription realtime yang sudah ada.
+- [x] Pertahankan data contoh dengan penanda yang terlihat; jangan tampilkan status buka dari jam yang belum dikonfirmasi.
+- [x] Build produksi dan lint berhasil; tes browser 49 kombinasi route/lebar 1440, 1024, 820, 768, 390, 375, 320px tanpa overflow.
+- [x] Uji browser navigasi/keyboard, filter/lightbox, quantity, persistensi cart, kode meja checkout, pilihan takeaway, dan Escape. Tidak mengirim pesanan sungguhan.
+- [x] Total 69 pemeriksaan browser lulus, termasuk lima state pesanan dan pembayaran melalui fixture lokal. Copy Home lolos tanpa FAIL/WARN.
+- [x] Simpan screenshot desktop/mobile untuk tujuh route, fixture status siap, dan ring fokus Tab. Ukur performa tiga run: median FCP/LCP lokal 312ms desktop / 160ms mobile, CLS 0.000.
+- [x] Dokumentasikan hasil gate OPEN 8, waiver CSS motion yang dibundel Next.js, temuan checker performa, dan batas verifikasi Supabase di UI_REDESIGN_NOTES.md.
+- [x] Refinement frontend publik via design-taste-frontend & FigCraft v2 (hapus hack min-height 100/200svh & light-section, pulihkan copy hangat, sekuens Beranda lengkap, mikro-interaksi taktil, build 0 error).
+- [x] Haluskan action bar mobile: CTA Pesan sekarang meluncur dari bawah setelah CTA hero lewat, serta kembali turun ketika aksi yang setara terlihat.
+- [ ] Uji checkout COD dan pembaruan realtime end-to-end dengan Supabase test yang terhubung; koneksi database lokal saat ini gagal.
+
+## Perbaikan visual CafeSite — komposisi khusus
+
+- [x] Audit refinement terbaru; ringkas hero dan hilangkan klaim roasting, angka Wi-Fi, quote, serta value-pillars tambahan dari halaman yang tampil.
+- [x] Buat komposisi khusus beranda: headline literal, foto panorama, menu off-white tanpa panel kartu, foto suasana, dan informasi kunjungan dari sumber konten bersama.
+- [x] Rapikan copy Menu/Tentang/Galeri/Lokasi, harga menu, footer, dan gutter mobile; tanpa mengubah API maupun fitur pemesanan.
+- [x] Build produksi dan lint pertama lulus.
+- [x] Selesaikan pemeriksaan browser dan simpan hasil terbaru di UI_REPAIR_NOTES.md.
+
+## Revamp Homepage CafeSite (HOMEPAGE_SPEC.md — Task 1 s/d Task 7)
+
+- [x] **Task 1 — Pure Logic & Data Pemilih Menu ("Bingung pesan apa?")**: `src/lib/menu-recommendation.ts` & `src/data/menu-picker.ts` (fungsi murni deterministik, fallback `isFeatured`, TypeScript strict).
+- [x] **Task 2 — Section 1 (Hero) & Section 2 (Cara Pesan dari Mejamu)**: `Hero.tsx` dengan CTA `/order` & `/menu` + `OpenNowBadge` kondisional; `OrderGuideSection.tsx` dengan penomoran tipografis 01–03 & opsi bawa pulang.
+- [x] **Task 3 — Section 3 (Menu Pilihan 6 Item) & Section 4 (Pemilih Menu Interaktif)**: `FeaturedMenu.tsx` (6 item unggulan, `tabular-nums`, latar `bg-offwhite`) & `MenuPicker.tsx` (Client Component, 2 langkah filter chip, hasil `aria-live="polite"`, reset state).
+- [x] **Task 4 — Section 5 (Mau Duduk di Mana?) & Section 6 (Fasilitas Bergaris)**: `SeatingGuide.tsx` (layout asimetris 4 zona foto nyata) & `FacilitiesBar.tsx` (daftar ringkas bergaris tanpa kartu, bebas klaim palsu "100 Mbps").
+- [x] **Task 5 — Section 7 (Galeri), Section 8 (Testimoni Kondisional), Section 9 (Tanya Jawab FAQ)**: `GalleryPreview.tsx` (bento interaktif, bebas `text-latte`), `Testimonials.tsx` (render kondisional hanya jika data CMS tidak kosong), `HomeFaq.tsx` (native `<details>/<summary>`).
+- [x] **Task 6 — Integrasi Total Homepage (`page.tsx`) & Polish VisitPanel**: Urutan 10 section sesuai `HOMEPAGE_SPEC.md` (`Hero` → `OrderGuideSection` → `FeaturedMenu` → `MenuPicker` → `SeatingGuide` → `FacilitiesBar` → `GalleryPreview` → `Testimonials` → `HomeFaq` → `VisitPanel`), 1 `<h1>` per halaman.
+- [x] **Task 7 — Audit QA Kumulatif & Browser Testing**: Grep anti-AI-slop 0 pelanggaran (`backdrop-blur`, `animate-pulse`, `bg-gradient`, `text-latte`, `"100 Mbps"`, `"SCA Active Member"`, `"2.400"`), `npm run lint` & `npm run build` exit 0, serta 74/74 browser assertions di `.taste-skill/check-public-ui.mjs` PASS (49 kombinasi route×resolusi + interaksi MenuPicker & FAQ).
+
+## WhatsApp Bot — SQLite + kontrol lewat dashboard (selesai)
+- [x] Seluruh data bot (menu, meja, pesanan, dokumen RAG, cache) pindah ke SQLite bersama `.data/cafesite.dev.db`; tidak ada koneksi ke Supabase (server maupun browser).
+- [x] Panel dashboard WhatsApp Bot: Hubungkan → QR → Terhubung, Batalkan, Sambung ulang, Putuskan, Keluar & ganti nomor; unggah dokumen seret-letak.
+- [x] Perbaikan: OpenWA tanpa binary zstd, token kontrol tidak sinkron, `connect` menggantung, disconnect tidak menutup Chromium, filter pesan grup/sendiri, cookie login lokal bertanda tangan + cek Origin.
+- [x] Dashboard mode lokal: bootstrap, pesanan, menu/meja/lantai/konten, unggah foto menu — semuanya SQLite.
+- [x] Bot menjawab dari menu live + fakta kafe + dokumen; tetap jalan tanpa kunci AI/embedding; pencarian hibrida; cache jawaban dengan sidik jari data.
+- [x] 48 tes otomatis (`cd server && npm test`) + uji langsung: QR asli, dashboard→bot, dokumen→bot→NVIDIA, siklus pesanan. Laporan: `docs/WHATSAPP_BOT_OPENWA_REPORT.md`.
+- [ ] Pindai QR dengan ponsel sungguhan dan uji `halo bot` → pesan → konfirmasi → muncul di dashboard.
+- [ ] Jalankan `next build` produksi (belum dijalankan; dev, tsc, eslint lolos).
+- [ ] Halaman pesan web publik (`/order`) belum punya backend SQLite (reuse `createCafeOrder`).
+
+- [x] RAG v2: pemotongan per bagian berjudul, stemmer + sinonim Indonesia, BM25 + RRF, ingatan percakapan, cache dihapus tiap dokumen berubah, gaya jawaban singkat dan hangat, pengaman sesi login. 63 tes; pencarian 34/34 dan held-out 12/12 (lama 24/34 dan 9/12).
+- [ ] Scan QR sekali lagi, restart bot, dan pastikan tersambung tanpa QR (pengaman sesi belum teruji pada sesi nyata).
+- [x] Pemesanan chat v2: multi-menu dalam satu pesan, catatan item, edit keranjang (tambah/kurangi/hapus/ganti), daftar menu dari database, baca-ulang sebelum simpan, validasi ulang harga/ketersediaan, pemetaan AI dengan pengaman (usulan bila ragu), tanda via WhatsApp di dashboard. 83 tes.
+- [ ] Uji pesanan dine-in dengan meja nyata (isi lantai & meja di dashboard) dan percakapan dari ponsel sungguhan.
+- [x] Perbaikan dari percakapan WhatsApp nyata: typo/kata pengisi, niat memesan, obrolan ringan tanpa AI, kafe tanpa meja, keluar ramah dari sesi pesan, status/batalkan/ubah pesanan tersimpan. 93 tes (termasuk replay percakapan asli).
+- [ ] Ulangi uji lewat ponsel setelah perbaikan; pesanan uji pertama (antrian 1, catatan 'late'/'maciato') masih ada di dashboard dan bisa dibatalkan/dihapus.

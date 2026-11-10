@@ -1,0 +1,14 @@
+// @types/node 20 belum punya node:sqlite (bawaan Node 22+). Deklarasi minimal yang kita pakai.
+declare module "node:sqlite" {
+  export class DatabaseSync {
+    constructor(path: string);
+    exec(sql: string): void;
+    prepare(sql: string): StatementSync;
+    close(): void;
+  }
+  export class StatementSync {
+    all(...params: unknown[]): Record<string, unknown>[];
+    get(...params: unknown[]): Record<string, unknown> | undefined;
+    run(...params: unknown[]): { changes: number | bigint; lastInsertRowid: number | bigint };
+  }
+}

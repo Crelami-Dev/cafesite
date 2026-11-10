@@ -1,99 +1,57 @@
 import Image from "next/image";
-import { Button } from "@/components/ui/Button";
+import Link from "next/link";
 import { Container } from "@/components/ui/Container";
-import { SectionHeading } from "@/components/ui/SectionHeading";
-import { ArrowRightIcon, ImageIcon } from "@/components/ui/icons";
-import { menuItems } from "@/data/menu";
+import { getMenuItems } from "@/lib/content";
 import { formatPrice } from "@/lib/utils";
 import type { MenuItem } from "@/types";
 
-/**
- * MenuItemTile — Kartu menu favorit proporsional (Server Component)
- * Mobile: Baris horizontal kompak (thumb 64px + nama + harga) hemat ruang layar.
- * Tablet & Desktop: Grid 3 kolom seimbang dengan rasio thumbnail 4:3 yang proporsional,
- * tidak raksasa/col-span-2 agar selaras dengan ritme visual section lain di Home.
- */
-function MenuItemTile({ item }: { item: MenuItem }) {
+export async function FeaturedMenu({
+  items: propItems,
+}: { items?: MenuItem[] } = {}): Promise<React.JSX.Element> {
+  const menu = propItems ?? (await getMenuItems());
+  const available = menu.filter((item) => item.isAvailable !== false);
+  const featured = available.filter((item) => item.isFeatured);
+  const nonFeatured = available.filter((item) => !item.isFeatured);
+  const items = [...featured, ...nonFeatured].slice(0, 6);
   return (
-    <article className="group flex items-center gap-3 rounded-md border border-charcoal-border/50 bg-charcoal-light/40 p-2.5 transition-colors hover:border-charcoal-border md:flex-col md:items-stretch md:gap-0 md:overflow-hidden md:p-0">
-      {/* Thumbnail Foto Menu */}
-      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-charcoal-lighter md:h-auto md:w-full md:rounded-none md:aspect-[4/3]">
-        {item.image ? (
-          <Image
-            src={item.image}
-            alt={item.name}
-            fill
-            sizes="(max-width: 768px) 64px, (max-width: 1200px) 33vw, 380px"
-            className="object-cover object-center transition-transform duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <ImageIcon className="h-6 w-6 text-charcoal-muted md:h-7 md:w-7" />
-          </div>
-        )}
-      </div>
-
-      <div className="min-w-0 flex-1 flex flex-col justify-between md:p-5">
-        <div>
-          <div className="flex items-baseline justify-between gap-2 md:flex-col md:items-start md:gap-1">
-            <h3 className="truncate font-serif text-base font-medium tracking-tight text-offwhite md:text-lg">
-              {item.name}
-            </h3>
-            <span className="shrink-0 font-mono text-sm font-semibold text-latte">
-              {formatPrice(item.price)}
-            </span>
-          </div>
-
-          <p className="mt-0.5 line-clamp-1 text-xs leading-snug text-offwhite-muted md:mt-2 md:line-clamp-2 md:leading-relaxed">
-            {item.description}
-          </p>
+    <section id="menu-unggulan" aria-labelledby="featured-heading" className="bg-offwhite py-14 text-charcoal md:py-24">
+      <Container>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <h2 id="featured-heading" className="public-h2">Pilihan dari menu kami.</h2>
+          <Link href="/menu" className="link inline-flex min-h-11 items-center text-sm">Lihat semua menu <span className="ml-3" aria-hidden="true">↗</span></Link>
         </div>
-
-        {item.tags?.[0] && (
-          <span className="mt-3 hidden text-[10px] font-medium uppercase tracking-wider text-offwhite-darker md:inline-block">
-            {item.tags[0]}
-          </span>
-        )}
-      </div>
-    </article>
-  );
-}
-
-/**
- * FeaturedMenu Section — Server Component
- * Menampilkan 3 menu unggulan terfavorit dalam 3-kolom seragam di tablet & desktop.
- */
-export function FeaturedMenu() {
-  const featuredList = menuItems.filter((item) => item.isFeatured).slice(0, 3);
-
-  return (
-    <section
-      id="featured-menu"
-      aria-label="Menu Unggulan"
-      className="border-b border-charcoal-border/30 bg-charcoal py-16 md:py-24"
-    >
-      <Container size="default">
-        <SectionHeading
-          eyebrow="PILIHAN TERFAVORIT"
-          title="Menu yang paling sering di-order"
-          description="Kopi susu buat nemenin kerja, camilan gurih buat ngobrol — rata-rata meja di sini selalu punya salah satunya. Bingung mulai dari mana? Mulai dari tiga ini."
-          align="left"
-        />
-
-        {featuredList.length > 0 && (
-          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3 md:gap-4 lg:gap-6">
-            {featuredList.map((item) => (
-              <MenuItemTile key={item.id} item={item} />
-            ))}
-          </div>
-        )}
-
-        <div className="mt-10 flex justify-center md:justify-start">
-          <Button variant="outline" size="lg" href="/menu">
-            <span>Lihat Semua Menu</span>
-            <ArrowRightIcon className="h-4 w-4 text-latte" />
-          </Button>
+        <div className="m-rail mt-8 grid gap-6 md:mt-10 md:grid-cols-3">
+          {items.map((item) => (
+            <Link
+              href="/order"
+              key={item.id}
+              className="group flex min-h-11 min-w-0 flex-col border-b border-charcoal/20 pb-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta"
+              aria-label={`Pesan ${item.name}, ${formatPrice(item.price)}`}
+            >
+              {item.image && (
+                <div className="m-zoom relative aspect-[4/3] overflow-hidden bg-charcoal/10">
+                  <Image
+                    src={item.image}
+                    alt={item.name}
+                    fill
+                    sizes="(min-width: 1248px) 384px, (min-width: 768px) 33vw, 100vw"
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              <div className="mt-4 flex items-baseline justify-between gap-4">
+                <h3 className="text-lg font-medium leading-snug">{item.name}</h3>
+                <span className="shrink-0 text-base font-medium tabular-nums">{formatPrice(item.price)}</span>
+              </div>
+              {item.description && (
+                <p className="mt-1 line-clamp-2 text-sm text-charcoal/75">
+                  {item.description}
+                </p>
+              )}
+            </Link>
+          ))}
         </div>
+        {!items.length && <p className="mt-8">Menu sedang diperbarui.</p>}
       </Container>
     </section>
   );

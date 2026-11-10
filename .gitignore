@@ -40,5 +40,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+/.taste-skill/
 
 .vercel
+.env*
+
+# SQLite dev
+.data/
+
+# Foto menu yang diunggah lewat dashboard (mode lokal)
+public/uploads/

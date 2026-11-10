@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { SITE_URL, siteConfig } from "@/config/site";
-import { buildLocalBusinessJsonLd, buildWebSiteJsonLd } from "@/lib/seo";
+import { buildWebSiteJsonLd } from "@/lib/seo";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -73,13 +73,12 @@ export default function RootLayout({
     <html lang="id" data-scroll-behavior="smooth" className={`${playfair.variable} ${plusJakarta.variable}`}>
       <body className="min-h-screen bg-charcoal text-offwhite font-sans antialiased">
         {/* Structured data — LocalBusiness & WebSite (SEO / AI search) */}
-        <JsonLd data={buildLocalBusinessJsonLd()} />
         <JsonLd data={buildWebSiteJsonLd()} />
 
         {/* Skip to content link for accessibility */}
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:px-4 focus:py-2 focus:bg-terracotta focus:text-offwhite focus:rounded-md focus:text-sm focus:font-medium"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[120] focus:px-4 focus:py-2 focus:bg-terracotta focus:text-offwhite focus:rounded-md focus:text-sm focus:font-medium"
         >
           Langsung ke konten utama
         </a>

@@ -1,19 +1,9 @@
 import type { ChatMessage } from "./types";
+import OpenAI from "openai";
 import { logger, describeError } from "../whatsapp/logger";
 
-const NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_ATTEMPTS = 2; // percobaan pertama + 1x retry
-
-interface NvidiaChoice {
-  message?: {
-    content?: string;
-  };
-}
-
-interface NvidiaResponseBody {
-  choices?: NvidiaChoice[];
-}
 
 interface NemotronConfig {
   apiKey: string;
@@ -24,34 +14,14 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function callNvidiaApi(config: NemotronConfig, messages: ChatMessage[]): Promise<string> {
+async function callNvidiaApi(config: NemotronConfig, messages: ChatMessage[], temperature: number): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(NVIDIA_API_URL, {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: config.model,
-        messages,
-        temperature: 1,
-        top_p: 0.95,
-        max_tokens: 1024,
-        stream: false,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => "");
-      throw new Error(`NVIDIA API merespons status ${response.status}: ${errorBody.slice(0, 300)}`);
-    }
-
-    const data = (await response.json()) as NvidiaResponseBody;
+    const client = new OpenAI({ apiKey: config.apiKey, baseURL: "https://integrate.api.nvidia.com/v1" });
+    const request = { model: config.model, messages, temperature, max_tokens: 768, stream: false, chat_template_kwargs: { enable_thinking: false } };
+    const data = await client.chat.completions.create(request as never, { signal: controller.signal });
     const content = data.choices?.[0]?.message?.content;
     if (typeof content !== "string" || content.trim() === "") {
       throw new Error("NVIDIA API tidak mengembalikan konten jawaban yang valid.");
@@ -71,12 +41,12 @@ async function callNvidiaApi(config: NemotronConfig, messages: ChatMessage[]): P
  * jelas kalau tetap gagal - dibiarkan ditangani pemanggil (chatHandler)
  * supaya bot tidak crash.
  */
-export async function askAI(config: NemotronConfig, messages: ChatMessage[]): Promise<string> {
+export async function askAI(config: NemotronConfig, messages: ChatMessage[], options: { temperature?: number } = {}): Promise<string> {
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     try {
-      return await callNvidiaApi(config, messages);
+      return await callNvidiaApi(config, messages, options.temperature ?? 0.2);
     } catch (error: unknown) {
       lastError = error;
       logger.warn("Percobaan panggilan NVIDIA API gagal.", { attempt, maxAttempts: MAX_ATTEMPTS, error: describeError(error) });

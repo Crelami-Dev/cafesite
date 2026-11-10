@@ -1,40 +1,50 @@
 import type { Metadata } from "next";
-import { AboutPreview } from "@/components/home/AboutPreview";
-import { FeaturedMenu } from "@/components/home/FeaturedMenu";
-import { GalleryPreview } from "@/components/home/GalleryPreview";
 import { Hero } from "@/components/home/Hero";
-import { Highlights } from "@/components/home/Highlights";
-import { LocationCTA } from "@/components/home/LocationCTA";
+import { OrderGuideSection } from "@/components/home/OrderGuideSection";
+import { FeaturedMenu } from "@/components/home/FeaturedMenu";
+import { MenuPicker } from "@/components/home/MenuPicker";
+import { SeatingGuide } from "@/components/home/SeatingGuide";
+import { FacilitiesBar } from "@/components/home/FacilitiesBar";
+import { GalleryPreview } from "@/components/home/GalleryPreview";
 import { Testimonials } from "@/components/home/Testimonials";
-import { cafeInfo } from "@/data/cafe";
-import { isOpenNow } from "@/lib/utils";
+import { HomeFaq } from "@/components/home/HomeFaq";
+import { VisitPanel } from "@/components/public/VisitPanel";
+import { faqItems } from "@/data/faq";
+import { getPublicContent } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Kafe Nyaman & Kopi Enak di Jakarta Selatan",
+  title: "Kopi & Makanan di CafeSite",
   description:
-    "Kafe enak dan nyaman di Jakarta Selatan buat ngopi, nongkrong, atau kerja remote. Biji single origin Nusantara, Wi-Fi kencang, colokan di tiap meja, dan fasilitas semi-outdoor. Temukan menu & suasana CafeSite.",
+    "Lihat menu dan harga CafeSite, pesan untuk makan di tempat atau bawa pulang, serta cek lokasi dan jam operasional.",
   path: "/",
-  keywords: ["cafe enak Jakarta Selatan", "kafe nyaman", "tempat nongkrong enak"],
+  keywords: [
+    "cafe enak Jakarta Selatan",
+    "kafe nyaman",
+    "tempat nongkrong enak",
+    "single origin kopi",
+    "work from cafe jakarta",
+  ],
 });
 
-/**
- * HomePage — Halaman Beranda Utama CafeSite (Server Component)
- * Komposisi bersih: Hero → Highlights → FeaturedMenu → AboutPreview → GalleryPreview → Testimonials → LocationCTA.
- * initialStatus dihitung server sekali untuk diteruskan ke komponen yang membutuhkannya.
- */
-export default function HomePage() {
-  const initialStatus = isOpenNow(cafeInfo.openingHours);
+export default async function HomePage(): Promise<React.JSX.Element> {
+  const content = await getPublicContent();
+  const availableMenuItems = content.menu.filter(
+    (item) => item.isAvailable !== false,
+  );
 
   return (
     <>
       <Hero />
-      <Highlights />
-      <FeaturedMenu />
-      <AboutPreview />
+      <OrderGuideSection />
+      <FeaturedMenu items={content.menu} />
+      <MenuPicker items={availableMenuItems} />
+      <SeatingGuide />
+      <FacilitiesBar />
       <GalleryPreview />
-      <Testimonials />
-      <LocationCTA initialStatus={initialStatus} />
+      <Testimonials testimonials={content.testimonials} />
+      <HomeFaq items={faqItems} />
+      <VisitPanel cafe={content.cafe} configured={content.cafeConfirmed} />
     </>
   );
 }

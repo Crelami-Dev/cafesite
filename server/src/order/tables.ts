@@ -1,4 +1,4 @@
-import { createServiceRoleClient, type SupabaseConfig } from "../supabase/client";
+import type { Db } from "../db/database";
 
 export interface AvailableTable {
   id: string;
@@ -6,43 +6,20 @@ export interface AvailableTable {
   floorName: string;
 }
 
-interface TableRow {
-  id: string;
-  label: string;
-  status: string;
-  floor_id: string;
+/** Jumlah meja yang diatur di dashboard (berapa pun statusnya). 0 = kafe belum memakai pengaturan meja. */
+export function countTables(db: Db): number {
+  return Number(db.prepare("SELECT COUNT(*) AS n FROM cafe_tables").get()?.n ?? 0);
 }
 
-interface FloorRow {
-  id: string;
-  name: string;
-}
-
-/**
- * Ambil meja berstatus 'available' saja (bukan occupied/dirty), dilengkapi
- * nama lantai untuk ditampilkan ke pelanggan saat memilih meja dine-in.
- */
-export async function fetchAvailableTables(supabaseConfig: SupabaseConfig): Promise<AvailableTable[]> {
-  const client = createServiceRoleClient(supabaseConfig);
-
-  const [tablesResult, floorsResult] = await Promise.all([
-    client.from("cafe_tables").select("id, label, status, floor_id").eq("status", "available"),
-    client.from("floors").select("id, name"),
-  ]);
-
-  if (tablesResult.error) {
-    throw new Error(`Gagal membaca daftar meja: ${tablesResult.error.message}`);
-  }
-  if (floorsResult.error) {
-    throw new Error(`Gagal membaca daftar lantai: ${floorsResult.error.message}`);
-  }
-
-  const floorNameById = new Map((floorsResult.data as FloorRow[]).map((floor) => [floor.id, floor.name]));
-  const tables = tablesResult.data as TableRow[];
-
-  return tables.map((table) => ({
-    id: table.id,
-    label: table.label,
-    floorName: floorNameById.get(table.floor_id) ?? "",
-  }));
+/** Meja berstatus 'available' saja (bukan occupied/dirty), lengkap dengan nama lantai. */
+export function fetchAvailableTables(db: Db): AvailableTable[] {
+  return db
+    .prepare(
+      `SELECT t.id, t.label, COALESCE(f.name, '') AS floor_name
+       FROM cafe_tables t LEFT JOIN floors f ON f.id = t.floor_id
+       WHERE t.status = 'available'
+       ORDER BY COALESCE(f.sort_order, 0), t.id`,
+    )
+    .all()
+    .map((row) => ({ id: String(row.id), label: String(row.label), floorName: String(row.floor_name) }));
 }

@@ -21,14 +21,14 @@ export function Container({
 }: ContainerProps) {
   const sizeClasses = {
     narrow: "max-w-4xl",
-    default: "max-w-6xl",
-    wide: "max-w-7xl",
+    default: "max-w-[1200px]",
+    wide: "max-w-[1200px]",
   };
 
   return (
     <Component
       id={id}
-      className={`w-full mx-auto px-4 sm:px-6 lg:px-8 ${sizeClasses[size]} ${className}`.trim()}
+      className={`wrap w-[calc(100%-48px)] mx-auto ${sizeClasses[size]} ${className}`.trim()}
     >
       {children}
     </Component>

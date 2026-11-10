@@ -2,7 +2,9 @@ import type { ReactNode } from "react";
 import type { MenuItem } from "./index";
 
 export type AdminModule = "orders" | "menu" | "tables" | "cafe" | "gallery" | "testimonials" | "faq" | "location" | "reports" | "modules" | "wa_bot";
-export interface RagIngestJob { id: string; file_path: string; source: string; status: "pending" | "processing" | "done" | "failed"; error: string | null; created_at: string; updated_at: string; }
+export interface RagIngestJob { id: string; source: string; status: "pending" | "processing" | "done" | "failed"; error: string | null; note: string | null; size: number; chunks: number; created_at: string; updated_at: string; }
+export type WaState = "stopped" | "connecting" | "awaiting_qr" | "connected" | "reconnecting" | "error";
+export interface WaBotStatus { state: WaState; lastConnectedAt: string | null; qr: string | null; error: string | null; phone: string | null; configuredPhone?: string | null; ai?: string; embedding?: string; messagesHandled?: number; documents?: number; startedAt?: string; }
 export interface AdminProfile { id: string; role: "admin" | "staff"; }
 export interface AdminModuleSetting { id: string; enabled: boolean; }
 export interface AdminBootstrap { profile: AdminProfile; modules: AdminModuleSetting[]; }

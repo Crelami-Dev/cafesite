@@ -1,3 +1,5 @@
+> **ARSIP.** Dokumen ini menggambarkan versi lama (Supabase). Bot sekarang memakai SQLite dan ditautkan lewat dashboard; panduan terkini: `docs/WHATSAPP_BOT_OPENWA_REPORT.md`.
+
 # WA_BOT_PLAN.md — Plan Bot WhatsApp CafeSite (wa-webjs + Nemotron + RAG)
 
 > Dokumen ini berisi **rencana kerja sampai bot stabil/"fix"** dan **prompt per phase** yang siap di-paste ke AI coding agent. Bot jalan di folder `server/` (project Node.js + TypeScript terpisah, BUKAN di dalam Next.js). AI milik bot memakai **NVIDIA Nemotron** via **NVIDIA API langsung** (`integrate.api.nvidia.com`), bukan OpenRouter.

@@ -1,3 +1,4 @@
+import type { CartOp } from "./cart";
 export interface CartLine {
   menuItemId: string;
   name: string;
@@ -22,13 +23,24 @@ export interface OrderSession {
   customerName: string | null;
   phone: string | null;
   idempotencyKey: string;
+  /** Nomor WhatsApp pengirim (kalau chat id berupa nomor), ditawarkan sebagai nomor konfirmasi. */
+  suggestedPhone: string | null;
+  /** Usulan AI yang menunggu jawaban "ya" dari pelanggan (tidak masuk keranjang sebelum dikonfirmasi). */
+  suggestion: CartOp[] | null;
+  /** Berapa pesan berturut-turut yang tidak dipahami sebagai pesanan (untuk keluar dari mode pesan dengan ramah). */
+  misses: number;
+  /** Bot baru saja menawarkan takeaway karena meja penuh; "ya/yaudah" berarti setuju. */
+  offeredTakeaway: boolean;
+  /** Petunjuk cara mengubah pesanan baru ditampilkan sekali per sesi. */
+  tipShown: boolean;
   lastActivity: number;
 }
 
 const SESSION_TIMEOUT_MS = 10 * 60_000;
 const sessions = new Map<string, OrderSession>();
 
-function newSession(): OrderSession {
+function newSession(chatId: string): OrderSession {
+  const digits = /^([0-9]{8,15})@c\.us$/.exec(chatId)?.[1] ?? null;
   return {
     step: "collecting_items",
     cart: [],
@@ -37,6 +49,11 @@ function newSession(): OrderSession {
     customerName: null,
     phone: null,
     idempotencyKey: crypto.randomUUID(),
+    suggestedPhone: digits,
+    suggestion: null,
+    misses: 0,
+    offeredTakeaway: false,
+    tipShown: false,
     lastActivity: Date.now(),
   };
 }
@@ -69,7 +86,7 @@ export function hasActiveSession(chatId: string): boolean {
  * idempotency_key) di tabel orders.
  */
 export function startSession(chatId: string): OrderSession {
-  const session = newSession();
+  const session = newSession(chatId);
   sessions.set(chatId, session);
   return session;
 }
