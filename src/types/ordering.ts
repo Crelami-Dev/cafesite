@@ -11,7 +11,9 @@ export interface CartContextValue {
   clear: () => void;
 }
 export interface CartProviderProps { children: ReactNode }
-export interface OrderMenuProps { initialMenu: MenuItem[]; tableCode: string; addToOrderId: string }
+/** Meja hasil scan QR (key kosong di mode Supabase). */
+export interface OrderTable { id: string; label: string; status: "available" | "occupied" | "dirty"; key: string }
+export interface OrderMenuProps { initialMenu: MenuItem[]; table: OrderTable | null }
 export interface OrderMenuCardProps { item: MenuItem; quantity: number; onAdd: () => void; onDecrease: () => void }
 export interface CartDrawerProps {
   open: boolean;

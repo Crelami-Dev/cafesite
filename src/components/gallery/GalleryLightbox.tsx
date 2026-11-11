@@ -87,10 +87,24 @@ export function GalleryLightbox({
               alt={photo.alt || photo.title || "Foto CafeSite"}
               fill
               sizes="(min-width:1024px) 1000px, 100vw"
+              unoptimized={!photo.src.startsWith("/Image/")}
               className="object-contain"
             />
           )}
         </div>
+        {(photo.title || photo.caption || photo.year) && (
+          <div className="mt-3 text-center">
+            {photo.title && (
+              <p className="font-serif text-lg text-offwhite">
+                {photo.title}
+                {photo.year ? ` · ${photo.year}` : ""}
+              </p>
+            )}
+            {photo.caption && (
+              <p className="mt-1 text-sm text-offwhite-muted">{photo.caption}</p>
+            )}
+          </div>
+        )}
         <div className="mt-4 flex justify-between">
           <button
             className="grid h-12 w-12 place-items-center border border-offwhite/25"

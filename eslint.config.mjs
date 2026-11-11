@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Vendored design tooling and its unchanged browser assets are not app source.
     ".agents/skills/**",
+    ".claude/**",
+    ".data/**",
     ".taste-skill/**",
     "public/assets/**",
   ]),

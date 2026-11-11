@@ -1,0 +1,5 @@
+import {notFound,redirect} from "next/navigation";
+import {dashboardAccount} from "@/lib/server/dashboard-auth";
+import {dashboardNavigation} from "@/lib/admin-navigation";
+import DashboardModule from "@/components/admin/DashboardModule";
+export default async function ModulePage({params}:{params:Promise<{module:string}>}):Promise<React.JSX.Element>{const {module}=await params;const item=dashboardNavigation.find(n=>n.href===`/dashboard/${module}`);if(!item&&module!=="password")notFound();const account=await dashboardAccount();if(!account)redirect("/auth");if(account.mustChangePassword&&module!=="password")redirect("/dashboard/password");if(item&&account.profile.role!=="admin"&&!account.modules.some(m=>m.id===item.id&&m.enabled))return <section className="rounded-xl border border-offwhite/10 p-6"><h2 className="font-serif text-2xl">Akses belum tersedia</h2><p className="mt-3 text-sm text-offwhite-muted">Minta pemilik mengaktifkan akses halaman ini untuk akun Anda.</p></section>;return <DashboardModule module={item?.id??"password"}/>;}

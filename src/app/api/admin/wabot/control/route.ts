@@ -1,23 +1,59 @@
 import { localError, localJson } from "@/lib/server/local-api";
 import { requireLocalAdmin } from "@/lib/server/local-session";
 import { HttpError } from "@/lib/server/validation";
+import type { WaBotStatus } from "@/types";
 
 const ACTIONS = ["connect", "restart", "disconnect", "logout"] as const;
 type Action = (typeof ACTIONS)[number];
+
+function offlineStatus(reason: string): WaBotStatus {
+  return {
+    state: "stopped",
+    serviceOffline: true,
+    offlineReason: reason,
+    lastConnectedAt: null,
+    qr: null,
+    error: null,
+    phone: null,
+  };
+}
 
 /** Teruskan perintah ke server bot (loopback) memakai token privat; token tidak pernah sampai ke browser. */
 async function control(path: string, method: "GET" | "POST"): Promise<Response> {
   const base = process.env.WA_BOT_CONTROL_URL;
   const token = process.env.WA_BOT_CONTROL_TOKEN;
-  if (!base || !token) throw new HttpError(503, "Kontrol bot belum dikonfigurasi. Isi WA_BOT_CONTROL_URL dan WA_BOT_CONTROL_TOKEN di .env.local.");
+  if (!base || !token) {
+    if (method === "GET") {
+      return localJson(offlineStatus("Kontrol bot belum dikonfigurasi di .env.local."));
+    }
+    throw new HttpError(503, "Kontrol bot belum dikonfigurasi. Isi WA_BOT_CONTROL_URL dan WA_BOT_CONTROL_TOKEN di .env.local.");
+  }
   let result: Response;
   try {
-    result = await fetch(new URL(`/internal/control/${path}`, base), { method, headers: { Authorization: `Bearer ${token}` }, cache: "no-store", signal: AbortSignal.timeout(8_000) });
+    result = await fetch(new URL(`/internal/control/${path}`, base), {
+      method,
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(4_000),
+    });
   } catch {
-    throw new HttpError(503, "Server bot belum berjalan. Jalankan `npm run dev` di folder server/ lalu coba lagi.");
+    if (method === "GET") {
+      return localJson(offlineStatus("Layanan bot WhatsApp sedang tidak dijalankan."));
+    }
+    throw new HttpError(503, "Layanan bot WhatsApp belum berjalan.");
   }
-  if (result.status === 401) throw new HttpError(503, "Token kontrol tidak cocok. Samakan WA_BOT_CONTROL_TOKEN dengan BOT_CONTROL_TOKEN di server/.env.local.");
-  if (!result.ok) throw new HttpError(503, "Server bot tidak dapat dihubungi.");
+  if (result.status === 401) {
+    if (method === "GET") {
+      return localJson(offlineStatus("Token kontrol bot tidak cocok antara .env.local dan server/.env.local."));
+    }
+    throw new HttpError(503, "Token kontrol tidak cocok. Samakan WA_BOT_CONTROL_TOKEN dengan BOT_CONTROL_TOKEN di server/.env.local.");
+  }
+  if (!result.ok) {
+    if (method === "GET") {
+      return localJson(offlineStatus("Layanan bot WhatsApp sedang tidak dapat dihubungi."));
+    }
+    throw new HttpError(503, "Server bot tidak dapat dihubungi.");
+  }
   return localJson(await result.json());
 }
 

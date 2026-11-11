@@ -1,21 +1,22 @@
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { CafePhoto } from "./CafePhoto";
-import { getMenuItems } from "@/lib/content";
+import { getPublicContent } from "@/lib/content";
 import { menuCategories } from "@/data/menu";
 import { formatPrice } from "@/lib/utils";
 export async function MenuCollection(): Promise<React.JSX.Element> {
-  const items = await getMenuItems();
+  const { menu: items, categories } = await getPublicContent();
+  const activeCategories = categories && categories.length > 0 ? categories : menuCategories;
   const ids = Array.from(
     new Set([
-      ...menuCategories.map((category) => category.id),
+      ...activeCategories.map((category) => category.id),
       ...items.map((item) => item.category),
     ]),
   );
   const groups = ids
     .map((id) => ({
       id,
-      name: menuCategories.find((category) => category.id === id)?.name ?? id,
+      name: activeCategories.find((category) => category.id === id)?.name ?? id,
       items: items.filter((item) => item.category === id),
     }))
     .filter((group) => group.items.length);
@@ -42,7 +43,7 @@ export async function MenuCollection(): Promise<React.JSX.Element> {
         >
           <Container>
             <div className="grid gap-8 lg:grid-cols-[1fr_1.3fr] lg:gap-20">
-              <div>
+              <div data-reveal>
                 <p className="section-label">
                   {String(index + 1).padStart(2, "0")}
                 </p>
@@ -56,12 +57,12 @@ export async function MenuCollection(): Promise<React.JSX.Element> {
                   />
                 )}
               </div>
-              <div>
+              <div data-reveal-group>
                 {group.items.map((item) => (
                   <article key={item.id} className="public-menu-row">
                     <div>
                       <h3 className="text-lg font-medium text-offwhite">{item.name}</h3>
-                      <p className="mt-1.5 text-sm text-offwhite-muted leading-relaxed">{item.description}</p>
+                      <p className="mt-1.5 text-base text-offwhite-muted leading-relaxed">{item.description}</p>
                       {item.isAvailable === false && (
                         <span className="mt-2 inline-block text-sm font-medium text-terracotta-light">
                           Sedang habis
@@ -75,7 +76,7 @@ export async function MenuCollection(): Promise<React.JSX.Element> {
                 ))}
                 <Link
                   className="link mt-6 inline-flex min-h-12 items-center"
-                  href="/order"
+                  href={`/order#order-${group.id}`}
                 >
                   Pesan dari kategori ini ↗
                 </Link>

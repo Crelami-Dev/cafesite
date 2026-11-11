@@ -12,13 +12,13 @@ interface TableGridProps {
 
 export default function TableGrid(props: TableGridProps): React.JSX.Element {
   return (
-    <section className="rounded-2xl border border-charcoal-border bg-charcoal p-5 md:p-6">
+    <section className="rounded-xl border border-charcoal-border bg-charcoal p-5 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-serif text-2xl">Meja di lantai ini</h2>
           <p className="mt-1 text-xs text-offwhite-darker">Status meja terbaca sekilas oleh tim kedai.</p>
         </div>
-        <button type="button" className="inline-flex min-h-11 items-center rounded-xl border border-charcoal-border px-4 text-sm transition hover:border-latte" onClick={props.onAdd}>
+        <button type="button" className="inline-flex min-h-11 items-center rounded-xl border border-charcoal-border px-4 text-sm transition hover:border-offwhite" onClick={props.onAdd}>
           Tambah meja
         </button>
       </div>
@@ -26,7 +26,7 @@ export default function TableGrid(props: TableGridProps): React.JSX.Element {
       {props.tables.length === 0 ? (
         <div className="mt-5 rounded-xl border border-dashed border-charcoal-border p-7 text-center">
           <p className="text-sm text-offwhite-muted">Belum ada meja di lantai ini.</p>
-          <button type="button" className="mt-3 min-h-11 text-sm font-semibold text-latte hover:text-latte-light" onClick={props.onAdd}>
+          <button type="button" className="mt-3 min-h-11 text-sm font-semibold text-offwhite-muted hover:text-offwhite" onClick={props.onAdd}>
             Tambahkan meja pertama
           </button>
         </div>

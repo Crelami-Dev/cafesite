@@ -57,7 +57,7 @@ export default function AdminManage({ module }: { module: AdminModule }): React.
   }
 
   return (
-    <section className="rounded-2xl border border-charcoal-border bg-charcoal p-5 md:p-6">
+    <section className="rounded-xl border border-charcoal-border bg-charcoal p-5 md:p-6">
       <header>
         <h2 className="font-serif text-2xl">{meta?.title ?? module}</h2>
         <p className="mt-1.5 max-w-xl text-sm leading-6 text-offwhite-darker">{meta?.note}</p>
@@ -70,13 +70,13 @@ export default function AdminManage({ module }: { module: AdminModule }): React.
             id={`${module}-json`}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            className="min-h-72 w-full rounded-xl border border-charcoal-border bg-charcoal-darkest p-4 font-mono text-xs leading-6 text-offwhite outline-none transition focus:border-latte"
+            className="min-h-72 w-full rounded-xl border border-charcoal-border bg-charcoal-darkest p-4 font-mono text-xs leading-6 text-offwhite outline-none transition focus:border-offwhite"
           />
           <div className="mt-4 flex flex-wrap items-center gap-4">
             <button type="button" onClick={() => void save()} disabled={busy} className={adminButtonClass}>
               {busy ? "Menyimpan…" : "Simpan perubahan"}
             </button>
-            {message && <p className="text-sm text-latte">{message}</p>}
+            {message && <p className="text-sm text-offwhite-muted">{message}</p>}
           </div>
         </div>
       ) : (

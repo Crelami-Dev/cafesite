@@ -1,4 +1,3 @@
-import React from "react";
 import { Container } from "@/components/ui/Container";
 import {
   WifiIcon,
@@ -17,66 +16,71 @@ interface FacilityItem {
 const facilitiesData: FacilityItem[] = [
   {
     id: "wifi",
-    title: "Wi-Fi stabil",
+    title: "Wi-Fi kencang & stabil",
     description:
-      "Koneksi memadai untuk kerja remote atau kirim berkas tanpa putus.",
+      "Cukup untuk meeting online, kirim berkas, dan kerja remote seharian tanpa putus.",
     icon: WifiIcon,
   },
   {
     id: "plug",
-    title: "Stopkontak di beberapa area",
+    title: "Stopkontak di hampir tiap meja",
     description:
-      "Tersedia di meja kerja dan sudut dinding untuk mengisi daya perangkat.",
+      "Tersedia di meja jendela, meja komunal, dan sudut dinding tanpa rebutan.",
     icon: PlugIcon,
   },
   {
     id: "outdoor",
-    title: "Semi-outdoor teduh",
+    title: "Area semi-outdoor teduh",
     description:
-      "Area santai dengan sirkulasi udara alami dan tanaman sejuk.",
+      "Beratap dengan sirkulasi udara alami; boleh merokok dan ramah anabul berkalung tali.",
     icon: LeafIcon,
   },
   {
     id: "mosque",
-    title: "Musholla bersih",
+    title: "Musholla & toilet bersih",
     description:
-      "Ruang ibadah terawat dengan tempat wudhu bersih terpisah.",
+      "Ruang ibadah terawat lengkap dengan sajadah, mukena, dan tempat wudhu terpisah.",
     icon: MosqueIcon,
   },
 ];
 
 /**
- * FacilitiesBar Component (Server Component)
- * Section 6 — Daftar ringkas bergaris 4 fasilitas jujur CafeSite tanpa box card.
+ * FacilitiesBar — Section fasilitas utama kedai tepat di bawah Hero.
  */
 export function FacilitiesBar(): React.JSX.Element {
   return (
     <section
       id="fasilitas"
       aria-labelledby="facilities-heading"
-      className="border-t border-offwhite/15 bg-charcoal py-12 md:py-16 text-offwhite"
+      className="border-t border-offwhite/15 bg-charcoal-darkest py-12 text-offwhite md:py-16"
     >
       <Container>
-        <h2 id="facilities-heading" className="sr-only">
-          Fasilitas CafeSite
-        </h2>
-        <div className="m-rail m-rail--sm grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4 lg:gap-0">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="section-label">Fasilitas Kedai</p>
+            <h2 id="facilities-heading" className="mt-2 font-serif text-2xl text-offwhite sm:text-3xl">
+              Siap untuk duduk lama, kerja, atau singgah santai.
+            </h2>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0">
           {facilitiesData.map((item) => {
             const Icon = item.icon;
             return (
               <div
                 key={item.id}
-                className="flex flex-col border-t border-offwhite/15 pt-4 md:border-t-0 md:pt-0 lg:border-l lg:border-offwhite/15 lg:pl-6 lg:pr-6 lg:first:border-l-0 lg:first:pl-0 lg:last:pr-0"
+                className="flex flex-col border-t border-offwhite/15 pt-4 sm:border-t-0 sm:pt-0 lg:border-l lg:border-offwhite/15 lg:px-6 lg:first:border-l-0 lg:first:pl-0 lg:last:pr-0"
               >
                 <div className="flex items-center gap-3">
                   <span className="shrink-0 text-terracotta-light" aria-hidden="true">
                     <Icon className="h-5 w-5" />
                   </span>
-                  <h3 className="font-sans text-sm font-semibold tracking-wide text-offwhite sm:text-base">
+                  <h3 className="font-sans text-base font-medium leading-snug text-offwhite">
                     {item.title}
                   </h3>
                 </div>
-                <p className="mt-2 text-xs leading-relaxed text-offwhite-muted sm:text-sm">
+                <p className="mt-2 text-sm leading-relaxed text-offwhite-muted">
                   {item.description}
                 </p>
               </div>

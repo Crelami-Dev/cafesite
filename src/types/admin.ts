@@ -4,13 +4,18 @@ import type { MenuItem } from "./index";
 export type AdminModule = "orders" | "menu" | "tables" | "cafe" | "gallery" | "testimonials" | "faq" | "location" | "reports" | "modules" | "wa_bot";
 export interface RagIngestJob { id: string; source: string; status: "pending" | "processing" | "done" | "failed"; error: string | null; note: string | null; size: number; chunks: number; created_at: string; updated_at: string; }
 export type WaState = "stopped" | "connecting" | "awaiting_qr" | "connected" | "reconnecting" | "error";
-export interface WaBotStatus { state: WaState; lastConnectedAt: string | null; qr: string | null; error: string | null; phone: string | null; configuredPhone?: string | null; ai?: string; embedding?: string; messagesHandled?: number; documents?: number; startedAt?: string; }
+export interface WaBotStatus { state: WaState; serviceOffline?: boolean; offlineReason?: string | null; lastConnectedAt: string | null; qr: string | null; error: string | null; phone: string | null; configuredPhone?: string | null; ai?: string; embedding?: string; messagesHandled?: number; documents?: number; startedAt?: string; }
 export interface AdminProfile { id: string; role: "admin" | "staff"; }
+export interface DashboardAccount extends AdminBootstrap { profile: AdminProfile & { name: string; email: string }; mustChangePassword: boolean }
+export interface StaffAccount { id: string; name: string; email: string; enabled: boolean; mustChangePassword: boolean; modules: string[] }
+export interface DashboardReport { from: string; to: string; revenue: number; paidOrders: number; orderCount: number; average: number; estimated: number; daily: { day: string; revenue: number; count: number }[]; topItems: { name: string; quantity: number; revenue: number }[] }
+export interface DashboardSummary { revenue?: number; orderCount?: number; activeCount?: number; availableTables?: number; orders?: import("./operations").Order[] }
 export interface AdminModuleSetting { id: string; enabled: boolean; }
 export interface AdminBootstrap { profile: AdminProfile; modules: AdminModuleSetting[]; }
 export interface AdminMenuRecord { id: string; data: MenuItem; is_available: boolean; sort_order: number; }
 export interface AdminFloor { id: string; name: string; sort_order: number; }
-export interface AdminTable { id: string; floor_id: string; label: string; x: number; y: number; status: "available" | "occupied" | "dirty"; }
+export interface AdminTableActiveOrder { id: string; queue_number: number; customer_name: string; status: "waiting" | "preparing" | "ready"; total: number; }
+export interface AdminTable { id: string; floor_id: string; label: string; x: number; y: number; status: "available" | "occupied" | "dirty"; /** Kunci QR meja (mode lokal); tanpa ini QR tidak bisa membuka halaman pesan. */ qr_key?: string; active_order?: AdminTableActiveOrder | null; }
 export interface AdminFloorForm { id?: string; name: string; sortOrder: number; }
 export interface AdminTableForm { id: string; floorId: string; label: string; status: AdminTable["status"]; }
 export interface AdminFieldProps { label: string; children: ReactNode; hint?: string; }

@@ -279,7 +279,7 @@ Update status di setiap task seiring progress.
 - [x] Awalan @bot untuk satu pertanyaan; @bot saja aktifkan mode per nomor, @tutup nonaktifkan bahkan saat rate-limit.
 - [x] Timeout 5 menit tanpa chat, pembersihan sesi sementara, dan pembatalan balasan AI yang masih diproses.
 - [x] Build bot sukses; 5 tes regresi lolos (isolasi nomor, awalan, timeout, deduplikasi, pengiriman tanpa fallback, tutup saat AI berjalan/rate-limit).
-- [ ] Uji pengiriman WhatsApp langsung setelah restart proses bot deployment.
+- [ ] Uji pengiriman WhatsApp langsung setelah restart proses bot deployment. (Login tertahan restart: perbaikan event-loop di client.ts sudah dibuat, menunggu uji di ponsel — lihat laporan 17.2.)
 
 ## Redesign UI Publik CafeSite
 
@@ -333,3 +333,46 @@ Update status di setiap task seiring progress.
 - [ ] Uji pesanan dine-in dengan meja nyata (isi lantai & meja di dashboard) dan percakapan dari ponsel sungguhan.
 - [x] Perbaikan dari percakapan WhatsApp nyata: typo/kata pengisi, niat memesan, obrolan ringan tanpa AI, kafe tanpa meja, keluar ramah dari sesi pesan, status/batalkan/ubah pesanan tersimpan. 93 tes (termasuk replay percakapan asli).
 - [ ] Ulangi uji lewat ponsel setelah perbaikan; pesanan uji pertama (antrian 1, catatan 'late'/'maciato') masih ada di dashboard dan bisa dibatalkan/dihapus.
+
+## Penuntasan website publik + pesan web mode SQLite (2026-11-10)
+- [x] `/order` berfungsi tanpa Supabase: `/api/catalog`, `POST /api/orders`, `GET /api/orders/[id]` cabang mode lokal (`src/lib/server/local-orders.ts`); akses status lewat token HMAC per pesanan, status diperbarui tiap 5 detik. Diuji end-to-end di Chrome (1440 dan 390).
+- [x] Pesanan web muncul di dashboard ("via website") dan ikut notifikasi WhatsApp "pesanan siap" dari bot.
+- [x] Beranda ditata ulang (hero, kunjungan, menu favorit, cara pesan, ruang) — 7,9 → 5,4 layar; tiap foto sekali per halaman. Halaman Tentang diisi cerita + tiga nilai (copy contoh, TODO konfirmasi client).
+- [x] Galeri: buang 6 entri duplikat/foto berpapan nama kedai lain ("The Daily Grind"); bingkai putih di gal-06 dipangkas; kategori kosong disembunyikan.
+- [x] Code review: 8 temuan diperbaiki (mode browser/server, meja terisi, transaksi, Origin, catatan jam perkiraan, polling, caption, pemulihan sesi WA).
+- [ ] Ganti foto contoh dengan foto asli client resolusi ≥ 2× (gate: photo-upscale) dan data kedai asli (`src/data/cafe.ts`).
+
+## Perombakan Dashboard Operasional CafeSite (SQLite + Akun Tim)
+- [x] **Step 1 — Desain FigCraft & Adaptasi Aturan**: 13 pasang artboard berpasangan (`1440px` desktop & `390px` mobile) di `design/dashboard/cafesite-dashboard-v1.figcraft` + dokumentasi penyesuaian `design-taste-frontend` untuk dashboard dinamis di `design/dashboard/README.md`.
+- [x] **Step 2 — Fondasi Route, Shell Responsif, Migrasi SQLite, & Akun Tim**:
+  - Route URL per modul di bawah `/dashboard` (`Ringkasan` di `/dashboard`, 11 modul di `/dashboard/[module]`, ganti kata sandi di `/dashboard/password`, `/admin` redirect ke `/dashboard`).
+  - Navigasi adaptif Desktop (`≥1280px` sidebar 240px), Tablet (`768–1279px` navigasi samping ringkas + drawer), dan Mobile (`<768px` bottom bar dinamis sesuai izin + drawer fokus terkunci & `Escape`).
+  - Migrasi SQLite berversi (`dashboard_migrations`, `staff_accounts`, `staff_permissions`, `admin_sessions`, `login_attempts`, `order_milestones` + trigger `dashboard_payment_timestamp`), auto-migrasi HMR di `dev-sqlite.ts`, password hash `scrypt` + salt unik, sesi HttpOnly 8 jam, pencabutan sesi saat logout/reset/nonaktif, dan pembatasan percobaan login (8x / 15 menit).
+  - Pemeriksaan izin modul di server pada setiap halaman dan endpoint API (`/api/admin/*`).
+- [x] **Step 3 — Modul Operasional (`Ringkasan`, `Pesanan`, `Menu`, `Meja & QR`, `WhatsApp Bot`)**:
+  - `Ringkasan`: panel utama penjualan lunas hari ini (WIB), pesanan masuk, antrean aktif, meja tersedia, daftar pesanan perlu ditangani dengan waktu tunggu, dan status bot sesuai izin akun.
+  - `Pesanan`: papan 3 kolom aktif di desktop, tab status dengan jumlah di mobile/tablet, riwayat terpisah dengan pencarian/filter tanggal/pagination URL, panel detail layar penuh dengan aksi pembayaran & pembatalan, deteksi konflik perubahan bersamaan (`expectedUpdatedAt` / `409`), dan antrean aktif >100 pesanan tanpa terpotong.
+  - `Menu`: pencarian, filter kategori/ketersediaan, CRUD menu + kategori kustom, unggah/pratinjau/hapus foto persisten (`/api/admin/upload` & `/api/media/[folder]/[file]`), dan pengurutan naik/turun (`↑`/`↓`) ramah sentuhan/keyboard (`≥44px`).
+  - `Meja & QR`: kelola lantai dan meja, status tersedia/terisi/perlu dibersihkan dengan ikon + label, tautan pesanan aktif terkait pada kartu meja, unduh PNG/SVG, serta cetak QR per meja, per lantai aktif, atau seluruh meja.
+  - `WhatsApp Bot`: status koneksi berikon, QR pairing, aksi pemulihan saat server bot mati, unggah PDF/Markdown, progres, proses ulang, dan hapus dokumen.
+- [x] **Step 4 — Form Konten, Laporan WIB, Akses Tim, & Sinkronisasi Website Publik**:
+  - Editor JSON diganti form tervalidasi untuk `Info Kafe` (termasuk 7 hari jam operasional + pratinjau), `Galeri` (unggah foto, kategori, rasio, urutan), `Testimoni` (tanpa data fiktif), `FAQ`, dan `Panduan Lokasi` (ikon internal `ParkingIcon`, `SignpostIcon`, `TransitIcon`) + peringatan perubahan belum tersimpan.
+  - Sinkronisasi langsung & real-time ke seluruh website publik (`/`, `/menu`, `/gallery`, `/location`, `/about`, `/order`) termasuk BroadcastChannel antar-tab saat simpan di dashboard, dukungan foto hasil upload (`/api/media/...`), kategori menu kustom, embed Google Maps, FAQ beranda + JSON-LD, dan status konfigurasi kafe.
+  - `Laporan`: agregasi SQLite langsung dengan zona waktu `Asia/Jakarta` (WIB), periode Hari ini / 7 hari / 30 hari / rentang khusus, penjualan lunas, pesanan masuk, rata-rata transaksi, tren harian, menu terlaris, penanda transaksi estimasi historis, dan ekspor CSV.
+  - `Akses Tim` & `Kata Sandi`: CRUD akun staf oleh admin, izin baca/tulis per modul, kata sandi sementara sekali tampil, wajib ganti kata sandi saat login pertama, dan form ganti kata sandi staf.
+- [x] **Step 5 — Verifikasi & Regresi**:
+  - Bebas pola anti-slop (`backdrop-blur`, `animate-pulse`, `bg-gradient`, `border-t-latte`) di seluruh `src/`.
+  - `npm run lint` (0 error, 0 warning) & `npx tsc --noEmit` (0 error) lolos.
+  - `cd server && npm test` lolos (`107/107` tes, termasuk `schema-sync.test.ts` & `dashboard-regression.test.ts`) dan `cd server && npm run build` lolos.
+
+## Animasi Halaman Publik (anime.js)
+
+- [x] Tambah dependency `animejs` 4.5 (permintaan eksplisit) dan modul `src/lib/motion.ts` + `PublicMotion.tsx` di layout publik.
+- [x] Scroll reveal sekali-jalan lewat atribut `data-reveal` / `data-reveal-group` di Beranda, Menu, Tentang, Galeri, dan Lokasi.
+- [x] Momen khas: titik-titik papan menu ditarik ke harga, tiket antrean "tercetak" lalu statusnya menyala, foto terbuka dari atas (wipe).
+- [x] Animasi akibat klik: kartu rekomendasi `MenuPicker` dan foto hasil filter galeri.
+- [x] Aman: konten tetap tampil tanpa script, elemen yang sudah terlihat saat load tidak disentuh, `prefers-reduced-motion` mematikan semuanya.
+- [x] Verifikasi headless Chrome (1440 & 390, 5 halaman): tidak ada style inline tersisa, tanpa overflow horizontal, tanpa error konsol; `tsc` dan `eslint` bersih.
+- [x] Tiket antrean: nomor berhitung, rincian muncul per baris, garis status terisi berurutan (diputar ulang saat hover).
+- [x] Fasilitas (beranda): baris muncul berurutan dan ikon garisnya menggambar diri (`data-draw`).
+- [x] Rekomendasi menu: pilihan rasa mengikuti kategori (`CRAVING_FLAVORS` di `data/menu-picker.ts`), tidak ada lagi pasangan janggal seperti kopi gurih; pilihan dan kartu hasil dianimasikan.

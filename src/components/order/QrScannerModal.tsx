@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CloseIcon } from "@/components/ui/icons";
+import { parseScan, rememberScan, scanUrl } from "@/lib/order-scan";
 
 interface BarcodeDetectorResult {
   rawValue: string;
@@ -27,17 +28,8 @@ interface QrScannerModalProps {
   onClose: () => void;
 }
 
-type ScanState = "starting" | "scanning" | "unsupported" | "denied" | "error";
+type ScanState = "starting" | "scanning" | "unsupported" | "denied" | "nocamera" | "error";
 
-function extractTableCode(rawValue: string): string | null {
-  try {
-    const url = new URL(rawValue, window.location.origin);
-    const meja = url.searchParams.get("meja");
-    return meja ? meja.slice(0, 60) : null;
-  } catch {
-    return null;
-  }
-}
 
 export function QrScannerModal({
   onClose,
@@ -88,7 +80,8 @@ export function QrScannerModal({
   }, []);
 
   useEffect(() => {
-    if (!window.BarcodeDetector) {
+    // Kamera di halaman web hanya diizinkan lewat https (atau localhost). Lewat http://192.168.x.x: pakai kamera bawaan HP.
+    if (!window.BarcodeDetector || !window.isSecureContext) {
       const timer = window.setTimeout(() => setState("unsupported"), 0);
       return () => window.clearTimeout(timer);
     }
@@ -98,8 +91,11 @@ export function QrScannerModal({
 
     async function start(): Promise<void> {
       try {
+        if (!navigator.mediaDevices?.getUserMedia) throw new DOMException("no camera", "NotFoundError");
+        // Kamera belakang; tampilannya tidak dicerminkan (tidak "ke-flip").
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
         });
         if (cancelled) {
           stream.getTracks().forEach((track) => track.stop());
@@ -116,12 +112,14 @@ export function QrScannerModal({
           if (cancelled || !video) return;
           try {
             const results = await detector.detect(video);
-            const tableCode = results
-              .map((result) => extractTableCode(result.rawValue))
-              .find((code) => code);
-            if (tableCode) {
+            const found = results
+              .map((result) => parseScan(result.rawValue))
+              .find((value) => value);
+            if (found) {
               stopCamera();
-              router.push(`/order?meja=${encodeURIComponent(tableCode)}`);
+              rememberScan(found.meja, found.k);
+              navigator.vibrate?.(60);
+              router.push(scanUrl(found));
               onClose();
               return;
             }
@@ -138,7 +136,9 @@ export function QrScannerModal({
         setState(
           cause instanceof DOMException && cause.name === "NotAllowedError"
             ? "denied"
-            : "error",
+            : cause instanceof DOMException && (cause.name === "NotFoundError" || cause.name === "OverconstrainedError")
+              ? "nocamera"
+              : "error",
         );
       }
     }
@@ -168,17 +168,21 @@ export function QrScannerModal({
       </button>
 
       <div className="w-full max-w-sm text-center">
-        {state === "unsupported" || state === "denied" || state === "error" ? (
+        {state === "unsupported" || state === "denied" || state === "nocamera" || state === "error" ? (
           <div className="rounded-lg border border-charcoal-border bg-charcoal p-6">
             <h2 className="font-serif text-xl text-offwhite">
               {state === "denied"
                 ? "Izin kamera dibutuhkan"
-                : "Pemindai belum bisa dipakai di sini"}
+                : state === "nocamera"
+                  ? "Kamera tidak ditemukan"
+                  : "Pakai kamera bawaan HP"}
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-offwhite-muted">
               {state === "denied"
-                ? "Aktifkan izin kamera untuk browser ini di pengaturan HP, lalu coba lagi."
-                : "Buka kamera bawaan HP kamu dan arahkan ke QR di meja—kami akan membuka halaman pesanan secara otomatis."}
+                ? "Izinkan kamera untuk browser ini di pengaturan HP, lalu coba lagi. Atau pakai kamera bawaan HP dan arahkan ke QR di meja."
+                : state === "nocamera"
+                  ? "Buka halaman ini dari HP atau tablet, lalu scan QR di meja."
+                  : "Browser ini belum bisa memindai dari halaman. Buka kamera bawaan HP, arahkan ke QR di meja, lalu ketuk tautan yang muncul."}
             </p>
             <button
               type="button"
@@ -196,6 +200,7 @@ export function QrScannerModal({
                 muted
                 playsInline
                 className="h-full w-full object-cover"
+                style={{ transform: "none" }}
               />
               <div
                 className="pointer-events-none absolute inset-6 rounded-md border-2 border-offwhite/70"
@@ -203,7 +208,7 @@ export function QrScannerModal({
               />
             </div>
             <p className="mt-5 text-sm text-offwhite-muted">
-              Arahkan kamera ke QR yang ada di mejamu.
+              Arahkan kamera ke QR di mejamu. Halaman pesan terbuka otomatis.
             </p>
           </>
         )}

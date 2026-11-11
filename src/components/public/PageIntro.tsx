@@ -21,7 +21,7 @@ export function PageIntro({
           <div>
             <p className="public-lead max-w-md">{description}</p>
             <Button href="/order" className="mt-6 taste-btn-press" data-order-action>
-              Pesan sekarang ↗
+              Pesan menu ↗
             </Button>
           </div>
         </div>

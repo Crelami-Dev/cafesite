@@ -3,12 +3,15 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let serviceClient: SupabaseClient | null = null;
 
-/** Supabase hanya aktif bila CONTENT_SOURCE=supabase. Default (sqlite): tidak ada koneksi keluar ke Supabase. */
+/**
+ * Client Supabase Service Role.
+ * Aktif baik saat mode Cloud penuh (CONTENT_SOURCE=supabase / Vercel)
+ * maupun mode Hybrid (SQLite lokal + auto-backup & restore ke Supabase Cloud).
+ */
 export function getServiceSupabase(): SupabaseClient | null {
-  if (process.env.CONTENT_SOURCE !== "supabase") return null;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
+  if (!url || !key || url.includes("placeholder") || key.includes("placeholder")) return null;
   serviceClient ??= createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   return serviceClient;
 }

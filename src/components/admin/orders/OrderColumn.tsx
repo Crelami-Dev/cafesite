@@ -15,15 +15,15 @@ interface OrderColumnProps {
 
 const accentClass: Record<OrderStatus, string> = {
   waiting: "bg-terracotta-light",
-  preparing: "bg-latte",
-  ready: "bg-latte-light",
+  preparing: "bg-offwhite",
+  ready: "bg-offwhite-light",
   completed: "bg-charcoal-muted",
   cancelled: "bg-charcoal-muted",
 };
 
 export default function OrderColumn(props: OrderColumnProps): React.JSX.Element {
   return (
-    <section className="flex w-full flex-col rounded-2xl border border-charcoal-border bg-charcoal-darkest/40">
+    <section className="flex w-full flex-col rounded-xl border border-charcoal-border bg-charcoal-darkest/40">
       <header className="flex items-center gap-2.5 px-4 pt-4 pb-3">
         <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${accentClass[props.status]}`} />
         <h2 className="font-serif text-lg leading-none">{props.title}</h2>

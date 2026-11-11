@@ -18,7 +18,7 @@ export function GalleryFilterBar({
     <nav aria-label="Filter galeri">
       <Container>
         <div className="flex flex-wrap items-center gap-3">
-          {galleryCategories.map((category) => (
+          {galleryCategories.filter((category) => (categoryCounts[category.id] ?? 0) > 0).map((category) => (
             <button
               type="button"
               key={category.id}

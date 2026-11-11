@@ -14,20 +14,20 @@ export function HomeFaq({
     <section
       id="tanya-jawab"
       aria-labelledby="faq-heading"
-      className="border-t border-offwhite/15 bg-charcoal py-14 text-offwhite md:py-24"
+      className="faq-section text-offwhite"
     >
       <Container size="default">
         <div className="grid gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-4" data-reveal>
             <h2 id="faq-heading" className="public-h2">
-              Tanya jawab <em className="italic font-serif">singkat</em>.
+              Tanya jawab sebelum mampir
             </h2>
-            <p className="mt-3.5 text-sm leading-relaxed text-offwhite-muted md:text-base">
+            <p className="mt-3.5 text-base leading-relaxed text-offwhite-muted">
               Hal-hal praktis yang paling sering ditanyakan sebelum teman-teman mampir ke kedai.
             </p>
           </div>
 
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-8" data-reveal-group>
             {items.map((item) => (
               <details
                 key={item.id}
@@ -42,7 +42,7 @@ export function HomeFaq({
                     +
                   </span>
                 </summary>
-                <div className="pb-5 pr-8 text-sm leading-relaxed text-offwhite-muted sm:text-base">
+                <div className="pb-5 pr-8 text-base leading-relaxed text-offwhite-muted">
                   {item.answer}
                 </div>
               </details>

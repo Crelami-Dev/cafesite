@@ -1,8 +1,24 @@
 import QRCode from "qrcode";
 
-export function tableOrderUrl(origin: string, tableId: string): string {
+/**
+ * Alamat dasar di dalam QR. Isi NEXT_PUBLIC_ORDER_BASE_URL (mis. https://cafesite.id atau http://192.168.1.135:3000)
+ * supaya QR selalu bisa dibuka dari HP pelanggan; tanpa itu dipakai alamat dashboard yang sedang dibuka.
+ */
+export function qrBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_ORDER_BASE_URL?.trim();
+  return configured ? configured.replace(/\/+$/, "") : window.location.origin;
+}
+
+/** true bila QR berisi alamat yang hanya bisa dibuka dari komputer ini (HP pelanggan tidak bisa membukanya). */
+export function isLocalOnlyUrl(url: string): boolean {
+  try { return ["localhost", "127.0.0.1", "[::1]"].includes(new URL(url).hostname); } catch { return false; }
+}
+
+/** Alamat yang dibuka saat QR meja dipindai: /order?meja=<id>&k=<kunci QR meja>. */
+export function tableOrderUrl(origin: string, tableId: string, key?: string): string {
   const url = new URL("/order", origin);
   url.searchParams.set("meja", tableId);
+  if (key) url.searchParams.set("k", key);
   return url.toString();
 }
 

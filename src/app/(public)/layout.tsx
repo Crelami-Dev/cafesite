@@ -4,9 +4,9 @@ import { Footer } from "@/components/layout/Footer";
 import { StickyMobileCTA } from "@/components/layout/StickyMobileCTA";
 import { PublicContentProvider } from "@/components/layout/PublicContentProvider";
 import { PublicEffects } from "@/components/layout/PublicEffects";
+import { PublicMotion } from "@/components/layout/PublicMotion";
 import { getPublicContent } from "@/lib/content";
 import type { Metadata } from "next";
-import { connection } from "next/server";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { buildLocalBusinessJsonLd } from "@/lib/seo";
 export const metadata: Metadata = {
@@ -17,7 +17,6 @@ export default async function PublicLayout({
 }: {
   children: ReactNode;
 }): Promise<React.JSX.Element> {
-  await connection();
   const content = await getPublicContent();
   return (
     <PublicContentProvider data={content}>
@@ -41,6 +40,7 @@ export default async function PublicLayout({
         <Footer />
         <StickyMobileCTA />
         <PublicEffects />
+        <PublicMotion />
       </div>
     </PublicContentProvider>
   );

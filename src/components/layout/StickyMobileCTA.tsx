@@ -35,7 +35,7 @@ export function StickyMobileCTA(): React.JSX.Element | null {
       inert={!visible}
     >
       <Link href="/order" className="btn btn--primary w-full">
-        Pesan sekarang ↗
+        Pesan menu ↗
       </Link>
     </nav>
   );

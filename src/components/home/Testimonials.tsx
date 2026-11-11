@@ -37,7 +37,7 @@ export function Testimonials({
       className="border-b border-charcoal-border/30 bg-charcoal py-16 md:py-24"
     >
       <Container size="default">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between" data-reveal>
           <div>
             <h2 id="testimonials-heading" className="public-h2">
               Kata mereka yang <em className="italic font-serif">sering</em> mampir.
@@ -68,6 +68,7 @@ export function Testimonials({
 
         <div
           ref={trackRef}
+          data-reveal
           aria-roledescription="carousel"
           aria-label="Kumpulan ulasan pengunjung"
           className="mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"

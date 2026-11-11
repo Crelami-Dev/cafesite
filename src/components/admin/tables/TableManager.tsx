@@ -42,8 +42,8 @@ export default function TableManager(): React.JSX.Element {
   const [busy, setBusy] = useState(false);
   const client = getBrowserSupabase();
 
-  const load = useCallback(async (): Promise<void> => {
-    setLoading(true);
+  const load = useCallback(async (quiet = false): Promise<void> => {
+    if (!quiet) setLoading(true);
     try {
       const result = await adminRequest<TablesResponse>("manage?resource=tables");
       setFloors(result.floors);
@@ -52,7 +52,7 @@ export default function TableManager(): React.JSX.Element {
     } catch (cause: unknown) {
       setError(adminError(cause));
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }, []);
 
@@ -62,7 +62,17 @@ export default function TableManager(): React.JSX.Element {
   }, [load]);
 
   useEffect(() => {
-    if (!client) return;
+    if (!client) {
+      const poll = (): void => {
+        if (!document.hidden) void load(true);
+      };
+      const timer = window.setInterval(poll, 5000);
+      document.addEventListener("visibilitychange", poll);
+      return () => {
+        window.clearInterval(timer);
+        document.removeEventListener("visibilitychange", poll);
+      };
+    }
     const tableChannel = client
       .channel("admin-cafe-tables")
       .on<AdminTable>("postgres_changes", { event: "*", schema: "public", table: "cafe_tables" }, (payload) => setTables((current) => patchRows(current, payload)))
@@ -75,7 +85,7 @@ export default function TableManager(): React.JSX.Element {
       void client.removeChannel(tableChannel);
       void client.removeChannel(floorChannel);
     };
-  }, [client]);
+  }, [client, load]);
 
   const selectedFloor = floors.some((floor) => floor.id === activeFloor) ? activeFloor : (floors[0]?.id ?? "");
   const visibleTables = useMemo(() => tables.filter((table) => table.floor_id === selectedFloor), [selectedFloor, tables]);
@@ -154,8 +164,8 @@ export default function TableManager(): React.JSX.Element {
 
   if (loading && floors.length === 0) {
     return (
-      <section className="rounded-2xl border border-charcoal-border bg-charcoal p-6">
-        <p role="status" className="animate-pulse text-sm text-latte">Menyiapkan daftar lantai dan meja…</p>
+      <section className="rounded-xl border border-charcoal-border bg-charcoal p-6">
+        <p role="status" className="text-sm text-offwhite-muted">Menyiapkan daftar lantai dan meja…</p>
       </section>
     );
   }
@@ -164,14 +174,14 @@ export default function TableManager(): React.JSX.Element {
     <div className="grid min-w-0 gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-xl text-sm leading-6 text-offwhite-muted">Atur meja per lantai, pantau statusnya, lalu cetak QR yang langsung membuka halaman pemesanan.</p>
-        <QrPrintAll floors={floors} tables={tables} />
+        <QrPrintAll floors={floors} tables={tables} activeFloorId={selectedFloor} />
       </div>
 
       <AdminNotice message={error} error />
       <AdminNotice message={message} />
 
       {floors.length === 0 ? (
-        <section className="rounded-2xl border border-dashed border-charcoal-border bg-charcoal p-8 text-center md:p-12">
+        <section className="rounded-xl border border-dashed border-charcoal-border bg-charcoal p-8 text-center md:p-12">
           <h2 className="font-serif text-2xl">Mulai dari lantai pertama</h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-offwhite-darker">Tambahkan nama lantai atau area, lalu susun meja yang tersedia di sana.</p>
           <button

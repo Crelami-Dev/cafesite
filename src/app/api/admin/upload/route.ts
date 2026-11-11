@@ -20,7 +20,8 @@ function detect(bytes: Uint8Array): "jpg" | "png" | "webp" | "avif" | null {
 /** Mode lokal: foto menu disimpan di public/uploads/menu (diabaikan git), URL-nya langsung dipakai halaman publik. */
 export async function POST(request: Request): Promise<Response> {
   try {
-    await requireLocalAdmin(request);
+    const folder = new URL(request.url).searchParams.get("folder") === "gallery" ? "gallery" : "menu";
+    await requireLocalAdmin(request, folder);
     const file = (await request.formData().catch(() => null))?.get("file");
     if (!(file instanceof File) || file.size === 0) throw new HttpError(400, "Pilih file foto.");
     if (file.size > MAX_BYTES) throw new HttpError(413, "Foto maksimal 5 MB.");
@@ -28,9 +29,9 @@ export async function POST(request: Request): Promise<Response> {
     const ext = detect(bytes);
     if (!ext) throw new HttpError(400, "Foto harus JPG, PNG, WebP, atau AVIF.");
     const name = `${randomUUID()}.${ext}`;
-    const dir = path.join(process.cwd(), "public", "uploads", "menu");
+    const dir = path.join(process.cwd(), ".data", "uploads", folder);
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, name), bytes);
-    return localJson({ url: `/uploads/menu/${name}` }, 201);
+    return localJson({ url: `/api/media/${folder}/${name}` }, 201);
   } catch (error) { return localError(error); }
 }

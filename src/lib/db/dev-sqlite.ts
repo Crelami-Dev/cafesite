@@ -1,5 +1,6 @@
 import "server-only";
 import { mkdirSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { cafeInfo } from "@/data/cafe";
@@ -17,7 +18,7 @@ import type { MenuItem, PublicContent } from "@/types";
 const DB_FILE = path.join(process.cwd(), ".data", "cafesite.dev.db");
 
 // Disimpan di globalThis agar tidak bocor tiap HMR reload.
-const store = globalThis as typeof globalThis & { __cafeDevDb?: DatabaseSync };
+const store = globalThis as typeof globalThis & { __cafeDevDb?: DatabaseSync; __cafeDevDbSchema?: string };
 
 /**
  * Skema bersama dengan bot WhatsApp (server/src/db/database.ts). DDL ini HARUS identik;
@@ -108,25 +109,68 @@ CREATE TABLE IF NOT EXISTS answer_cache (
   answer TEXT NOT NULL,
   expires_at INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS dashboard_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS staff_accounts (
+ id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+ password_hash TEXT NOT NULL, salt TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1,
+ must_change_password INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS staff_permissions (
+ account_id TEXT NOT NULL REFERENCES staff_accounts(id) ON DELETE CASCADE,
+ module TEXT NOT NULL, PRIMARY KEY(account_id,module)
+);
+CREATE TABLE IF NOT EXISTS admin_sessions (
+ token_hash TEXT PRIMARY KEY, account_id TEXT NOT NULL, expires_at INTEGER NOT NULL, owner_version TEXT
+);
+CREATE TABLE IF NOT EXISTS login_attempts (key TEXT PRIMARY KEY, attempts INTEGER NOT NULL, expires_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS order_milestones (
+ order_id TEXT PRIMARY KEY REFERENCES orders(id), paid_at TEXT, completed_at TEXT, estimated INTEGER NOT NULL DEFAULT 0
+);
+INSERT OR IGNORE INTO order_milestones(order_id,paid_at,completed_at,estimated)
+ SELECT id, CASE WHEN payment_status='paid' THEN updated_at END, CASE WHEN status='completed' THEN updated_at END,1 FROM orders
+ WHERE payment_status='paid' OR status='completed';
+CREATE TRIGGER IF NOT EXISTS dashboard_payment_timestamp AFTER UPDATE OF payment_status,status ON orders
+BEGIN
+ INSERT INTO order_milestones(order_id,paid_at,completed_at,estimated)
+ VALUES(NEW.id,CASE WHEN NEW.payment_status='paid' THEN NEW.updated_at END,CASE WHEN NEW.status='completed' THEN NEW.updated_at END,0)
+ ON CONFLICT(order_id) DO UPDATE SET
+ paid_at=COALESCE(order_milestones.paid_at,excluded.paid_at),completed_at=COALESCE(order_milestones.completed_at,excluded.completed_at);
+END;
+INSERT OR IGNORE INTO dashboard_migrations VALUES (1, strftime('%Y-%m-%dT%H:%M:%fZ','now'));
 `;
 
 function open(): DatabaseSync {
-  if (store.__cafeDevDb) return store.__cafeDevDb;
-  mkdirSync(path.dirname(DB_FILE), { recursive: true });
+  if (store.__cafeDevDb) {
+    if (store.__cafeDevDbSchema !== SCHEMA_SQL) {
+      store.__cafeDevDb.exec(SCHEMA_SQL);
+      store.__cafeDevDbSchema = SCHEMA_SQL;
+    }
+    return store.__cafeDevDb;
+  }
   // getBuiltinModule (Node 22.3+) dipakai agar bundler tidak me-resolve node:sqlite saat build produksi.
   const sqlite = process.getBuiltinModule("node:sqlite") as typeof import("node:sqlite") | undefined;
   if (!sqlite) throw new Error("node:sqlite tidak tersedia (butuh Node 22.5+)");
   const Sqlite = sqlite.DatabaseSync;
-  const conn = new Sqlite(DB_FILE);
+  let conn: DatabaseSync;
+  try {
+    if (process.env.VERCEL === "1") throw new Error("Serverless environment uses tmpdir");
+    mkdirSync(path.dirname(DB_FILE), { recursive: true });
+    conn = new Sqlite(DB_FILE);
+  } catch {
+    const tmpFile = path.join(os.tmpdir(), "cafesite.dev.db");
+    conn = new Sqlite(tmpFile);
+  }
   // WAL + busy_timeout: dashboard dan bot WhatsApp menulis ke file yang sama tanpa saling mengunci.
   conn.exec("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON;");
   conn.exec(SCHEMA_SQL);
-  const seeded = conn.prepare("SELECT COUNT(*) AS n FROM menu_items").all()[0]?.n;
+  const seeded = conn.prepare("SELECT 1 AS n FROM content WHERE key = '_initialized'").get()?.n;
   if (!seeded) {
     const insertMenu = conn.prepare(
-      "INSERT INTO menu_items (id, data, is_available, sort_order) VALUES (?, ?, ?, ?)",
+      "INSERT OR IGNORE INTO menu_items (id, data, is_available, sort_order) VALUES (?, ?, ?, ?)",
     );
-    menuItems.forEach((item, index) => {
+    const existing = Number(conn.prepare("SELECT COUNT(*) AS n FROM menu_items").get()?.n ?? 0);
+    (existing ? [] : menuItems).forEach((item, index) => {
       const { id, isAvailable, ...rest } = item;
       insertMenu.run(id, JSON.stringify(rest), isAvailable === false ? 0 : 1, index);
     });
@@ -135,8 +179,10 @@ function open(): DatabaseSync {
     insertContent.run("faq", JSON.stringify(locationFaqs));
     insertContent.run("location", JSON.stringify(transportGuides));
     insertContent.run("testimonials", JSON.stringify([]));
+    insertContent.run("_initialized", "true");
   }
   store.__cafeDevDb = conn;
+  store.__cafeDevDbSchema = SCHEMA_SQL;
   return conn;
 }
 
@@ -168,11 +214,12 @@ export function readDevContent(): PublicContent {
   return {
     cafeConfirmed: Boolean(entries.cafe),
     cafe: entries.cafe ?? cafeInfo,
-    menu: menu.length > 0 ? menu : menuItems,
+    menu,
+    categories: Array.isArray(entries.categories) && entries.categories.length > 0 ? entries.categories : undefined,
     gallery: entries.gallery ?? galleryPhotos,
     testimonials: entries.testimonials ?? [],
     faq: entries.faq ?? locationFaqs,
     location: entries.location ?? transportGuides,
-    configured: false,
+    configured: Boolean(entries.cafe),
   };
 }

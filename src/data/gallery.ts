@@ -43,24 +43,13 @@ export const galleryPhotos: GalleryPhoto[] = [
       "Uap pertama dari cangkir V60 pagi hari. Kadang kopinya cuma alasan buat duduk diam.",
   },
   {
-    id: "gal-03",
-    category: "exterior",
-    aspect: "landscape",
-    year: "2024",
-    title: "Sore Setelah Hujan",
-    src: "/Image/Gallery/gal-03-after-rain.jpg",
-    alt: "Fasad kafe di pinggir jalanan basah setelah hujan sore dengan cahaya lampu hangat",
-    caption:
-      "Sore yang mayan langka: langit sebentar cerah, jalanan depan masih basah sisa gerimis.",
-  },
-  {
     id: "gal-04",
     category: "atmosphere",
     aspect: "square",
     year: "2024",
     title: "Sudut Tenang",
     src: "/Image/Gallery/gal-04-quiet-corner.jpg",
-    alt: "Suasana sudut tenang kafe dengan pencahayaan hangat",
+    alt: "Cangkir kopi susu dan buku catatan di meja kayu CafeSite, tanaman hijau di belakang",
     caption:
       "Seseorang yang duduk sendirian di pojok, nggak buka HP, cuma mandang ke luar lama banget.",
   },
@@ -80,33 +69,22 @@ export const galleryPhotos: GalleryPhoto[] = [
     category: "interior",
     aspect: "portrait",
     year: "2024",
-    title: "Lampu Bar Kopi",
+    title: "Ruang Baca Terang",
     src: "/Image/Gallery/gal-06-lampu-bar.jpg",
-    alt: "Lampu bar kopi menyala hangat di interior kafe",
+    alt: "Ruang dalam CafeSite yang terang: tamu membaca di kursi kayu dekat jendela besar",
     caption:
-      "Lampu gantung di atas meja bar, dinyalain pas jam lima sore saat langit mulai remang.",
+      "Jendela besar, kursi kayu, dan buku di tangan. Sudut ini paling cepat penuh kalau siang.",
   },
   {
     id: "gal-07",
     category: "coffee",
     aspect: "landscape",
     year: "2024",
-    title: "Dua Cangkir Obrolan",
+    title: "Americano di Meja Kayu",
     src: "/Image/Gallery/gal-07-dua-cangkir.jpg",
-    alt: "Segelas es americano segar dengan crema tebal di atas meja kayu",
+    alt: "Dua cangkir americano di meja kayu CafeSite",
     caption:
       "Dua cangkir sisa obrolan dua jam. Yang satu habis duluan, yang satu dingin pelan-pelan.",
-  },
-  {
-    id: "gal-08",
-    category: "exterior",
-    aspect: "portrait",
-    year: "2024",
-    title: "Pintu Masuk Pagi",
-    src: "/Image/Gallery/gal-08-pintu-masuk.jpg",
-    alt: "Pintu masuk depan kafe dengan tanaman hias",
-    caption:
-      "Pintu depan sebelum kami buka jam delapan pagi. Masih sepi, udara jalanan masih dingin.",
   },
   {
     id: "gal-09",
@@ -118,28 +96,6 @@ export const galleryPhotos: GalleryPhoto[] = [
     alt: "Artisanal butter croissant renyah keemasan di atas papan kayu",
     caption:
       "Croissant yang renyah berantakan di meja. Remahannya sengaja nggak langsung dibersihin.",
-  },
-  {
-    id: "gal-10",
-    category: "atmosphere",
-    aspect: "landscape",
-    year: "2024",
-    title: "Meja Komunal Siang",
-    src: "/Image/Gallery/gal-10-meja-komunal.jpg",
-    alt: "Meja komunal kafe yang hangat dan ramah",
-    caption:
-      "Meja panjang di tengah ruang. Nggak saling kenal, tapi sama-sama sibuk di depan layar masing-masing.",
-  },
-  {
-    id: "gal-11",
-    category: "interior",
-    aspect: "square",
-    year: "2024",
-    title: "Rak Bacaan Kecil",
-    src: "/Image/Gallery/gal-11-rak-bacaan.jpg",
-    alt: "Rak buku dan sudut interior kafe yang nyaman",
-    caption:
-      "Rak buku kecil di samping kasir. Bukunya jarang ganti, tapi selalu ada yang baca ulang.",
   },
   {
     id: "gal-12",
@@ -162,27 +118,5 @@ export const galleryPhotos: GalleryPhoto[] = [
     alt: "Sepiring nasi goreng kampung rempah dengan telur mata sapi dan kerupuk",
     caption:
       "Sepiring nasi goreng yang dipesen pas jam nanggung, waktu perut mulai rewel minta diisi.",
-  },
-  {
-    id: "gal-14",
-    category: "exterior",
-    aspect: "square",
-    year: "2024",
-    title: "Plang Nama Dinding Bata",
-    src: "/Image/Gallery/gal-14-plang-nama.jpg",
-    alt: "Signage kafe di fasad dinding bata",
-    caption:
-      "Plang nama kecil di dinding bata. Sering dilewati orang pulang kerja yang langkahnya pelan.",
-  },
-  {
-    id: "gal-15",
-    category: "atmosphere",
-    aspect: "portrait",
-    year: "2024",
-    title: "Jendela Kaca Saat Gerimis",
-    src: "/Image/Gallery/gal-15-jendela-gerimis.jpg",
-    alt: "Suasana nyaman di dekat jendela kaca kafe saat gerimis",
-    caption:
-      "Hujan sore di balik kaca jendela. Yang di dalam sibuk ngobrol pelan, yang di luar neduh.",
   },
 ];

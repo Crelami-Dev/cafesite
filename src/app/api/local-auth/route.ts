@@ -1,29 +1,18 @@
-import { timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { createLocalToken, isLocalMode, LOCAL_COOKIE, LOCAL_SESSION_SECONDS } from "@/lib/server/local-session";
-
-function same(a: string, b: string): boolean {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-  return left.length === right.length && timingSafeEqual(left, right);
-}
-
+import { authenticate, revokeCurrentSession, SESSION_COOKIE } from "@/lib/server/dashboard-auth";
+import { assertSameOrigin, isLocalMode } from "@/lib/server/local-session";
+import { localError } from "@/lib/server/local-api";
+import { HttpError, objectValue, textValue } from "@/lib/server/validation";
 export async function POST(request: Request): Promise<Response> {
-  if (!isLocalMode()) return Response.json({ error: "Login lokal tidak aktif." }, { status: 404 });
-  const body = (await request.json().catch(() => ({}))) as { email?: unknown; password?: unknown };
-  const email = String(body.email ?? "").trim();
-  const password = String(body.password ?? "");
-  const expectedEmail = process.env.LOCAL_ADMIN_EMAIL ?? "";
-  const expectedPassword = process.env.LOCAL_ADMIN_PASSWORD ?? "";
-  // Kedua perbandingan selalu dijalankan agar waktu respons tidak membocorkan mana yang salah.
-  const emailOk = same(email, expectedEmail);
-  const passwordOk = same(password, expectedPassword);
-  if (!expectedEmail || !expectedPassword || !emailOk || !passwordOk) return Response.json({ error: "Email atau kata sandi tidak cocok." }, { status: 401 });
-  (await cookies()).set(LOCAL_COOKIE, createLocalToken(email), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: LOCAL_SESSION_SECONDS });
-  return Response.json({ ok: true });
+ try {
+  if (!isLocalMode()) throw new HttpError(404,"Login lokal tidak aktif.");
+  assertSameOrigin(request);
+  const body=objectValue(await request.json().catch(()=>null));
+  const token=await authenticate(textValue(body.email,"Email",160),textValue(body.password,"Kata sandi",128));
+  (await cookies()).set(SESSION_COOKIE,token,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/",maxAge:8*3600});
+  return Response.json({ok:true});
+ } catch(error) { return localError(error); }
 }
-
-export async function DELETE(): Promise<Response> {
-  (await cookies()).delete(LOCAL_COOKIE);
-  return Response.json({ ok: true });
+export async function DELETE(request: Request): Promise<Response> {
+ try { assertSameOrigin(request); await revokeCurrentSession(); (await cookies()).delete(SESSION_COOKIE); return Response.json({ok:true}); } catch(error) { return localError(error); }
 }

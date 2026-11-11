@@ -5,7 +5,24 @@ import type { Order, OrderItemInput } from "@/types/operations";
 import type { OrderResponse, PendingOrderRequest } from "@/types/ordering";
 
 export const LAST_ORDER_KEY = "cafesite:last-order";
+const ORDER_TOKENS_KEY = "cafesite:order-tokens";
+const MAX_REMEMBERED_ORDERS = 10;
 let customerSession: Promise<string> | null = null;
+
+function readOrderTokens(): Record<string, string> {
+  try {
+    const value = JSON.parse(localStorage.getItem(ORDER_TOKENS_KEY) || "{}") as unknown;
+    return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, string>) : {};
+  } catch { return {}; }
+}
+
+/** Simpan token akses pesanan (bukan data pribadi) agar halaman status bisa dibuka lagi dari browser ini. */
+export function rememberOrderToken(orderId: string, token: string): void {
+  try {
+    const entries = Object.entries(readOrderTokens()).filter(([id]) => id !== orderId).slice(-(MAX_REMEMBERED_ORDERS - 1));
+    localStorage.setItem(ORDER_TOKENS_KEY, JSON.stringify(Object.fromEntries([...entries, [orderId, token]])));
+  } catch { /* Penyimpanan diblokir: status tetap bisa ditanyakan ke kasir. */ }
+}
 
 export async function customerAccessToken(create: boolean = false): Promise<string> {
   const supabase = getBrowserSupabase();
@@ -23,8 +40,14 @@ export async function customerAccessToken(create: boolean = false): Promise<stri
   return customerSession;
 }
 
-export async function orderRequest<T>(path: string, options: RequestInit = {}, createSession: boolean = false): Promise<T> {
-  const token = await customerAccessToken(createSession);
+export async function orderRequest<T>(path: string, options: RequestInit = {}, createSession: boolean = false, orderId?: string): Promise<T> {
+  // Server memilih mode sendiri (CONTENT_SOURCE). Browser mengirim apa yang ia punya: token pesanan dari mode lokal
+  // (SQLite) bila tersimpan, dan token sesi Supabase bila Supabase aktif di browser. Tidak bergantung pada flag yang sama.
+  const auth: Record<string, string> = {};
+  const orderToken = orderId ? readOrderTokens()[orderId] : undefined;
+  if (orderToken) auth["X-Order-Token"] = orderToken;
+  if (getBrowserSupabase()) auth.Authorization = `Bearer ${await customerAccessToken(createSession)}`;
+  else if (orderId && !orderToken) throw new Error("Pesanan ini tidak tersimpan di browser ini. Buka dari browser yang dipakai saat memesan, atau tanyakan nomor antrian ke kasir.");
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 25000);
   try {
@@ -32,7 +55,7 @@ export async function orderRequest<T>(path: string, options: RequestInit = {}, c
       ...options,
       cache: "no-store",
       signal: controller.signal,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...options.headers },
+      headers: { "Content-Type": "application/json", ...auth, ...options.headers },
     });
     const payload: T & { error?: string } = await response.json();
     if (!response.ok) throw new Error(payload.error || "Pesanan belum dapat diproses. Silakan coba lagi.");
@@ -49,7 +72,7 @@ export async function orderRequest<T>(path: string, options: RequestInit = {}, c
 }
 
 export async function fetchCustomerOrder(id: string): Promise<Order> {
-  const { order } = await orderRequest<OrderResponse>(`/api/orders/${encodeURIComponent(id)}`);
+  const { order } = await orderRequest<OrderResponse>(`/api/orders/${encodeURIComponent(id)}`, {}, false, id);
   return order;
 }
 
@@ -61,17 +84,40 @@ export function canAddToOrder(order: Order): boolean {
   return !["completed", "cancelled"].includes(order.status) && order.payment_status === "unpaid";
 }
 
+/**
+ * UUID v4. crypto.randomUUID dan crypto.subtle hanya ada di "secure context" (https atau localhost); saat diuji dari HP
+ * lewat http://192.168.x.x keduanya tidak ada, jadi pakai crypto.getRandomValues yang selalu tersedia.
+ */
+function uuid(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/** Sidik jari isi pesanan (bukan untuk keamanan, hanya untuk mengenali kiriman ulang yang sama). */
+async function fingerprintOf(text: string): Promise<string> {
+  if (crypto.subtle) {
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(digest), (byte: number): string => byte.toString(16).padStart(2, "0")).join("");
+  }
+  let hash = 0x811c9dc5; // FNV-1a 32-bit
+  for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 0x01000193);
+  return `fnv-${(hash >>> 0).toString(16)}-${text.length}`;
+}
+
 // Keep retries of the same checkout tied to one server-side idempotency key.
 // Only a digest is persisted; customer names and phone numbers stay out of storage.
 export async function requestKey(scope: string, payload: unknown): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(payload)));
-  const fingerprint = Array.from(new Uint8Array(digest), (byte: number): string => byte.toString(16).padStart(2, "0")).join("");
+  const fingerprint = await fingerprintOf(JSON.stringify(payload));
   const storageKey = `cafesite:request:${scope}`;
   try {
     const previous = JSON.parse(localStorage.getItem(storageKey) || "null") as PendingOrderRequest | null;
     if (previous?.fingerprint === fingerprint && previous.key) return previous.key;
   } catch { /* Storage can be disabled; the request can still be made. */ }
-  const key = crypto.randomUUID();
+  const key = uuid();
   try { localStorage.setItem(storageKey, JSON.stringify({ fingerprint, key })); } catch { /* Optional recovery storage. */ }
   return key;
 }

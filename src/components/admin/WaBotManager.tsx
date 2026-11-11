@@ -72,7 +72,7 @@ export default function WaBotManager(): React.JSX.Element {
     <div className="min-w-0 space-y-6">
       <WaConnectionPanel />
 
-      <section aria-labelledby="wa-knowledge-title" className="rounded-2xl border border-charcoal-border bg-charcoal p-5 md:p-6">
+      <section aria-labelledby="wa-knowledge-title" className="rounded-xl border border-charcoal-border bg-charcoal p-5 md:p-6">
         <h2 id="wa-knowledge-title" className="font-serif text-2xl">Pengetahuan asisten</h2>
         <p className="mt-2 text-sm leading-6 text-offwhite-muted">
           Menu dan harga dibaca otomatis dari data kedai. Tambahkan dokumen (PDF atau Markdown) untuk hal lain: fasilitas, aturan, promo, cerita kedai. Unggah ulang nama yang sama untuk mengganti isinya.
@@ -88,24 +88,24 @@ export default function WaBotManager(): React.JSX.Element {
           <p className="mt-3 text-xs text-offwhite-darker">.pdf atau .md · maksimal 10 MB · harus berisi teks (bukan hasil scan gambar)</p>
           <input ref={input} id="rag-file" type="file" hidden accept=".pdf,.md,application/pdf,text/markdown,text/plain" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void upload(file); }} />
         </div>
-        {message && <p role="status" className="mt-3 text-sm text-latte">{message}</p>}
+        {message && <p role="status" className="mt-3 text-sm text-offwhite-muted">{message}</p>}
         {(error || listError) && <p role="alert" className="mt-3 break-words text-sm text-terracotta-light">{error || listError}</p>}
       </section>
 
-      <section aria-label="Status dokumen" className="min-w-0 overflow-x-auto rounded-2xl border border-charcoal-border">
+      <section aria-label="Status dokumen" className="min-w-0 overflow-x-auto rounded-xl border border-charcoal-border">
         <table className="w-full text-left text-sm">
           <caption className="p-4 text-left text-offwhite-muted">Status dokumen diperbarui otomatis.</caption>
-          <thead className="bg-charcoal text-latte"><tr><th scope="col" className="p-4">File</th><th scope="col" className="p-4">Status</th><th scope="col" className="p-4">Tindakan</th></tr></thead>
+          <thead className="bg-charcoal text-offwhite-muted"><tr><th scope="col" className="p-4">File</th><th scope="col" className="p-4">Status</th><th scope="col" className="p-4">Tindakan</th></tr></thead>
           <tbody>
             {jobs.map((job) => (
               <tr key={job.id} className="border-t border-charcoal-border align-top">
                 <td className="max-w-48 break-words p-4">
-                  <p>{job.source}</p>
-                  <p className="mt-1 text-xs text-offwhite-darker">{formatSize(job.size)}{job.status === "done" ? ` · ${job.chunks} potongan` : ""}</p>
-                  <time dateTime={job.updated_at} className="mt-1 block text-xs text-offwhite-darker">{new Date(job.updated_at).toLocaleString("id-ID")}</time>
+                  <p className="font-medium text-offwhite">{job.source}</p>
+                  <p className="mt-1 text-xs text-offwhite-darker tabular-nums">{formatSize(job.size)}{job.status === "done" ? ` · ${job.chunks} potongan` : ""}</p>
+                  <time dateTime={job.updated_at} className="mt-1 block text-xs text-offwhite-darker tabular-nums">{new Date(job.updated_at).toLocaleString("id-ID")}</time>
                 </td>
                 <td className="max-w-64 p-4">
-                  <span className={`inline-block rounded-lg bg-charcoal-light px-2 py-1 ${job.status === "failed" ? "text-terracotta-light" : "text-latte"}`}>{statuses[job.status]}</span>
+                  <span className={`inline-block rounded-lg bg-charcoal-light px-2 py-1 ${job.status === "failed" ? "text-terracotta-light" : "text-offwhite-muted"}`}>{statuses[job.status]}</span>
                   {job.status === "failed" && job.error && <p className="mt-2 break-words text-xs text-terracotta-light">{job.error}</p>}
                   {job.status === "done" && job.note && <p className="mt-2 break-words text-xs text-offwhite-darker">{job.note}</p>}
                 </td>

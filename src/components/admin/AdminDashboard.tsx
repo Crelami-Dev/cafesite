@@ -193,7 +193,7 @@ export default function AdminDashboard({ localMode = false }: { localMode?: bool
   if (loading) {
     return (
       <main id="main-content" className="grid min-h-dvh place-items-center bg-charcoal-darkest px-6">
-        <p role="status" className="animate-pulse text-sm text-latte">Menyiapkan ruang kelola…</p>
+        <p role="status" className="text-sm text-offwhite-muted">Menyiapkan ruang kelola…</p>
       </main>
     );
   }
@@ -246,7 +246,7 @@ export default function AdminDashboard({ localMode = false }: { localMode?: bool
                         type="button"
                         onClick={() => { setActive(item.id); if (item.id === "orders") setNewOrderPulse(false); }}
                         aria-current={isSelected ? "page" : undefined}
-                        className={`flex min-h-10 w-full shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition ${
+                        className={`flex min-h-11 w-full shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition ${
                           isSelected
                             ? "bg-charcoal-light font-medium text-offwhite"
                             : "text-offwhite-muted hover:bg-charcoal-light/60 hover:text-offwhite"
@@ -262,7 +262,7 @@ export default function AdminDashboard({ localMode = false }: { localMode?: bool
                         {item.id === "orders" && pendingOrders > 0 && (
                           <span
                             aria-label={`${pendingOrders} pesanan menunggu`}
-                            className={`min-w-6 shrink-0 rounded-full bg-terracotta px-1.5 py-0.5 text-center text-[10px] font-semibold text-offwhite-pure ${newOrderPulse && selected?.id !== "orders" ? "animate-pulse" : ""}`}
+                            className={`min-w-6 shrink-0 rounded-full bg-terracotta px-1.5 py-0.5 text-center text-[10px] font-semibold text-offwhite-pure tabular-nums ${newOrderPulse && selected?.id !== "orders" ? "ring-2 ring-offwhite" : ""}`}
                           >
                             {pendingOrders}
                           </span>
@@ -285,7 +285,7 @@ export default function AdminDashboard({ localMode = false }: { localMode?: bool
               type="button"
               onClick={() => void signOut()}
               disabled={busy}
-              className="min-h-10 shrink-0 text-xs text-offwhite-darker transition-colors hover:text-latte disabled:opacity-50"
+              className="min-h-11 shrink-0 text-xs text-offwhite-darker transition-colors hover:text-offwhite-muted disabled:opacity-50"
             >
               Keluar
             </button>
@@ -306,7 +306,7 @@ export default function AdminDashboard({ localMode = false }: { localMode?: bool
               <Link
                 href="/"
                 target="_blank"
-                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-xl border border-charcoal-border px-4 text-xs text-offwhite-muted transition-colors hover:border-latte hover:text-offwhite"
+                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-xl border border-charcoal-border px-4 text-xs text-offwhite-muted transition-colors hover:border-offwhite hover:text-offwhite"
               >
                 Lihat website ↗
               </Link>
@@ -314,7 +314,7 @@ export default function AdminDashboard({ localMode = false }: { localMode?: bool
                 type="button"
                 onClick={() => void signOut()}
                 disabled={busy}
-                className="min-h-11 text-xs text-offwhite-darker transition-colors hover:text-latte lg:hidden disabled:opacity-50"
+                className="min-h-11 text-xs text-offwhite-darker transition-colors hover:text-offwhite-muted lg:hidden disabled:opacity-50"
               >
                 Keluar
               </button>

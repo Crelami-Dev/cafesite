@@ -1,9 +1,16 @@
 "use client";
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useDialogFocus } from "./useDialogFocus";
 import type { MenuCategory, MenuCategoryMeta, MenuItem } from "@/types";
 import { getBrowserSupabase } from "@/lib/supabase/browser";
-import { adminButtonClass, adminError, adminInputClass, adminRequest, adminSecondaryClass } from "./admin-api";
+import {
+  adminButtonClass,
+  adminError,
+  adminInputClass,
+  adminRequest,
+  adminSecondaryClass,
+} from "./admin-api";
 import { menuCategories as defaultCategories } from "@/data/menu";
 
 interface MenuFormModalProps {
@@ -12,6 +19,7 @@ interface MenuFormModalProps {
   categories?: MenuCategoryMeta[];
   editing: boolean;
   busy: boolean;
+  error?: string;
   onClose: () => void;
   onSave: (item: MenuItem, sortOrder: number) => Promise<void>;
   onManageCategories?: () => void;
@@ -23,15 +31,41 @@ export default function MenuFormModal({
   categories,
   editing,
   busy,
+  error,
   onClose,
   onSave,
   onManageCategories,
 }: MenuFormModalProps): React.JSX.Element {
   const [item, setItem] = useState(initial);
+  const [dirty, setDirty] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
-  const categoriesList = categories && categories.length > 0 ? categories : defaultCategories;
+  function requestClose(): void {
+    if (busy || uploading) return;
+    if (!dirty || window.confirm("Perubahan menu belum disimpan. Tutup formulir?")) {
+      onClose();
+    }
+  }
+
+  useDialogFocus(requestClose);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent): void => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [dirty]);
+
+  const categoriesList =
+    categories && categories.length > 0 ? categories : defaultCategories;
+
+  function patch(next: Partial<MenuItem>): void {
+    setItem((current) => ({ ...current, ...next }));
+    setDirty(true);
+  }
 
   async function upload(file: File): Promise<void> {
     if (file.size > 5_242_880 || !/^image\/(jpeg|png|webp|avif)$/.test(file.type)) {
@@ -45,15 +79,21 @@ export default function MenuFormModal({
       if (client) {
         const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
         const path = `menu/${crypto.randomUUID()}.${ext}`;
-        const { error } = await client.storage.from("cafe-assets").upload(path, file, { contentType: file.type });
-        if (error) throw error;
-        setItem((current) => ({ ...current, image: client.storage.from("cafe-assets").getPublicUrl(path).data.publicUrl }));
+        const { error: upErr } = await client.storage
+          .from("cafe-assets")
+          .upload(path, file, { contentType: file.type });
+        if (upErr) throw upErr;
+        patch({
+          image: client.storage.from("cafe-assets").getPublicUrl(path).data.publicUrl,
+        });
       } else {
-        // Mode lokal: simpan ke public/uploads/menu lewat API admin.
         const form = new FormData();
         form.append("file", file);
-        const { url } = await adminRequest<{ url: string }>("upload", { method: "POST", body: form });
-        setItem((current) => ({ ...current, image: url }));
+        const { url } = await adminRequest<{ url: string }>("upload?folder=menu", {
+          method: "POST",
+          body: form,
+        });
+        patch({ image: url });
       }
     } catch (cause: unknown) {
       setUploadError(adminError(cause));
@@ -67,18 +107,28 @@ export default function MenuFormModal({
       className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-charcoal-darkest/80 p-4"
       role="presentation"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) requestClose();
       }}
     >
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="menu-form-title"
-        className="my-8 w-full max-w-3xl rounded-2xl border border-charcoal-border bg-charcoal p-5 shadow-floating md:p-6"
+        className="my-8 w-full max-w-3xl rounded-xl border border-charcoal-border bg-charcoal p-5 shadow-floating md:p-6"
       >
-        <h2 id="menu-form-title" className="font-serif text-2xl">
-          {editing ? "Rapikan menu" : "Menu baru"}
-        </h2>
+        <div className="flex items-center justify-between gap-4 border-b border-charcoal-border pb-4">
+          <h2 id="menu-form-title" className="font-serif text-2xl">
+            {editing ? "Edit menu" : "Menu baru"}
+          </h2>
+          <button
+            type="button"
+            onClick={requestClose}
+            className="min-h-11 rounded-lg px-3 text-sm text-offwhite-muted hover:bg-charcoal-light hover:text-offwhite"
+          >
+            Tutup
+          </button>
+        </div>
+
         <form
           className="mt-5 grid gap-4 sm:grid-cols-2"
           onSubmit={(event) => {
@@ -87,36 +137,51 @@ export default function MenuFormModal({
           }}
         >
           <label className="grid gap-1.5 text-sm">
-            Nama Menu *
+            Nama menu *
             <input
               required
               placeholder="mis. Caramel Macchiato"
               value={item.name}
-              onChange={(event) => setItem({ ...item, name: event.target.value })}
+              onChange={(event) => {
+                const name = event.target.value;
+                const autoId =
+                  !editing && (!item.id || item.id === initial.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"))
+                    ? name
+                        .toLowerCase()
+                        .trim()
+                        .replace(/[^a-z0-9]+/g, "-")
+                        .replace(/^-+|-+$/g, "")
+                    : item.id;
+                patch({ name, id: autoId });
+              }}
               className={adminInputClass}
             />
           </label>
 
           <label className="grid gap-1.5 text-sm">
-            ID Menu (unik) *
+            ID menu (unik) *
             <input
               required
               readOnly={editing}
               placeholder="mis. caramel-macchiato"
               value={item.id}
-              onChange={(event) => setItem({ ...item, id: event.target.value.replace(/\s+/g, "-").toLowerCase() })}
-              className={`${adminInputClass} ${editing ? "opacity-60 cursor-not-allowed" : ""}`}
+              onChange={(event) =>
+                patch({
+                  id: event.target.value.replace(/\s+/g, "-").toLowerCase(),
+                })
+              }
+              className={`${adminInputClass} ${editing ? "cursor-not-allowed opacity-60" : ""}`}
             />
           </label>
 
           <label className="grid gap-1.5 text-sm sm:col-span-2">
-            Deskripsi Menu *
+            Deskripsi menu *
             <textarea
               required
-              placeholder="Singkat, menggugah selera, dan menjelaskan rasa atau racikan."
+              placeholder="Singkat, jelas, dan menjelaskan rasa atau racikan."
               value={item.description}
-              onChange={(event) => setItem({ ...item, description: event.target.value })}
-              className={`${adminInputClass} min-h-16 resize-none`}
+              onChange={(event) => patch({ description: event.target.value })}
+              className={`${adminInputClass} min-h-20 resize-y`}
               rows={2}
             />
           </label>
@@ -129,46 +194,43 @@ export default function MenuFormModal({
               min="0"
               placeholder="25000"
               value={item.price || ""}
-              onChange={(event) => setItem({ ...item, price: Number(event.target.value) })}
-              className={adminInputClass}
+              onChange={(event) => patch({ price: Number(event.target.value) })}
+              className={`${adminInputClass} tabular-nums`}
             />
           </label>
 
-          {/* Kategori dengan Tampilan Select Kustom & Akses Cepat Kelola Kategori */}
           <div className="grid gap-1.5 text-sm">
-            <div className="flex items-center justify-between">
-              <span>Kategori *</span>
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="menu-category-select">Kategori *</label>
               {onManageCategories && (
                 <button
                   type="button"
                   onClick={onManageCategories}
-                  className="text-xs text-latte hover:text-latte-light transition-colors font-medium"
+                  className="inline-flex min-h-11 items-center rounded-lg px-2 text-xs font-medium text-offwhite-muted transition-colors hover:text-offwhite"
                 >
-                  + Kelola Kategori
+                  + Kelola kategori
                 </button>
               )}
             </div>
 
-            <div className="relative">
-              <select
-                value={item.category}
-                onChange={(event) => setItem({ ...item, category: event.target.value as MenuCategory })}
-                className="min-h-11 w-full cursor-pointer appearance-none rounded-xl border border-charcoal-border bg-charcoal-darkest py-2.5 pl-3.5 pr-10 text-sm font-medium text-offwhite outline-none transition duration-150 hover:border-charcoal-muted focus:border-latte focus:ring-1 focus:ring-latte/40 disabled:opacity-50"
-              >
-                {categoriesList.map((category) => (
-                  <option key={category.id} value={category.id} className="bg-charcoal py-2 text-offwhite">
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-
-              {/* Panah Chevron Kustom */}
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5 text-offwhite-darker">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
+            <select
+              id="menu-category-select"
+              value={item.category}
+              onChange={(event) =>
+                patch({ category: event.target.value as MenuCategory })
+              }
+              className={adminInputClass}
+            >
+              {categoriesList.map((category) => (
+                <option
+                  key={category.id}
+                  value={category.id}
+                  className="bg-charcoal py-2 text-offwhite"
+                >
+                  {category.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <label className="grid gap-1.5 text-sm sm:col-span-2">
@@ -177,8 +239,7 @@ export default function MenuFormModal({
               placeholder="mis. signature, dingin, manis"
               value={item.tags?.join(", ") ?? ""}
               onChange={(event) =>
-                setItem({
-                  ...item,
+                patch({
                   tags: event.target.value
                     .split(",")
                     .map((tag) => tag.trim())
@@ -189,48 +250,84 @@ export default function MenuFormModal({
             />
           </label>
 
-          <div className="grid gap-1.5 text-sm sm:col-span-2">
-            <span>Foto Menu</span>
+          <div className="grid gap-2 text-sm sm:col-span-2">
+            <label htmlFor="menu-photo-input">Foto menu (opsional)</label>
             <input
+              id="menu-photo-input"
               type="file"
               accept="image/jpeg,image/png,image/webp,image/avif"
               disabled={uploading}
-              className="min-h-11 w-full rounded-xl border border-charcoal-border bg-charcoal-darkest px-3 py-2.5 text-xs text-offwhite-muted file:mr-3 file:rounded-lg file:border-0 file:bg-charcoal-light file:px-3 file:py-1.5 file:text-xs file:text-offwhite-muted"
+              className="min-h-11 w-full rounded-xl border border-charcoal-border bg-charcoal-darkest px-3 py-2.5 text-xs text-offwhite-muted file:mr-3 file:rounded-lg file:border-0 file:bg-charcoal-light file:px-3 file:py-1.5 file:text-xs file:text-offwhite"
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (file) void upload(file);
               }}
             />
-            {uploading && <span className="text-xs text-latte">Mengunggah foto…</span>}
-            {uploadError && <span className="text-xs text-terracotta-light">{uploadError}</span>}
+            {uploading && (
+              <span role="status" className="text-xs text-offwhite-muted">
+                Mengunggah foto…
+              </span>
+            )}
+            {uploadError && (
+              <span role="alert" className="text-xs text-terracotta-light">
+                ! {uploadError}
+              </span>
+            )}
+            {item.image && (
+              <div className="flex flex-wrap items-center gap-4 rounded-xl border border-offwhite/10 bg-charcoal-darkest/50 p-3">
+                <Image
+                  src={item.image}
+                  alt={`Pratinjau ${item.name || "menu"}`}
+                  width={96}
+                  height={72}
+                  unoptimized
+                  className="h-18 w-24 rounded-lg object-cover"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs text-offwhite-muted">{item.image}</p>
+                  <button
+                    type="button"
+                    onClick={() => patch({ image: undefined })}
+                    className="mt-1 min-h-11 rounded-lg px-2 text-xs text-terracotta-light hover:text-offwhite"
+                  >
+                    Hapus foto
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-6 sm:col-span-2 pt-1">
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-offwhite-muted hover:text-offwhite transition">
+          <div className="flex flex-wrap items-center gap-4 pt-1 sm:col-span-2">
+            <label className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg border border-offwhite/10 px-3 text-sm text-offwhite-muted transition hover:text-offwhite">
               <input
                 type="checkbox"
                 checked={item.isAvailable !== false}
-                onChange={(event) => setItem({ ...item, isAvailable: event.target.checked })}
-                className="h-4 w-4 accent-terracotta cursor-pointer"
+                onChange={(event) => patch({ isAvailable: event.target.checked })}
+                className="h-5 w-5 cursor-pointer accent-terracotta"
               />
               Tersedia untuk dipesan
             </label>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-offwhite-muted hover:text-offwhite transition">
+            <label className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg border border-offwhite/10 px-3 text-sm text-offwhite-muted transition hover:text-offwhite">
               <input
                 type="checkbox"
                 checked={item.isFeatured === true}
-                onChange={(event) => setItem({ ...item, isFeatured: event.target.checked })}
-                className="h-4 w-4 accent-terracotta cursor-pointer"
+                onChange={(event) => patch({ isFeatured: event.target.checked })}
+                className="h-5 w-5 cursor-pointer accent-terracotta"
               />
-              Tandai sebagai Unggulan
+              Tandai sebagai unggulan
             </label>
           </div>
 
-          <div className="mt-2 flex justify-end gap-3 sm:col-span-2 border-t border-charcoal-border/40 pt-4">
-            <button type="button" className={adminSecondaryClass} onClick={onClose}>
+          {error && (
+            <p role="alert" className="text-sm text-terracotta-light sm:col-span-2">
+              ! {error}
+            </p>
+          )}
+          <div className="mt-2 flex flex-wrap justify-end gap-3 border-t border-charcoal-border/40 pt-4 sm:col-span-2">
+            <button type="button" className={adminSecondaryClass} onClick={requestClose}>
               Batal
             </button>
-            <button type="submit" disabled={busy} className={adminButtonClass}>
+            <button type="submit" disabled={busy || uploading} className={adminButtonClass}>
               {busy ? "Menyimpan…" : "Simpan menu"}
             </button>
           </div>

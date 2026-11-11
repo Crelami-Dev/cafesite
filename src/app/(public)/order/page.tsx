@@ -1,36 +1,35 @@
 import { OrderMenu } from "@/components/order/OrderMenu";
-import { menuItems } from "@/data/menu";
+import { OrderGate } from "@/components/order/OrderGate";
+import { getMenuItems } from "@/lib/content";
+import { isLocalMode } from "@/lib/server/local-session";
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
-import type { MenuItem } from "@/types";
 import type { OrderPageProps } from "@/types/ordering";
 
 export const metadata: Metadata = {
   title: "Pesan dari meja",
   description:
-    "Pilih menu CafeSite, pesan untuk makan di tempat atau dibawa pulang, dan pantau pesananmu langsung.",
+    "Scan QR di meja CafeSite, pilih menu, lalu pesan untuk makan di tempat atau dibawa pulang. Bayar di kasir.",
   alternates: { canonical: "/order" },
 };
 
-export default async function OrderPage({
-  searchParams,
-}: OrderPageProps): Promise<ReactElement> {
+/**
+ * Halaman pesan. Mode lokal (SQLite): wajib scan QR meja dulu (anti iseng) — tanpa ?meja=&k= yang sah,
+ * yang tampil adalah layar "Scan QR di meja". Menu selalu dibaca langsung dari database (sama dengan dashboard).
+ */
+export default async function OrderPage({ searchParams }: OrderPageProps): Promise<ReactElement> {
   const query = await searchParams;
-  const tableCode =
-    typeof query.meja === "string" ? query.meja.slice(0, 60) : "";
-  const addToOrderId =
-    typeof query.tambah === "string" ? query.tambah.slice(0, 60) : "";
-  // Demo menu remains visibly labelled until the live catalogue is configured.
-  const initialMenu: MenuItem[] = menuItems.map((item: MenuItem): MenuItem => ({
-    ...item,
-    image: item.image?.startsWith("/Image/Menu/") ? item.image : undefined,
-  }));
-  return (
-    <OrderMenu
-      key={tableCode}
-      initialMenu={initialMenu}
-      tableCode={tableCode}
-      addToOrderId={addToOrderId}
-    />
-  );
+  const meja = typeof query.meja === "string" ? query.meja.slice(0, 60) : "";
+  const key = typeof query.k === "string" ? query.k.slice(0, 64) : "";
+
+  if (isLocalMode()) {
+    const { resolveScannedTable } = await import("@/lib/server/local-orders");
+    const table = meja ? resolveScannedTable(meja, key) : null;
+    if (!table) return <OrderGate invalid={Boolean(meja)} />;
+    const menu = (await getMenuItems()).filter((item) => item.isAvailable !== false);
+    return <OrderMenu key={table.id} initialMenu={menu} table={table} />;
+  }
+
+  const menu = (await getMenuItems()).filter((item) => item.isAvailable !== false);
+  return <OrderMenu key={meja} initialMenu={menu} table={meja ? { id: meja, label: meja, status: "available", key: "" } : null} />;
 }

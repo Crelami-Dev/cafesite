@@ -4,7 +4,7 @@ import { requireLocalAdmin } from "@/lib/server/local-session";
 import { objectValue } from "@/lib/server/validation";
 
 export async function GET(request: Request): Promise<Response> {
-  try { await requireLocalAdmin(request); return localJson(listLocalOrders()); } catch (error) { return localError(error); }
+  try { await requireLocalAdmin(request); return localJson(listLocalOrders(new URL(request.url).searchParams)); } catch (error) { return localError(error); }
 }
 
 export async function PATCH(request: Request): Promise<Response> {

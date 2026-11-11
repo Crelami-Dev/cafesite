@@ -20,14 +20,26 @@ export function OrderTracking({
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let live = true;
+    let failures = 0;
+    let poll: number | null = null;
+    const stopPolling = (): void => {
+      if (poll !== null) window.clearInterval(poll);
+      poll = null;
+    };
     const load = async (): Promise<void> => {
       try {
         const next = await fetchCustomerOrder(orderId);
+        failures = 0;
         if (live) {
           setOrder(next);
           setMessage("");
         }
+        // Pesanan selesai atau batal tidak akan berubah lagi.
+        if (next.status === "completed" || next.status === "cancelled") stopPolling();
       } catch (error) {
+        failures += 1;
+        // Gagal terus (mis. token tidak ada di browser ini): berhenti; tombol "Coba lagi" memulai ulang.
+        if (failures >= 3) stopPolling();
         if (live)
           setMessage(
             error instanceof Error
@@ -51,8 +63,14 @@ export function OrderTracking({
         () => void load(),
       )
       .subscribe();
+    // Mode lokal (tanpa Supabase Realtime): perbarui status tiap 5 detik selama tab terlihat.
+    if (!client)
+      poll = window.setInterval(() => {
+        if (document.visibilityState === "visible") void load();
+      }, 5000);
     return () => {
       live = false;
+      stopPolling();
       if (channel && client) void client.removeChannel(channel);
     };
   }, [orderId, attempt]);
@@ -62,7 +80,7 @@ export function OrderTracking({
   return (
     <Container className="py-14 lg:py-20">
       <div className="mx-auto max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-wider text-terracotta">Status Pesanan</p>
+        <p className="section-label">Status pesanan</p>
         <h1 className="public-h1 mt-4">
           {order ? queueLabel(order.queue_number) : "Pesanan kamu"}
         </h1>
@@ -138,7 +156,7 @@ export function OrderTracking({
               </ul>
               <div className="mt-5 flex justify-between text-lg">
                 <span>Total</span>
-                <strong className="font-semibold text-terracotta">
+                <strong className="font-semibold text-terracotta-light">
                   {formatPrice(order.total)}
                 </strong>
               </div>

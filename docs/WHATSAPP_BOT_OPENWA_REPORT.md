@@ -344,3 +344,21 @@ Uji pertama lewat ponsel sungguhan (nomor kedua) berhasil menyimpan pesanan ke d
 - Berkas sesi berubah menjadi `LOGGED OUT` sekitar 2 detik setelah Chrome dibuka, jauh sebelum WhatsApp Web sempat memuat. Itu terlalu cepat untuk keputusan "QR diminta"; yang cocok adalah jalur `portable_session_bootstrap_failed` / `session_reset_for_pairing` di OpenWA (checkpoint sesi gagal dipasang ke halaman, lalu OpenWA mereset sesi).
 - Bot kini menulis peringatan OpenWA ke `server/session/openwa-warnings.log` (level warn, tanpa isi pesan) selain ke console. Baris `portable_session_bootstrap_failed` berisi kode penyebabnya.
 - Bila penyebabnya tidak bisa diatasi di lapisan OpenWA, alternatif: ganti pustaka ke whatsapp-web.js dengan LocalAuth (profil Chrome permanen). Itu perubahan besar dan butuh persetujuan.
+
+### 17.2 Kandidat penyebab utama dan perbaikannya (belum terbukti di WhatsApp asli)
+
+Temuan: `snapshotSession` dijalankan 1,5 detik setelah Chrome dibuka dan memanggil `ownBrowserPids()` yang memakai
+`execSync` PowerShell (Get-CimInstance, beberapa detik). Itu memblokir event loop Node tepat saat OpenWA memasang sesi
+tersimpan ke halaman WhatsApp Web (jendela yang sama dengan `LOGGED OUT` ditulis ~2 detik setelah browser dibuka).
+Saat scan QR pertama kali tidak ada sesi yang dipasang sehingga tidak terdampak; setiap restart terdampak.
+
+Perbaikan di `server/src/whatsapp/client.ts`:
+1. `ownBrowserPids`/`killOwnBrowsers` kini async (`execFile`), tidak memblokir event loop.
+2. Pencatatan PID Chrome ditunda 30 detik (`SNAPSHOT_DELAY_MS`) setelah browser dibuka.
+3. Jaring pengaman: bila QR tetap diminta padahal ada sesi tersimpan dan cadangan sehat, cadangan dipulihkan dan
+   koneksi dicoba sekali lagi (sekali per proses) sebelum QR ditampilkan.
+4. Peringatan OpenWA tetap dicatat ke `server/session/openwa-warnings.log` untuk diagnosa bila masih gagal.
+
+Yang belum bisa diverifikasi tanpa ponsel: sesi benar-benar bertahan setelah restart. Uji: scan QR, tunggu tersambung,
+Ctrl+C, nyalakan lagi; seharusnya log menampilkan "Sesi tersimpan ditemukan" lalu "WhatsApp tersambung" tanpa QR.
+Catatan: start dingin bisa 30-50 detik (impor OpenWA + Chrome); itu normal.

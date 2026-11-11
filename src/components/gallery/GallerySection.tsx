@@ -21,6 +21,11 @@ export function GallerySection({
   const [activeCategory, setActiveCategory] = useState<"all" | GalleryCategory>(
     "all",
   );
+  const [hasFiltered, setHasFiltered] = useState(false);
+  const selectCategory = (category: "all" | GalleryCategory): void => {
+    setHasFiltered(true);
+    setActiveCategory(category);
+  };
 
   // Hitung jumlah item per kategori untuk badge filter
   const categoryCounts = useMemo(() => {
@@ -43,7 +48,7 @@ export function GallerySection({
     <>
       <GalleryFilterBar
         activeCategory={activeCategory}
-        onSelectCategory={setActiveCategory}
+        onSelectCategory={selectCategory}
         currentCount={filteredPhotos.length}
         categoryCounts={categoryCounts}
       />
@@ -55,7 +60,7 @@ export function GallerySection({
       >
         <Container size="default">
           {/* key agar caption reset ke hidden saat ganti kategori */}
-          <GalleryGrid key={activeCategory} photos={filteredPhotos} />
+          <GalleryGrid key={activeCategory} photos={filteredPhotos} animateIn={hasFiltered} />
         </Container>
       </section>
     </>

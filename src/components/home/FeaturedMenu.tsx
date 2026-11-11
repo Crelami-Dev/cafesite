@@ -1,57 +1,96 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
+import { Button } from "@/components/ui/Button";
 import { getMenuItems } from "@/lib/content";
 import { formatPrice } from "@/lib/utils";
 import type { MenuItem } from "@/types";
 
+/**
+ * Menu favorit sebagai "papan menu": satu menu andalan tampil besar (foto, cerita, tombol pesan), di sampingnya
+ * daftar menu lain seperti papan di kasir — nama, titik-titik, harga. Semua data dari menu di dashboard.
+ */
 export async function FeaturedMenu({
   items: propItems,
 }: { items?: MenuItem[] } = {}): Promise<React.JSX.Element> {
   const menu = propItems ?? (await getMenuItems());
   const available = menu.filter((item) => item.isAvailable !== false);
-  const featured = available.filter((item) => item.isFeatured);
-  const nonFeatured = available.filter((item) => !item.isFeatured);
-  const items = [...featured, ...nonFeatured].slice(0, 6);
+  const ordered = [...available.filter((item) => item.isFeatured), ...available.filter((item) => !item.isFeatured)];
+  const star = ordered.find((item) => item.tags?.includes("Best Seller") && item.image) ?? ordered.find((item) => item.image);
+  const rest = ordered.filter((item) => item.id !== star?.id).slice(0, 7);
+
   return (
-    <section id="menu-unggulan" aria-labelledby="featured-heading" className="bg-offwhite py-14 text-charcoal md:py-24">
+    <section id="menu-unggulan" aria-labelledby="featured-heading" className="board-section">
       <Container>
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <h2 id="featured-heading" className="public-h2">Pilihan dari menu kami.</h2>
-          <Link href="/menu" className="link inline-flex min-h-11 items-center text-sm">Lihat semua menu <span className="ml-3" aria-hidden="true">↗</span></Link>
+        <div className="flex flex-wrap items-end justify-between gap-4" data-reveal>
+          <h2 id="featured-heading" className="public-h2">
+            Menu favorit dan harganya
+          </h2>
+          <Link href="/menu" className="link inline-flex min-h-11 items-center text-base">
+            Lihat semua menu <span className="ml-2" aria-hidden="true">↗</span>
+          </Link>
         </div>
-        <div className="m-rail mt-8 grid gap-6 md:mt-10 md:grid-cols-3">
-          {items.map((item) => (
-            <Link
-              href="/order"
-              key={item.id}
-              className="group flex min-h-11 min-w-0 flex-col border-b border-charcoal/20 pb-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta"
-              aria-label={`Pesan ${item.name}, ${formatPrice(item.price)}`}
-            >
-              {item.image && (
-                <div className="m-zoom relative aspect-[4/3] overflow-hidden bg-charcoal/10">
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    fill
-                    sizes="(min-width: 1248px) 384px, (min-width: 768px) 33vw, 100vw"
-                    className="object-cover"
-                  />
+
+        {available.length === 0 ? (
+          <p className="mt-8">Menu sedang diperbarui.</p>
+        ) : (
+          <div className="board-grid">
+            {star && (
+              <article className="board-star" data-reveal>
+                <Link href="/order" className="group block" aria-label={`Pesan ${star.name}`}>
+                  <div className="m-zoom relative aspect-[4/5] overflow-hidden bg-charcoal">
+                    <Image
+                      src={star.image as string}
+                      alt={star.name}
+                      fill
+                      unoptimized={!(star.image as string).startsWith("/Image/")}
+                      sizes="(min-width: 1248px) 486px, (min-width: 1024px) 40vw, 100vw"
+                      className="object-cover"
+                    />
+                  </div>
+                </Link>
+                <p className="mt-6 text-sm font-medium text-terracotta-light">Paling sering dipesan</p>
+                <div className="mt-1 flex items-baseline justify-between gap-4">
+                  <h3 className="font-serif text-3xl leading-tight">{star.name}</h3>
+                  <span className="shrink-0 text-lg font-medium tabular-nums">{formatPrice(star.price)}</span>
                 </div>
-              )}
-              <div className="mt-4 flex items-baseline justify-between gap-4">
-                <h3 className="text-lg font-medium leading-snug">{item.name}</h3>
-                <span className="shrink-0 text-base font-medium tabular-nums">{formatPrice(item.price)}</span>
-              </div>
-              {item.description && (
-                <p className="mt-1 line-clamp-2 text-sm text-charcoal/75">
-                  {item.description}
-                </p>
-              )}
-            </Link>
-          ))}
-        </div>
-        {!items.length && <p className="mt-8">Menu sedang diperbarui.</p>}
+                {star.description && <p className="mt-2 text-base leading-relaxed text-offwhite-muted">{star.description}</p>}
+                <Button href="/order" size="lg" className="mt-6">
+                  Pesan menu <span aria-hidden="true">↗</span>
+                </Button>
+              </article>
+            )}
+
+            <ul className="board-list" aria-label="Menu lainnya" data-reveal-group>
+              {rest.map((item) => (
+                <li key={item.id}>
+                  <Link href="/order" className="board-row group" aria-label={`Pesan ${item.name}, ${formatPrice(item.price)}`}>
+                    {item.image && (
+                      <span className="m-zoom relative block h-16 w-16 shrink-0 overflow-hidden bg-charcoal">
+                        <Image
+                          src={item.image}
+                          alt=""
+                          fill
+                          unoptimized={!item.image.startsWith("/Image/")}
+                          sizes="64px"
+                          className="object-cover"
+                        />
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="board-row__line">
+                        <span className="board-row__name">{item.name}</span>
+                        <span className="board-row__dots" aria-hidden="true" />
+                        <span className="board-row__price">{formatPrice(item.price)}</span>
+                      </span>
+                      {item.description && <span className="board-row__desc">{item.description}</span>}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </Container>
     </section>
   );

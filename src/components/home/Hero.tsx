@@ -1,12 +1,15 @@
 import Image from "next/image";
 import { getPublicContent } from "@/lib/content";
-import { isOpenNow } from "@/lib/utils";
+import { formatPrice, isOpenNow } from "@/lib/utils";
 import { OpenNowBadge } from "@/components/layout/OpenNowBadge";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
+import { district } from "@/lib/address";
 
 export async function Hero(): Promise<React.JSX.Element> {
-  const { cafe, cafeConfirmed } = await getPublicContent();
+  const { cafe, cafeConfirmed, menu } = await getPublicContent();
+  const coffeePrices = menu.filter((item) => item.category === "coffee" && item.isAvailable !== false).map((item) => item.price);
+  const cheapestCoffee = coffeePrices.length ? Math.min(...coffeePrices) : null;
   return (
     <section className="hero cafe-hero" data-enter aria-labelledby="hero-heading">
       {/* Foto penuh tanpa teks/overlay; kata-kata ada di bawahnya (mobile sampai desktop). */}
@@ -23,30 +26,36 @@ export async function Hero(): Promise<React.JSX.Element> {
       <Container className="cafe-hero__body">
         <div className="cafe-hero__grid">
           <div>
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-              <p className="section-label">Kedai kopi · {cafe.city}</p>
-              {cafeConfirmed ? (
+            {cafeConfirmed ? (
+              <div className="mb-4">
                 <OpenNowBadge
                   initialStatus={isOpenNow(cafe.openingHours)}
                   hours={cafe.openingHours}
                 />
-              ) : null}
-            </div>
+              </div>
+            ) : null}
             <h1 id="hero-heading" className="public-h1">
-              Kopi yang diseduh pelan, <em className="italic font-serif">ruang</em> buat harimu.
+              Kedai kopi di {district(cafe.address)}, diseduh <em className="italic font-serif">pelan</em>.
             </h1>
           </div>
           <div className="max-w-md">
             <p className="text-base leading-relaxed text-offwhite-muted">
-              Lihat menu dan harga, pesan dari meja atau bawa pulang, lalu cek jam buka sebelum mampir.
+              {cafeConfirmed && cafe.tagline ? (
+                <>
+                  {cafe.tagline}{" "}
+                  {cheapestCoffee ? `Kopi mulai ${formatPrice(cheapestCoffee)}.` : ""}{" "}
+                </>
+              ) : (
+                <>
+                  Kopi single origin{cheapestCoffee ? ` mulai ${formatPrice(cheapestCoffee)}` : ""}, makanan hangat, dan meja yang boleh kamu pakai lama.{" "}
+                </>
+              )}
+              {cafeConfirmed && cafe.openingHours.every((day) => day.isOpen) && <span>Buka setiap hari.</span>}
             </p>
             <div className="cafe-hero__actions">
-              <Button href="/order" size="lg">Pesan sekarang <span aria-hidden="true">↗</span></Button>
-              <Button href="/menu" variant="outline" size="lg">Lihat menu</Button>
+              <Button href="/order" size="lg">Pesan menu <span aria-hidden="true">↗</span></Button>
+              <Button href="/menu" variant="outline" size="lg">Lihat menu & harga</Button>
             </div>
-            <p className="cafe-hero__facts">
-              <span>{cafe.address}</span>
-            </p>
           </div>
         </div>
       </Container>

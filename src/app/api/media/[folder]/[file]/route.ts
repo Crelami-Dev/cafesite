@@ -1,0 +1,3 @@
+import {readFile} from "node:fs/promises";
+import path from "node:path";
+export async function GET(_request:Request,{params}:{params:Promise<{folder:string;file:string}>}):Promise<Response>{const {folder,file}=await params;if(!["menu","gallery"].includes(folder)||!/^[a-f0-9-]{36}\.(jpg|png|webp|avif)$/.test(file))return new Response(null,{status:404});try{const bytes=await readFile(path.join(process.cwd(),".data","uploads",folder,file));return new Response(bytes,{headers:{"Content-Type":`image/${file.endsWith(".jpg")?"jpeg":file.split(".").pop()}`,"Cache-Control":"public, max-age=31536000, immutable","X-Content-Type-Options":"nosniff"}});}catch{return new Response(null,{status:404});}}

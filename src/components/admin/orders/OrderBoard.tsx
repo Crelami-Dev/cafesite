@@ -40,7 +40,7 @@ export default function OrderBoard(props: OrderBoardProps): React.JSX.Element {
           <button
             type="button"
             aria-pressed={showCancelled}
-            className={`min-h-11 rounded-xl border px-3 text-xs transition ${showCancelled ? "border-latte text-offwhite" : "border-charcoal-border text-offwhite-muted hover:border-latte"}`}
+            className={`min-h-11 rounded-xl border px-3 text-xs transition ${showCancelled ? "border-offwhite text-offwhite" : "border-charcoal-border text-offwhite-muted hover:border-offwhite"}`}
             onClick={() => setShowCancelled((value) => !value)}
           >
             {cancelled.length} dibatalkan hari ini
@@ -48,7 +48,7 @@ export default function OrderBoard(props: OrderBoardProps): React.JSX.Element {
           <button
             type="button"
             aria-pressed={props.muted}
-            className="min-h-11 rounded-xl border border-charcoal-border px-3 text-xs text-offwhite-muted transition hover:border-latte"
+            className="min-h-11 rounded-xl border border-charcoal-border px-3 text-xs text-offwhite-muted transition hover:border-offwhite"
             onClick={props.onToggleMuted}
           >
             Suara {props.muted ? "dimatikan" : "aktif"}
@@ -58,7 +58,7 @@ export default function OrderBoard(props: OrderBoardProps): React.JSX.Element {
       </header>
 
       {showCancelled && (
-        <div className="mb-5 rounded-2xl border border-charcoal-border bg-charcoal p-5">
+        <div className="mb-5 rounded-xl border border-charcoal-border bg-charcoal p-5">
           <h2 className="font-serif text-xl">Pembatalan hari ini</h2>
           {cancelled.length === 0 ? (
             <p className="mt-3 text-sm text-offwhite-darker">Belum ada pembatalan sejauh ini—kondisi yang bagus.</p>
@@ -69,7 +69,7 @@ export default function OrderBoard(props: OrderBoardProps): React.JSX.Element {
                   type="button"
                   key={order.id}
                   onClick={() => props.onOpen(order.id)}
-                  className="min-h-11 rounded-xl border border-charcoal-border p-3 text-left transition hover:border-latte"
+                  className="min-h-11 rounded-xl border border-charcoal-border p-3 text-left transition hover:border-offwhite"
                 >
                   <span className="font-semibold">{queueLabel(order.queue_number)}</span>
                   <span className="ml-2 text-xs text-offwhite-darker">{fulfillmentLabel(order)} · {formatRupiah(order.total)}</span>

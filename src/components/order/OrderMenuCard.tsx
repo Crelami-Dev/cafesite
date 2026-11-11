@@ -20,6 +20,7 @@ export function OrderMenuCard({
             alt={item.name}
             fill
             sizes="(max-width:639px) 100vw, 112px"
+            unoptimized={!item.image.startsWith("/Image/")}
             className="object-cover"
             onError={() => setFailed(true)}
           />
@@ -38,12 +39,12 @@ export function OrderMenuCard({
           {item.description.split(". ")[0]}.
         </p>
         <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-4">
-          <p className="text-base font-semibold tabular-nums text-terracotta">{formatPrice(item.price)}</p>
+          <p className="text-base font-semibold tabular-nums text-offwhite">{formatPrice(item.price)}</p>
           {quantity > 0 ? (
             <div className="flex items-center border border-offwhite/30 rounded-md bg-charcoal-light">
               <button
                 type="button"
-                className="taste-btn-press grid h-11 w-11 place-items-center text-offwhite hover:text-terracotta"
+                className="taste-btn-press grid h-11 w-11 place-items-center text-offwhite hover:text-terracotta-light"
                 onClick={onDecrease}
                 aria-label={`Kurangi ${item.name}`}
               >
@@ -54,7 +55,7 @@ export function OrderMenuCard({
               </span>
               <button
                 type="button"
-                className="taste-btn-press grid h-11 w-11 place-items-center text-offwhite hover:text-terracotta disabled:opacity-40"
+                className="taste-btn-press grid h-11 w-11 place-items-center text-offwhite hover:text-terracotta-light disabled:opacity-40"
                 disabled={quantity >= 20}
                 onClick={onAdd}
                 aria-label={`Tambah ${item.name}`}

@@ -1,0 +1,6 @@
+"use client";
+import {useEffect,useRef} from "react";
+export function useDialogFocus(onClose:()=>void):void{
+ const close=useRef(onClose);useEffect(()=>{close.current=onClose;},[onClose]);
+ useEffect(()=>{const previous=document.activeElement as HTMLElement|null;const dialogs=document.querySelectorAll<HTMLElement>('[role="dialog"]');const dialog=dialogs[dialogs.length-1];if(!dialog)return;const selector='button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex="0"]';const focusable=():HTMLElement[]=>Array.from(dialog.querySelectorAll<HTMLElement>(selector)).filter(el=>el.getClientRects().length>0);focusable()[0]?.focus();const old=document.body.style.overflow;document.body.style.overflow="hidden";const key=(e:KeyboardEvent):void=>{const all=document.querySelectorAll('[role="dialog"],dialog[open]');if(all[all.length-1]!==dialog)return;if(e.key==="Escape"){e.preventDefault();close.current();}if(e.key==="Tab"){const list=focusable();const first=list[0],last=list.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}};document.addEventListener("keydown",key);return()=>{document.removeEventListener("keydown",key);document.body.style.overflow=old;previous?.focus();};},[]);
+}

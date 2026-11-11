@@ -1,4 +1,5 @@
-import { execSync } from "node:child_process";
+import { execFile, execSync } from "node:child_process";
+import { promisify } from "node:util";
 import type { BotEnv } from "../config/env";
 import { logger, describeError } from "./logger";
 import { allowOpenWaWithoutZstd } from "./openwaShim";
@@ -150,21 +151,25 @@ function killProcessTree(pid: number): void {
   } catch { /* proses sudah mati */ }
 }
 
+const execFileAsync = promisify(execFile);
+
 /**
  * Browser yang dibuka OpenWA adalah anak proses bot ini. Event pid dari library tidak selalu terisi, jadi
- * sebagai pengaman semua anak proses berjenis browser milik proses ini dimatikan (bot tidak membuka browser lain).
+ * sebagai pengaman semua anak proses berjenis browser milik proses ini dicari (bot tidak membuka browser lain).
+ * WAJIB async: versi sinkron (execSync PowerShell) memblokir event loop beberapa detik tepat saat OpenWA memasang
+ * sesi tersimpan ke halaman WhatsApp, sehingga sesi dianggap gagal lalu direset (login hilang tiap restart).
  */
-function ownBrowserPids(): number[] {
+async function ownBrowserPids(): Promise<number[]> {
   try {
-    const out = process.platform === "win32"
-      ? execSync(`powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \\"ParentProcessId=${process.pid}\\" | Where-Object { $_.Name -match 'chrome|chromium|msedge' } | ForEach-Object { $_.ProcessId }"`, { encoding: "utf8" })
-      : execSync(`pgrep -P ${process.pid} -f "chrom"`, { encoding: "utf8" });
-    return out.split(/\s+/).map(Number).filter((value) => Number.isInteger(value) && value > 0);
+    const { stdout } = process.platform === "win32"
+      ? await execFileAsync("powershell", ["-NoProfile", "-Command", `Get-CimInstance Win32_Process -Filter "ParentProcessId=${process.pid}" | Where-Object { $_.Name -match 'chrome|chromium|msedge' } | ForEach-Object { $_.ProcessId }`], { timeout: 15_000, windowsHide: true })
+      : await execFileAsync("pgrep", ["-P", String(process.pid), "-f", "chrom"], { timeout: 15_000 });
+    return stdout.split(/\s+/).map(Number).filter((value) => Number.isInteger(value) && value > 0);
   } catch { return []; }
 }
 
-function killOwnBrowsers(): void {
-  for (const pid of ownBrowserPids()) killProcessTree(pid);
+async function killOwnBrowsers(): Promise<void> {
+  for (const pid of await ownBrowserPids()) killProcessTree(pid);
 }
 
 function isChromeProcess(pid: number): boolean {
@@ -175,6 +180,8 @@ function isChromeProcess(pid: number): boolean {
 }
 
 const SESSION_GOOD_BYTES = 2_000;
+/** Jeda sebelum mencatat PID Chrome setelah browser dibuka; cukup lama agar OpenWA selesai memasang sesi tersimpan. */
+const SNAPSHOT_DELAY_MS = 30_000;
 
 async function sessionPaths(env: BotEnv): Promise<{ data: string; backup: string; pids: string }> {
   const path = await import("node:path");
@@ -207,31 +214,50 @@ export async function snapshotSession(env: BotEnv): Promise<void> {
   const { copyFile, stat, writeFile } = await import("node:fs/promises");
   const paths = await sessionPaths(env);
   if (((await stat(paths.data).catch(() => null))?.size ?? 0) >= SESSION_GOOD_BYTES) await copyFile(paths.data, paths.backup).catch(() => undefined);
-  await writeFile(paths.pids, ownBrowserPids().join("\n")).catch(() => undefined);
+  await writeFile(paths.pids, (await ownBrowserPids()).join("\n")).catch(() => undefined);
 }
 
 export function createOpenWaDriver(env: BotEnv): WaDriver {
   let browserPid: number | null = null;
-  return {
-    async cancel() {
+  let restoreRetried = false;
+  const driverApi = {
+    async cancel(): Promise<void> {
       if (browserPid !== null) killProcessTree(browserPid);
       browserPid = null;
-      killOwnBrowsers();
+      await killOwnBrowsers();
     },
+  };
+  return {
+    cancel: () => driverApi.cancel(),
     async connect(hooks) {
       allowOpenWaWithoutZstd();
       const { create, ev } = await import("@open-wa/wa-automate");
       let startedWithSessionBytes = 0;
+      let restoring = false;
       const onQr = (event: { details?: { qr?: string } }): void => {
         const qr = event.details?.qr;
-        if (!qr) return;
+        if (!qr || restoring) return;
+        if (startedWithSessionBytes >= SESSION_GOOD_BYTES && !restoreRetried) {
+          // Satu kali per sambungan berhasil: OpenWA sudah menimpa berkas sesi dengan "LOGGED OUT". Matikan browser ini;
+          // create() lalu gagal, runtime menjadwalkan SATU retry, dan guardSession memulihkan cadangan sehat saat start berikutnya.
+          restoreRetried = true;
+          void (async () => {
+            const { stat } = await import("node:fs/promises");
+            const paths = await sessionPaths(env);
+            if (((await stat(paths.backup).catch(() => null))?.size ?? 0) < SESSION_GOOD_BYTES) { hooks.onQr(qr); return; }
+            logger.warn("OpenWA menolak sesi tersimpan saat start; mencoba sekali lagi dengan cadangan sesi sebelum meminta scan QR.");
+            restoring = true;
+            await driverApi.cancel();
+          })().catch((error: unknown) => { logger.warn("Pemulihan sesi otomatis gagal.", { error: describeError(error) }); restoring = false; hooks.onQr(qr); });
+          return;
+        }
         if (startedWithSessionBytes >= SESSION_GOOD_BYTES) logger.warn("WhatsApp meminta scan QR padahal ada sesi tersimpan: sesi ditolak/kedaluwarsa di sisi WhatsApp (mis. perangkat tertaut dihapus, atau ada bot lain memakai sesi yang sama).", { sessionBytes: startedWithSessionBytes });
         else logger.info("Belum ada sesi tersimpan; scan QR untuk pertama kali.");
         hooks.onQr(qr);
       };
       const onGone = (): void => hooks.onDisconnected();
       const onBrowser = (event: { details?: { pid?: number } }): void => { browserPid = event.details?.pid ?? browserPid; };
-      const onBrowserUp = (event: { details?: { pid?: number } }): void => { onBrowser(event); setTimeout(() => void snapshotSession(env), 1500); };
+      const onBrowserUp = (event: { details?: { pid?: number } }): void => { onBrowser(event); setTimeout(() => void snapshotSession(env), SNAPSHOT_DELAY_MS); };
       ev.on("launch.browser.init.after", onBrowserUp);
       ev.on("launch.auth.qr.generated", onQr);
       ev.on("session.connection.disconnected", onGone);
@@ -245,7 +271,12 @@ export function createOpenWaDriver(env: BotEnv): WaDriver {
         const client = await create({
           sessionId: env.waSessionId, headless: true, qrTimeout: 0, authTimeout: 0, sessionDataPath: env.waSessionDir,
           logging: [{ type: "console", level: "warn" }, { type: "file", level: "warn", filename: resolvePath(env.waSessionDir, "openwa-warnings.log") }],
+        }).catch((error: unknown) => {
+          if (restoring) throw new Error("Memulihkan sesi WhatsApp tersimpan; menyambung ulang sebentar lagi.");
+          throw error;
         });
+        // Tersambung: reconnect berikutnya di proses ini boleh mencoba pemulihan cadangan sekali lagi.
+        restoreRetried = false;
         await snapshotSession(env);
         const backupTimer = setInterval(() => void snapshotSession(env), 5 * 60_000);
         backupTimer.unref();
@@ -264,7 +295,7 @@ export function createOpenWaDriver(env: BotEnv): WaDriver {
           },
           async sendText(chatId, text) { await client.sendText(chatId, text); },
           async hostNumber() { return client.getHostNumber(); },
-          async stop(reason) { clearInterval(backupTimer); ev.off("launch.auth.qr.generated", onQr); ev.off("launch.browser.init.after", onBrowserUp); ev.off("session.connection.disconnected", onGone); ev.off("session.logout", onGone); await client.stop(reason); killOwnBrowsers(); },
+          async stop(reason) { clearInterval(backupTimer); ev.off("launch.auth.qr.generated", onQr); ev.off("launch.browser.init.after", onBrowserUp); ev.off("session.connection.disconnected", onGone); ev.off("session.logout", onGone); await client.stop(reason); await killOwnBrowsers(); },
         };
       } catch (error) {
         ev.off("launch.auth.qr.generated", onQr); ev.off("launch.browser.init.after", onBrowserUp);

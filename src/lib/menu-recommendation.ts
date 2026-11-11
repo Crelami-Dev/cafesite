@@ -4,7 +4,6 @@ import {
   FALLBACK_REASON_CATEGORY,
   FALLBACK_REASON_EMPTY,
   FLAVOR_KEYWORDS,
-  FLAVOR_OPTIONS,
   FLAVOR_TAG_MAP,
   GENERIC_REASONS,
   RECOMMENDATION_REASONS,
@@ -24,7 +23,7 @@ const TAG_WEIGHT = 2;
 const KEYWORD_WEIGHT = 1;
 
 function isFlavorId(id: string): id is FlavorId {
-  return FLAVOR_OPTIONS.some((option) => option.id === id);
+  return Object.prototype.hasOwnProperty.call(FLAVOR_TAG_MAP, id);
 }
 
 function scoreItem(item: MenuItem, flavorId: string): number {

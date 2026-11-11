@@ -10,78 +10,75 @@ interface OrderStep {
 const ORDER_STEPS: OrderStep[] = [
   {
     number: "01",
-    title: "Scan QR di meja",
-    description:
-      "Buka kamera HP, arahkan ke kode QR di sudut mejamu untuk membuka halaman pesan.",
+    title: "Buka halaman pesan",
+    description: "Scan QR di meja, buka halaman pesan di website ini, atau chat WhatsApp kami.",
   },
   {
     number: "02",
-    title: "Pilih makanan & minuman",
-    description:
-      "Masukkan menu ke keranjang, tulis catatan bila perlu (misal: sedikit gula atau es terpisah).",
+    title: "Pilih menu dan catatannya",
+    description: "Kurang manis, es dipisah, susu oat: tulis di catatan tiap menu.",
   },
   {
     number: "03",
-    title: "Pantau nomor antrean",
-    description:
-      "Nomor antrean muncul di layar HP. Pesanan kami siapkan, bayar di kasir saat siap.",
+    title: "Tunggu nomor antrean",
+    description: "Kami kabari lewat layar dan WhatsApp saat pesanan siap. Bayar di kasir.",
   },
 ];
 
+const TICKET_STEPS = ["Menunggu", "Diproses", "Siap", "Selesai"] as const;
+
+/**
+ * Cara memesan: tiga langkah di kiri, di kanan tiket nomor antrean seperti yang dilihat pelanggan di HP
+ * setelah memesan (gambaran tampilan halaman status pesanan, bukan pesanan sungguhan).
+ */
 export function OrderGuideSection(): React.JSX.Element {
   return (
-    <section
-      id="cara-pesan"
-      aria-labelledby="order-guide-heading"
-      className="border-t border-offwhite/15 bg-charcoal-darkest py-14 md:py-24"
-    >
+    <section id="cara-pesan" aria-labelledby="order-guide-heading" className="home-section bg-charcoal-darkest">
       <Container>
-        <div className="max-w-2xl">
-          <h2 id="order-guide-heading" className="public-h2">
-            Cara pesan dari <em className="italic">mejamu</em>.
-          </h2>
-          <p className="mt-3 text-base leading-relaxed text-offwhite-muted">
-            Duduk santai di meja pilihanmu tanpa perlu berdiri mengantre di
-            depan kasir.
-          </p>
-        </div>
+        <div className="ticket-split">
+          <div>
+            <h2 id="order-guide-heading" className="public-h2" data-reveal>
+              Pesan dari meja, tanpa antre
+            </h2>
+            <ol className="mt-10 space-y-7" data-reveal-group>
+              {ORDER_STEPS.map((step) => (
+                <li key={step.number} className="flex gap-5">
+                  <span className="font-serif text-3xl leading-none text-terracotta-light tabular-nums" aria-hidden="true">
+                    {step.number}
+                  </span>
+                  <div>
+                    <h3 className="text-lg font-medium">{step.title}</h3>
+                    <p className="mt-1 text-base leading-relaxed text-offwhite-muted">{step.description}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <Link href="/order" className="link mt-10 inline-flex min-h-11 items-center text-base">
+              Buka halaman pesan <span className="ml-2" aria-hidden="true">↗</span>
+            </Link>
+          </div>
 
-        <ol role="list" className="m-rail m-rail--sm mt-10 grid grid-cols-1 gap-8 md:mt-12 md:grid-cols-3 md:gap-10">
-          {ORDER_STEPS.map((step) => (
-            <li
-              key={step.number}
-              className="border-t border-offwhite/15 pt-5"
-            >
-              <span
-                className="font-serif text-3xl text-terracotta-light tabular-nums"
-                aria-hidden="true"
-              >
-                {step.number}
-              </span>
-              <h3 className="mt-3 text-lg font-medium text-offwhite">
-                {step.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-offwhite-muted">
-                {step.description}
-              </p>
-            </li>
-          ))}
-        </ol>
-
-        <div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-offwhite/15 pt-8 sm:flex-row sm:items-center">
-          <p className="text-sm leading-relaxed text-offwhite-muted">
-            Mau dibawa pulang? Kamu tetap bisa memilih opsi{" "}
-            <strong className="font-semibold text-offwhite">
-              Bawa pulang (Takeaway)
-            </strong>{" "}
-            langsung di halaman pesan tanpa nomor meja.
-          </p>
-          <Link
-            href="/order"
-            className="link inline-flex min-h-11 shrink-0 items-center text-sm text-offwhite"
-          >
-            Buka halaman pesan <span className="ml-2" aria-hidden="true">↗</span>
-          </Link>
+          <figure className="ticket" data-reveal="ticket" role="img" aria-label="Gambaran tiket nomor antrean di HP: nomor A-012, pesanan sedang diproses">
+            <div className="ticket__head">
+              <span className="font-serif text-xl">CafeSite.</span>
+              <span className="text-sm text-offwhite-muted">Status pesanan</span>
+            </div>
+            <p className="ticket__queue">A-012</p>
+            <p className="text-base text-offwhite-muted">Pesananmu sedang dibuat barista.</p>
+            <ol className="ticket__steps" aria-hidden="true">
+              {TICKET_STEPS.map((label, index) => (
+                <li key={label} data-done={index <= 1 || undefined}>
+                  {label}
+                </li>
+              ))}
+            </ol>
+            <div className="ticket__tear" aria-hidden="true" />
+            <dl className="ticket__lines">
+              <div><dt>1 × Caramel Macchiato</dt><dd>Rp 28.000</dd></div>
+              <div><dt>1 × Butter Croissant</dt><dd>Rp 24.000</dd></div>
+              <div className="ticket__total"><dt>Total · bayar di kasir</dt><dd>Rp 52.000</dd></div>
+            </dl>
+          </figure>
         </div>
       </Container>
     </section>

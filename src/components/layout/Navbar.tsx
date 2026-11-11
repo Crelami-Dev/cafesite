@@ -109,7 +109,7 @@ export function Navbar(): React.JSX.Element {
             className="btn btn--primary btn--nav"
             data-order-action
           >
-            Pesan sekarang ↗
+            Pesan menu ↗
           </Link>
           <button
             ref={toggle}
@@ -178,7 +178,7 @@ export function Navbar(): React.JSX.Element {
             className="btn btn--primary"
             onClick={() => close()}
           >
-            Pesan sekarang ↗
+            Pesan menu ↗
           </Link>
           <p className="mt-auto pt-8 text-sm leading-relaxed text-offwhite-muted">
             {cafe.address}
