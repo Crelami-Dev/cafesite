@@ -1,5 +1,6 @@
 import "server-only";
-import { createHash, createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
+import {isCloudPrimaryEnv} from "./storage-mode";
+import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { getLocalDb } from "@/lib/db/dev-sqlite";
 import { HttpError, textValue } from "./validation";
@@ -15,40 +16,12 @@ const equal = (a: string, b: string): boolean => {
 export function passwordHash(password: string, salt: string): string { return scryptSync(password, salt, 64).toString("hex"); }
 const ownerVersion = (): string => digest(`${process.env.LOCAL_ADMIN_EMAIL}:${process.env.LOCAL_ADMIN_PASSWORD}`);
 
-function createOwnerSignedToken(email: string, now = Date.now()): string {
-  const payload = `${Buffer.from(email).toString("base64url")}.${Math.floor(now / 1000) + 8 * 3600}`;
-  const sig = createHmac("sha256", `cafesite-local-session:${process.env.LOCAL_ADMIN_PASSWORD ?? ""}`)
-    .update(payload)
-    .digest("base64url");
-  return `${payload}.${sig}`;
-}
-
-function verifyLegacyOwnerToken(token: string): number | null {
-  if (!process.env.LOCAL_ADMIN_PASSWORD || !process.env.LOCAL_ADMIN_EMAIL) return null;
-  const [emailPart, expiry, signature] = token.split(".");
-  if (!emailPart || !expiry || !signature) return null;
-  const expected = createHmac("sha256", `cafesite-local-session:${process.env.LOCAL_ADMIN_PASSWORD}`)
-    .update(`${emailPart}.${expiry}`)
-    .digest("base64url");
-  if (!equal(signature, expected)) return null;
-  const expiresAt = Number(expiry) * 1000;
-  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) return null;
-  const email = Buffer.from(emailPart, "base64url").toString();
-  return email.toLowerCase() === process.env.LOCAL_ADMIN_EMAIL.trim().toLowerCase() ? expiresAt : null;
-}
-
 export async function dashboardAccount(): Promise<DashboardAccount | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
+  if (isCloudPrimaryEnv()) return (await import("./cloud-auth")).cloudAccount(token);
   const db = getLocalDb();
-  let session = db.prepare("SELECT * FROM admin_sessions WHERE token_hash=? AND expires_at>?").get(digest(token), Date.now());
-  if (!session) {
-    const legacyExpiresAt = verifyLegacyOwnerToken(token);
-    if (legacyExpiresAt) {
-      db.prepare("INSERT OR IGNORE INTO admin_sessions VALUES(?,?,?,?)").run(digest(token), "owner", legacyExpiresAt, ownerVersion());
-      session = db.prepare("SELECT * FROM admin_sessions WHERE token_hash=? AND expires_at>?").get(digest(token), Date.now());
-    }
-  }
+  const session = db.prepare("SELECT * FROM admin_sessions WHERE token_hash=? AND expires_at>?").get(digest(token), Date.now());
   if (!session) return null;
   if (session.account_id === "owner") {
     if (!process.env.LOCAL_ADMIN_PASSWORD || session.owner_version !== ownerVersion()) return null;
@@ -60,6 +33,7 @@ export async function dashboardAccount(): Promise<DashboardAccount | null> {
 }
 
 export async function authenticate(email: string, password: string): Promise<string> {
+  if (isCloudPrimaryEnv()) return (await import("./cloud-auth")).cloudAuthenticate(email,password);
   const db = getLocalDb();
   const normalized = email.trim().toLowerCase();
   const key = digest(normalized);
@@ -79,19 +53,22 @@ export async function authenticate(email: string, password: string): Promise<str
   }
   db.prepare("DELETE FROM login_attempts WHERE key=?").run(key);
   db.prepare("DELETE FROM admin_sessions WHERE expires_at<=?").run(Date.now());
-  const token = id === "owner" ? createOwnerSignedToken(normalized) : randomBytes(32).toString("base64url");
+  const token = randomBytes(32).toString("base64url");
   db.prepare("INSERT OR REPLACE INTO admin_sessions VALUES(?,?,?,?)").run(digest(token), id, Date.now()+8*3600000, id === "owner" ? ownerVersion() : null);
   return token;
 }
 export async function revokeCurrentSession(): Promise<void> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (token && isCloudPrimaryEnv()) return (await import("./cloud-auth")).cloudRevoke(token);
   if (token) getLocalDb().prepare("DELETE FROM admin_sessions WHERE token_hash=?").run(digest(token));
 }
-export function staffList(): StaffAccount[] {
+export async function staffList(): Promise<StaffAccount[]> {
+  if (isCloudPrimaryEnv()) return (await import("./cloud-auth")).cloudStaffList();
   const db = getLocalDb();
   return db.prepare("SELECT id,name,email,enabled,must_change_password FROM staff_accounts ORDER BY name").all().map(row => ({ id: String(row.id), name: String(row.name), email: String(row.email), enabled: Boolean(row.enabled), mustChangePassword: Boolean(row.must_change_password), modules: db.prepare("SELECT module FROM staff_permissions WHERE account_id=?").all(String(row.id)).map(p => String(p.module)) }));
 }
-export function saveStaff(body: Record<string, unknown>): { temporaryPassword?: string } {
+export async function saveStaff(body: Record<string, unknown>): Promise<{ temporaryPassword?: string }> {
+  if (isCloudPrimaryEnv()) return (await import("./cloud-auth")).cloudSaveStaff(body);
   const db = getLocalDb(); const id = body.id ? textValue(body.id, "Akun", 80) : randomUUID();
   const existing = db.prepare("SELECT * FROM staff_accounts WHERE id=?").get(id);
   if (body.id && !existing) throw new HttpError(404, "Akun tidak ditemukan.");
@@ -119,7 +96,8 @@ export function saveStaff(body: Record<string, unknown>): { temporaryPassword?: 
   })();
   return temporaryPassword ? { temporaryPassword } : {};
 }
-export function changeStaffPassword(id: string, current: string, password: string): void {
+export async function changeStaffPassword(id: string, current: string, password: string): Promise<void> {
+  if (isCloudPrimaryEnv()) return (await import("./cloud-auth")).cloudChangePassword(id,current,password);
   const db = getLocalDb(); const row = db.prepare("SELECT * FROM staff_accounts WHERE id=? AND enabled=1").get(id);
   if (!row || !equal(passwordHash(current,String(row.salt)),String(row.password_hash))) throw new HttpError(400,"Kata sandi saat ini tidak cocok.");
   if (password.length < 12 || password.length > 128) throw new HttpError(400,"Gunakan kata sandi 12–128 karakter.");

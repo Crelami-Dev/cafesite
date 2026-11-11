@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useDialogFocus } from "./useDialogFocus";
 import type { MenuCategory, MenuCategoryMeta, MenuItem } from "@/types";
-import { getBrowserSupabase } from "@/lib/supabase/browser";
 import {
   adminButtonClass,
   adminError,
@@ -75,26 +74,9 @@ export default function MenuFormModal({
     setUploading(true);
     setUploadError("");
     try {
-      const client = getBrowserSupabase();
-      if (client) {
-        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-        const path = `menu/${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await client.storage
-          .from("cafe-assets")
-          .upload(path, file, { contentType: file.type });
-        if (upErr) throw upErr;
-        patch({
-          image: client.storage.from("cafe-assets").getPublicUrl(path).data.publicUrl,
-        });
-      } else {
-        const form = new FormData();
-        form.append("file", file);
-        const { url } = await adminRequest<{ url: string }>("upload?folder=menu", {
-          method: "POST",
-          body: form,
-        });
-        patch({ image: url });
-      }
+      const form = new FormData();form.append("file",file);
+      const {url}=await adminRequest<{url:string}>("upload",{method:"POST",body:form});
+      setItem(current=>({...current,image:url}));
     } catch (cause: unknown) {
       setUploadError(adminError(cause));
     } finally {

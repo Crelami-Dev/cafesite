@@ -1,4 +1,5 @@
 import "server-only";
+import {isCloudPrimaryEnv} from "./storage-mode";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { dashboardAccount } from "./dashboard-auth";
 import type { DashboardAccount } from "@/types";
@@ -13,7 +14,7 @@ export const LOCAL_COOKIE = "cafesite_local_admin";
 export const LOCAL_SESSION_SECONDS = 8 * 60 * 60;
 
 export function isLocalMode(): boolean {
-  return process.env.CONTENT_SOURCE !== "supabase";
+  return !isCloudPrimaryEnv();
 }
 
 function sign(payload: string): string {
@@ -58,7 +59,6 @@ export function assertSameOrigin(request: Request): void {
 
 /** Guard route admin lokal: sesi valid + (untuk metode yang mengubah data) Origin sama dengan Host. */
 export async function requireLocalAdmin(request: Request, module?: string): Promise<DashboardAccount> {
-  if (!isLocalMode()) throw new HttpError(404, "Mode lokal tidak aktif.");
   const account = await dashboardAccount();
   if (!account) throw new HttpError(401, "Sesi berakhir. Silakan masuk kembali.");
   if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) assertSameOrigin(request);

@@ -51,10 +51,10 @@ create policy "Public read cafe_tables" on public.cafe_tables for select using (
 
 -- Policy: Backend Service Role (Next.js server sync dari SQLite) boleh kelola penuh
 drop policy if exists "Service role manage floors" on public.floors;
-create policy "Service role manage floors" on public.floors for all using (true) with check (true);
+create policy "Service role manage floors" on public.floors for all to service_role using (true) with check (true);
 
 drop policy if exists "Service role manage cafe_tables" on public.cafe_tables;
-create policy "Service role manage cafe_tables" on public.cafe_tables for all using (true) with check (true);
+create policy "Service role manage cafe_tables" on public.cafe_tables for all to service_role using (true) with check (true);
 
 commit;
 

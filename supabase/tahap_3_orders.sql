@@ -74,10 +74,10 @@ alter table public.order_items enable row level security;
 
 -- Policy: Backend Service Role (Next.js server & dashboard) mengelola data pesanan secara aman
 drop policy if exists "Service role manage orders" on public.orders;
-create policy "Service role manage orders" on public.orders for all using (true) with check (true);
+create policy "Service role manage orders" on public.orders for all to service_role using (true) with check (true);
 
 drop policy if exists "Service role manage order_items" on public.order_items;
-create policy "Service role manage order_items" on public.order_items for all using (true) with check (true);
+create policy "Service role manage order_items" on public.order_items for all to service_role using (true) with check (true);
 
 commit;
 

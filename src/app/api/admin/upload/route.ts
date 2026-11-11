@@ -4,6 +4,8 @@ import path from "node:path";
 import { localError, localJson } from "@/lib/server/local-api";
 import { requireLocalAdmin } from "@/lib/server/local-session";
 import { HttpError } from "@/lib/server/validation";
+import {isCloudPrimaryEnv} from "@/lib/server/storage-mode";
+import {cloudDb,checkCloud} from "@/lib/server/cloud-db";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -29,6 +31,12 @@ export async function POST(request: Request): Promise<Response> {
     const ext = detect(bytes);
     if (!ext) throw new HttpError(400, "Foto harus JPG, PNG, WebP, atau AVIF.");
     const name = `${randomUUID()}.${ext}`;
+    if(isCloudPrimaryEnv()) {
+      const db=cloudDb(); const objectPath=`${folder}/${name}`;
+      const result=await db.storage.from("cafe-assets").upload(objectPath,bytes,{contentType:`image/${ext==="jpg"?"jpeg":ext}`,upsert:false});
+      checkCloud(result.error);
+      return localJson({url:db.storage.from("cafe-assets").getPublicUrl(objectPath).data.publicUrl},201);
+    }
     const dir = path.join(process.cwd(), ".data", "uploads", folder);
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, name), bytes);

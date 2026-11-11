@@ -1,6 +1,6 @@
 import "server-only";
 import { mkdirSync } from "node:fs";
-import os from "node:os";
+import {isCloudPrimaryEnv} from "@/lib/server/storage-mode";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { cafeInfo } from "@/data/cafe";
@@ -141,6 +141,7 @@ INSERT OR IGNORE INTO dashboard_migrations VALUES (1, strftime('%Y-%m-%dT%H:%M:%
 `;
 
 function open(): DatabaseSync {
+  if (isCloudPrimaryEnv()) throw new Error("SQLite is disabled in cloud mode; use Supabase.");
   if (store.__cafeDevDb) {
     if (store.__cafeDevDbSchema !== SCHEMA_SQL) {
       store.__cafeDevDb.exec(SCHEMA_SQL);
@@ -152,15 +153,8 @@ function open(): DatabaseSync {
   const sqlite = process.getBuiltinModule("node:sqlite") as typeof import("node:sqlite") | undefined;
   if (!sqlite) throw new Error("node:sqlite tidak tersedia (butuh Node 22.5+)");
   const Sqlite = sqlite.DatabaseSync;
-  let conn: DatabaseSync;
-  try {
-    if (process.env.VERCEL === "1") throw new Error("Serverless environment uses tmpdir");
-    mkdirSync(path.dirname(DB_FILE), { recursive: true });
-    conn = new Sqlite(DB_FILE);
-  } catch {
-    const tmpFile = path.join(os.tmpdir(), "cafesite.dev.db");
-    conn = new Sqlite(tmpFile);
-  }
+  mkdirSync(path.dirname(DB_FILE), { recursive: true });
+  const conn = new Sqlite(DB_FILE);
   // WAL + busy_timeout: dashboard dan bot WhatsApp menulis ke file yang sama tanpa saling mengunci.
   conn.exec("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON;");
   conn.exec(SCHEMA_SQL);

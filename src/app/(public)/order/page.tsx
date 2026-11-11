@@ -30,6 +30,9 @@ export default async function OrderPage({ searchParams }: OrderPageProps): Promi
     return <OrderMenu key={table.id} initialMenu={menu} table={table} />;
   }
 
-  const menu = (await getMenuItems()).filter((item) => item.isAvailable !== false);
-  return <OrderMenu key={meja} initialMenu={menu} table={meja ? { id: meja, label: meja, status: "available", key: "" } : null} />;
+  const {resolveCloudTable}=await import("@/lib/server/cloud-orders");
+  const table=meja?await resolveCloudTable(meja,key):null;
+  if(!table)return <OrderGate invalid={Boolean(meja)}/>;
+  const menu=(await getMenuItems()).filter(item=>item.isAvailable!==false);
+  return <OrderMenu key={table.id} initialMenu={menu} table={table}/>;
 }

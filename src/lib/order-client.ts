@@ -40,14 +40,13 @@ export async function customerAccessToken(create: boolean = false): Promise<stri
   return customerSession;
 }
 
-export async function orderRequest<T>(path: string, options: RequestInit = {}, createSession: boolean = false, orderId?: string): Promise<T> {
+export async function orderRequest<T>(path: string, options: RequestInit = {}, _createSession: boolean = false, orderId?: string): Promise<T> {
   // Server memilih mode sendiri (CONTENT_SOURCE). Browser mengirim apa yang ia punya: token pesanan dari mode lokal
   // (SQLite) bila tersimpan, dan token sesi Supabase bila Supabase aktif di browser. Tidak bergantung pada flag yang sama.
   const auth: Record<string, string> = {};
   const orderToken = orderId ? readOrderTokens()[orderId] : undefined;
   if (orderToken) auth["X-Order-Token"] = orderToken;
-  if (getBrowserSupabase()) auth.Authorization = `Bearer ${await customerAccessToken(createSession)}`;
-  else if (orderId && !orderToken) throw new Error("Pesanan ini tidak tersimpan di browser ini. Buka dari browser yang dipakai saat memesan, atau tanyakan nomor antrian ke kasir.");
+  if (orderId && !orderToken) throw new Error("Pesanan ini tidak tersimpan di browser ini. Buka dari browser yang dipakai saat memesan, atau tanyakan nomor antrian ke kasir.");
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 25000);
   try {

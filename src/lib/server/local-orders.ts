@@ -1,4 +1,5 @@
 import "server-only";
+import { isCloudPrimaryEnv } from "./storage-mode";
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -23,6 +24,7 @@ let secret: string | null = null;
 function accessSecret(): string {
   if (secret) return secret;
   if (process.env.ORDER_ACCESS_SECRET && process.env.ORDER_ACCESS_SECRET.length >= 16) return (secret = process.env.ORDER_ACCESS_SECRET);
+  if (isCloudPrimaryEnv()) throw new HttpError(503, "Kunci QR dan pesanan cloud belum dikonfigurasi.");
   // Kunci acak yang dibuat sekali dan disimpan di folder data (tidak ikut git), supaya token tidak bisa ditebak.
   if (existsSync(SECRET_FILE)) secret = readFileSync(SECRET_FILE, "utf8").trim();
   if (!secret || secret.length < 32) {

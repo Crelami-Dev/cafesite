@@ -45,7 +45,7 @@ import type { PublicContent, MenuItem } from "@/types";
         cafeConfirmed: Boolean(entries.cafe),
         cafe: entries.cafe ?? cafeInfo,
         menu:
-          menuResult.data && menuResult.data.length > 0
+          menuResult.data
             ? menuResult.data.map(
               (row) =>
                 ({
@@ -65,7 +65,7 @@ Array.isArray(entries.categories) && entries.categories.length > 0
     testimonials: entries.testimonials ?? [],
       faq: entries.faq ?? locationFaqs,
         location: entries.location ?? transportGuides,
-          configured: true,
+          configured: Boolean(entries.cafe),
     };
   } catch (err) {
   console.warn(
@@ -90,8 +90,7 @@ async function loadPublicContent(): Promise<PublicContent> {
     configured: false,
   };
 
-  const { ensureCloudSqliteSync, isCloudPrimaryEnv } = await import("@/lib/server/cloud-sync");
-  await ensureCloudSqliteSync();
+  const { isCloudPrimaryEnv } = await import("@/lib/server/storage-mode");
 
   // Mode Hybrid (default): Jika SQLite terdeteksi, baca dari SQLite dulu; jika SQLite gagal, fallback ke Cloud Supabase.
   if (!isCloudPrimaryEnv()) {
@@ -105,15 +104,10 @@ async function loadPublicContent(): Promise<PublicContent> {
     }
   }
 
-  // Mode Cloud (domain serverless / CONTENT_SOURCE=supabase): Baca dari Supabase dulu; jika gangguan, fallback ke SQLite lokal.
+  // Cloud is the sole source on Vercel. Never silently seed a temporary SQLite database.
   const cloud = await readSupabaseContent(fallback);
-  if (cloud) return cloud;
-  try {
-    const { readDevContent } = await import("@/lib/db/dev-sqlite");
-    return readDevContent();
-  } catch {
-    return fallback;
-  }
+  if (!cloud) throw new Error("Konten cloud tidak dapat dimuat. Silakan coba kembali.");
+  return cloud;
 }
 
 const loadPublicContentCached = unstable_cache(loadPublicContent, ["public-content-v1"], {

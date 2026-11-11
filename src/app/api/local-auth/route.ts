@@ -1,11 +1,10 @@
 import { cookies } from "next/headers";
 import { authenticate, revokeCurrentSession, SESSION_COOKIE } from "@/lib/server/dashboard-auth";
-import { assertSameOrigin, isLocalMode } from "@/lib/server/local-session";
+import { assertSameOrigin } from "@/lib/server/local-session";
 import { localError } from "@/lib/server/local-api";
-import { HttpError, objectValue, textValue } from "@/lib/server/validation";
+import { objectValue, textValue } from "@/lib/server/validation";
 export async function POST(request: Request): Promise<Response> {
  try {
-  if (!isLocalMode()) throw new HttpError(404,"Login lokal tidak aktif.");
   assertSameOrigin(request);
   const body=objectValue(await request.json().catch(()=>null));
   const token=await authenticate(textValue(body.email,"Email",160),textValue(body.password,"Kata sandi",128));

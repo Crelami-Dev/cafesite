@@ -64,10 +64,10 @@ create policy "Public read menu" on public.menu_items for select using (true);
 
 -- Policy: Backend Service Role (Next.js server sync dari SQLite) boleh kelola penuh
 drop policy if exists "Service role manage content" on public.content;
-create policy "Service role manage content" on public.content for all using (true) with check (true);
+create policy "Service role manage content" on public.content for all to service_role using (true) with check (true);
 
 drop policy if exists "Service role manage menu" on public.menu_items;
-create policy "Service role manage menu" on public.menu_items for all using (true) with check (true);
+create policy "Service role manage menu" on public.menu_items for all to service_role using (true) with check (true);
 
 commit;
 
