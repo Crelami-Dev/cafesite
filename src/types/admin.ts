@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { MenuItem } from "./index";
+import type { StaffRole } from "./operations";
 
 export type AdminModule = "orders" | "menu" | "tables" | "cafe" | "gallery" | "testimonials" | "faq" | "location" | "reports" | "modules" | "wa_bot";
 export interface RagIngestJob { id: string; source: string; status: "pending" | "processing" | "done" | "failed"; error: string | null; note: string | null; size: number; chunks: number; created_at: string; updated_at: string; }
@@ -7,7 +8,8 @@ export type WaState = "stopped" | "connecting" | "awaiting_qr" | "connected" | "
 export interface WaBotStatus { state: WaState; serviceOffline?: boolean; offlineReason?: string | null; lastConnectedAt: string | null; qr: string | null; error: string | null; phone: string | null; configuredPhone?: string | null; ai?: string; embedding?: string; messagesHandled?: number; documents?: number; startedAt?: string; }
 export interface AdminProfile { id: string; role: "admin" | "staff"; }
 export interface DashboardAccount extends AdminBootstrap { profile: AdminProfile & { name: string; email: string }; mustChangePassword: boolean }
-export interface StaffAccount { id: string; name: string; email: string; enabled: boolean; mustChangePassword: boolean; modules: string[] }
+export type StaffCloudState = "saved" | "pending" | "off";
+export interface StaffAccount { id: string; name: string; email: string; role: StaffRole; enabled: boolean; mustChangePassword: boolean; modules: string[] }
 export interface DashboardReport { from: string; to: string; revenue: number; paidOrders: number; orderCount: number; average: number; estimated: number; daily: { day: string; revenue: number; count: number }[]; topItems: { name: string; quantity: number; revenue: number }[] }
 export interface DashboardSummary { revenue?: number; orderCount?: number; activeCount?: number; availableTables?: number; orders?: import("./operations").Order[] }
 export interface AdminModuleSetting { id: string; enabled: boolean; }

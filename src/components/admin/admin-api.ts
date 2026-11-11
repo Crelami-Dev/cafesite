@@ -1,9 +1,12 @@
 export const adminInputClass =
-  "min-h-11 w-full rounded-xl border border-charcoal-border bg-charcoal-darkest px-3 py-2.5 text-sm text-offwhite outline-none transition focus:border-offwhite disabled:opacity-50";
+  "min-h-11 w-full rounded-lg border border-charcoal-border bg-charcoal-darkest px-3 py-2.5 text-base text-offwhite outline-none transition placeholder:text-offwhite-darker focus:border-offwhite disabled:opacity-50 sm:text-sm";
 export const adminButtonClass =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-terracotta px-4 py-2.5 text-sm font-semibold text-offwhite-pure transition hover:bg-terracotta-hover disabled:cursor-wait disabled:opacity-50";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-terracotta px-4 py-2.5 text-sm font-semibold text-offwhite-pure transition hover:bg-terracotta-hover active:scale-[.98] disabled:cursor-wait disabled:opacity-50";
 export const adminSecondaryClass =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-charcoal-border px-4 py-2.5 text-sm font-medium text-offwhite transition hover:border-offwhite/40 hover:bg-charcoal-light disabled:cursor-wait disabled:opacity-50";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-offwhite/20 px-4 py-2.5 text-sm font-medium text-offwhite transition hover:border-offwhite/40 hover:bg-charcoal-light active:scale-[.98] disabled:cursor-wait disabled:opacity-50";
+/** Aksi destruktif: outline terracotta, selalu dengan konfirmasi di pemanggil. */
+export const adminDangerClass =
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-terracotta-light/50 px-4 py-2.5 text-sm font-medium text-terracotta-light transition hover:bg-terracotta/10 active:scale-[.98] disabled:cursor-wait disabled:opacity-50";
 
 export const CONTENT_SYNC_CHANNEL = "cafesite-content-sync";
 export const CONTENT_SYNC_STORAGE_KEY = "cafesite-content-updated-at";

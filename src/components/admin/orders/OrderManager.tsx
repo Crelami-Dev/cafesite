@@ -2,14 +2,17 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import type { AdminMenuRecord, Order, OrderStatus } from "@/types";
+import { ChevronLeftIcon, ChevronRightIcon, FilterIcon, ReceiptIcon, SearchIcon } from "@/components/ui/icons";
 import { useDashboard } from "../DashboardShell";
-import { adminRequest, adminError, adminInputClass, adminSecondaryClass } from "../admin-api";
+import { adminRequest, adminError, adminInputClass, adminSecondaryClass, adminButtonClass } from "../admin-api";
+import EmptyState from "../ui/EmptyState";
+import PageHeader from "../ui/PageHeader";
+import SegmentedTabs from "../ui/SegmentedTabs";
+import Skeleton from "../ui/Skeleton";
 import OrderCard from "./OrderCard";
 import OrderDetailDrawer from "./OrderDetailDrawer";
 
 interface Props {
-  muted: boolean;
-  onToggleMuted: () => void;
   canManageMenu: boolean;
 }
 
@@ -20,17 +23,13 @@ interface Page {
   pages: number;
 }
 
-const statuses: { id: OrderStatus; label: string; icon: string }[] = [
-  { id: "waiting", label: "Menunggu", icon: "◷" },
-  { id: "preparing", label: "Diproses", icon: "↻" },
-  { id: "ready", label: "Siap", icon: "✓" },
+const STATUSES: { id: OrderStatus; label: string; empty: string }[] = [
+  { id: "waiting", label: "Menunggu", empty: "Belum ada pesanan baru." },
+  { id: "preparing", label: "Diproses", empty: "Tidak ada pesanan yang sedang diproses." },
+  { id: "ready", label: "Siap", empty: "Belum ada pesanan yang siap disajikan." },
 ];
 
-export default function OrderManager({
-  muted,
-  onToggleMuted,
-  canManageMenu,
-}: Props): React.JSX.Element {
+export default function OrderManager({ canManageMenu }: Props): React.JSX.Element {
   const { orders, refresh, loading } = useDashboard();
   const params = useSearchParams();
   const router = useRouter();
@@ -52,6 +51,7 @@ export default function OrderManager({
   const [menu, setMenu] = useState<Record<string, AdminMenuRecord>>({});
   const [now, setNow] = useState(() => Date.now());
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [showFilters, setShowFilters] = useState(Boolean(fromDate || toDate));
 
   const query = params.toString();
 
@@ -201,43 +201,31 @@ export default function OrderManager({
     (detail?.id === selectedId ? detail : null);
 
   const hasFilter = Boolean(search || fromDate || toDate);
+  const historyStatus = params.get("status") || "all";
 
   return (
-    <div className="grid gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            aria-pressed={!history}
-            className={`${adminSecondaryClass} ${!history ? "border-offwhite bg-charcoal-light" : ""}`}
-            onClick={() => update({ view: null, status: null, page: null })}
-          >
-            Antrean aktif ({orders.length})
-          </button>
-          <button
-            type="button"
-            aria-pressed={history}
-            className={`${adminSecondaryClass} ${history ? "border-offwhite bg-charcoal-light" : ""}`}
-            onClick={() => {
-              setHistoryLoading(true);
-              update({ view: "history", status: null, page: null });
-            }}
-          >
-            Riwayat selesai / batal
-          </button>
-        </div>
-        <button
-          type="button"
-          aria-pressed={!muted}
-          className={adminSecondaryClass}
-          onClick={onToggleMuted}
-        >
-          {muted ? "○ Suara mati" : "✓ Suara aktif"}
-        </button>
-      </div>
+    <div className="grid gap-4 md:gap-5">
+      <PageHeader title="Pesanan" description="Pantau dan proses pesanan yang masuk." />
+
+      <SegmentedTabs
+        label="Tampilan pesanan"
+        value={history ? "history" : "active"}
+        options={[
+          { value: "active", label: "Antrean aktif", count: orders.length },
+          { value: "history", label: "Riwayat" },
+        ]}
+        onChange={(v) => {
+          if (v === "history") {
+            setHistoryLoading(true);
+            update({ view: "history", status: null, page: null });
+          } else {
+            update({ view: null, status: null, page: null });
+          }
+        }}
+      />
 
       <form
-        className="grid gap-3 rounded-xl border border-offwhite/10 bg-charcoal-light/20 p-4 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto]"
+        className="grid gap-3"
         onSubmit={(e) => {
           e.preventDefault();
           const f = new FormData(e.currentTarget);
@@ -249,101 +237,109 @@ export default function OrderManager({
           });
         }}
       >
-        <label className="grid gap-1.5 text-xs text-offwhite-muted sm:col-span-2 lg:col-span-1">
-          Cari pesanan
-          <input
-            key={search}
-            name="q"
-            defaultValue={search}
-            placeholder="Nomor antrean, pelanggan, atau meja"
-            className={adminInputClass}
-          />
-        </label>
-        <label className="grid gap-1.5 text-xs text-offwhite-muted">
-          Dari tanggal
-          <input key={fromDate} type="date" name="from" defaultValue={fromDate} className={adminInputClass} />
-        </label>
-        <label className="grid gap-1.5 text-xs text-offwhite-muted">
-          Sampai tanggal
-          <input key={toDate} type="date" name="to" defaultValue={toDate} className={adminInputClass} />
-        </label>
-        <div className="flex flex-wrap items-end gap-2 sm:col-span-2 lg:col-span-1">
-          <button type="submit" className={adminSecondaryClass}>
-            Terapkan
+        <div className="flex gap-2">
+          <label className="relative min-w-0 flex-1">
+            <span className="sr-only">Cari pesanan</span>
+            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-offwhite-darker" />
+            <input
+              key={search}
+              name="q"
+              defaultValue={search}
+              placeholder="Cari antrean, nama, atau meja"
+              className={`${adminInputClass} pl-9`}
+            />
+          </label>
+          <button
+            type="button"
+            aria-expanded={showFilters}
+            aria-label="Filter tanggal"
+            onClick={() => setShowFilters((v) => !v)}
+            className={`${adminSecondaryClass} shrink-0 px-3 ${showFilters || fromDate || toDate ? "border-offwhite/50 bg-charcoal-light" : ""}`}
+          >
+            <FilterIcon className="size-4" />
           </button>
-          {hasFilter && (
-            <button
-              type="button"
-              onClick={() => update({ q: null, from: null, to: null, page: null })}
-              className={adminSecondaryClass}
-            >
-              Reset
-            </button>
-          )}
         </div>
+        {showFilters && (
+          <div className="grid gap-3 rounded-lg border border-offwhite/10 bg-charcoal-light p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <label className="grid gap-1.5 text-xs text-offwhite-muted">
+              Dari tanggal
+              <input key={fromDate} type="date" name="from" defaultValue={fromDate} className={adminInputClass} />
+            </label>
+            <label className="grid gap-1.5 text-xs text-offwhite-muted">
+              Sampai tanggal
+              <input key={toDate} type="date" name="to" defaultValue={toDate} className={adminInputClass} />
+            </label>
+            <div className="flex gap-2">
+              <button type="submit" className={`${adminButtonClass} flex-1`}>
+                Terapkan
+              </button>
+              {hasFilter && (
+                <button
+                  type="button"
+                  onClick={() => update({ q: null, from: null, to: null, page: null })}
+                  className={adminSecondaryClass}
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </form>
 
       {error && (
-        <p role="alert" className="rounded-lg border border-terracotta/50 bg-terracotta/10 p-4 text-sm text-terracotta-light">
-          ! {error}
+        <p role="alert" className="rounded-lg border border-terracotta-light/40 bg-terracotta/10 p-4 text-sm text-terracotta-light">
+          {error}
         </p>
       )}
 
       {history ? (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter status riwayat">
-              {[
-                { id: "all", label: "Semua riwayat" },
-                { id: "completed", label: "✓ Selesai" },
-                { id: "cancelled", label: "✕ Dibatalkan" },
-              ].map((tab) => {
-                const currentStatus = params.get("status") || "all";
-                const isSelected = currentStatus === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    aria-pressed={isSelected}
-                    onClick={() => update({ status: tab.id === "all" ? null : tab.id, page: null })}
-                    className={`${adminSecondaryClass} ${
-                      isSelected ? "border-offwhite bg-charcoal-light" : ""
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
+            <div className="w-full sm:w-auto sm:min-w-80">
+              <SegmentedTabs
+                label="Filter status riwayat"
+                value={historyStatus as "all" | "completed" | "cancelled"}
+                options={[
+                  { value: "all", label: "Semua" },
+                  { value: "completed", label: "Selesai" },
+                  { value: "cancelled", label: "Batal" },
+                ]}
+                onChange={(v) => update({ status: v === "all" ? null : v, page: null })}
+              />
             </div>
-            <p className="text-xs tabular-nums text-offwhite-muted">Total {archive.total} pesanan</p>
+            <p className="text-xs tabular-nums text-offwhite-muted">{archive.total} pesanan</p>
           </div>
 
           {historyLoading ? (
-            <p role="status" className="rounded-xl border border-offwhite/10 p-6 text-sm text-offwhite-muted">
-              Memuat riwayat pesanan…
-            </p>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true">
+              <Skeleton className="h-44" />
+              <Skeleton className="h-44" />
+              <Skeleton className="hidden h-44 xl:block" />
+            </div>
+          ) : archive.orders.length === 0 ? (
+            <EmptyState
+              icon={<ReceiptIcon className="size-8" />}
+              title="Tidak ada pesanan"
+              hint="Coba ubah kata kunci atau rentang tanggal."
+            />
           ) : (
-            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <section aria-label="Riwayat pesanan" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {archive.orders.map(card)}
-              {archive.orders.length === 0 && (
-                <p className="rounded-xl border border-dashed border-offwhite/10 p-6 text-sm text-offwhite-muted sm:col-span-2 xl:col-span-3">
-                  Tidak ada pesanan pada periode atau pencarian ini.
-                </p>
-              )}
             </section>
           )}
 
-          <nav aria-label="Halaman riwayat" className="flex flex-wrap items-center justify-between gap-3">
+          <nav aria-label="Halaman riwayat" className="flex items-center justify-between gap-3">
             <button
               type="button"
               className={adminSecondaryClass}
               disabled={archive.page <= 1}
               onClick={() => update({ page: String(archive.page - 1) })}
             >
-              Sebelumnya
+              <ChevronLeftIcon className="size-4" /> Sebelumnya
             </button>
             <p className="text-sm tabular-nums text-offwhite-muted">
-              Halaman {archive.page} / {archive.pages} · {archive.total} pesanan
+              {archive.page} / {archive.pages}
             </p>
             <button
               type="button"
@@ -351,50 +347,34 @@ export default function OrderManager({
               disabled={archive.page >= archive.pages}
               onClick={() => update({ page: String(archive.page + 1) })}
             >
-              Berikutnya
+              Berikutnya <ChevronRightIcon className="size-4" />
             </button>
           </nav>
         </>
       ) : (
         <>
-          <div
-            role="tablist"
-            aria-label="Pilih status pesanan aktif"
-            className="grid grid-cols-3 gap-2 xl:hidden"
-          >
-            {statuses.map((s) => {
-              const count = filtered.filter((o) => o.status === s.id).length;
-              const isSelected = activeStatus === s.id;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={isSelected}
-                  onClick={() => update({ status: s.id })}
-                  className={`flex min-h-11 items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-xs font-medium tabular-nums transition ${
-                    isSelected
-                      ? "border-offwhite bg-charcoal-light text-offwhite"
-                      : "border-offwhite/10 text-offwhite-muted hover:border-offwhite/40"
-                  }`}
-                >
-                  <span>{s.icon}</span>
-                  <span>{s.label}</span>
-                  <span className="rounded-md bg-charcoal-darkest px-1.5 py-0.5 text-[11px]">
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
+          <div className="xl:hidden">
+            <SegmentedTabs
+              label="Pilih status pesanan aktif"
+              value={activeStatus}
+              options={STATUSES.map((s) => ({
+                value: s.id,
+                label: s.label,
+                count: filtered.filter((o) => o.status === s.id).length,
+              }))}
+              onChange={(v) => update({ status: v })}
+            />
           </div>
 
           {loading ? (
-            <p role="status" className="rounded-xl border border-offwhite/10 p-6 text-sm text-offwhite-muted">
-              Memuat pesanan aktif…
-            </p>
+            <div className="grid gap-3 xl:grid-cols-3" aria-busy="true">
+              <Skeleton className="h-44" />
+              <Skeleton className="hidden h-44 xl:block" />
+              <Skeleton className="hidden h-44 xl:block" />
+            </div>
           ) : (
-            <div className="grid gap-4 xl:grid-cols-3">
-              {statuses.map((s) => {
+            <div className="grid gap-4 xl:grid-cols-3 xl:gap-5">
+              {STATUSES.map((s) => {
                 const colOrders = filtered.filter((o) => o.status === s.id);
                 return (
                   <section
@@ -402,21 +382,15 @@ export default function OrderManager({
                     aria-label={`Pesanan ${s.label}`}
                     className={`${activeStatus === s.id ? "block" : "hidden"} min-w-0 xl:block`}
                   >
-                    <header className="mb-4 flex items-center justify-between border-b border-offwhite/10 pb-3">
-                      <h2 className="text-sm font-semibold text-offwhite">
-                        {s.icon} {s.label}
-                      </h2>
-                      <span className="rounded-md bg-charcoal-light px-2 py-0.5 text-xs font-semibold tabular-nums text-offwhite-muted">
+                    <header className="mb-3 hidden items-center justify-between border-b border-offwhite/10 pb-2 xl:flex">
+                      <h2 className="text-sm font-semibold text-offwhite">{s.label}</h2>
+                      <span className="rounded-full border border-offwhite/20 px-2 py-0.5 text-xs font-semibold tabular-nums text-offwhite-muted">
                         {colOrders.length}
                       </span>
                     </header>
                     <div className="grid gap-3">
                       {colOrders.map(card)}
-                      {colOrders.length === 0 && (
-                        <p className="rounded-xl border border-dashed border-offwhite/10 p-6 text-sm text-offwhite-muted">
-                          Tidak ada pesanan pada tahap {s.label.toLowerCase()}.
-                        </p>
-                      )}
+                      {colOrders.length === 0 && <EmptyState title={s.empty} />}
                     </div>
                   </section>
                 );

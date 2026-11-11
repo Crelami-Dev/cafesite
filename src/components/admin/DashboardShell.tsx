@@ -1,13 +1,17 @@
 "use client";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import type { ReactNode } from "react";
 import type { DashboardAccount, Order } from "@/types";
 import { dashboardNavigation } from "@/lib/admin-navigation";
-import { adminRequest, adminError, adminSecondaryClass } from "./admin-api";
+import { adminRequest, adminError } from "./admin-api";
 import { useOrderSound } from "./orders/useOrderSound";
 import DashboardDialog from "./DashboardDialog";
+import Sidebar from "./shell/Sidebar";
+import TopBar from "./shell/TopBar";
+import MobileNav from "./shell/MobileNav";
+import NavSheet from "./shell/NavSheet";
+import { mobileSlots } from "./shell/nav-config";
 
 interface DashboardContextValue {
   account: DashboardAccount;
@@ -45,6 +49,8 @@ export default function DashboardShell({
   const known = useRef<Set<string> | null>(null);
   const inFlight = useRef(false);
 
+  /** Pemilik dari .env: kata sandinya dikelola lewat konfigurasi server, bukan dashboard. */
+  const isOwner = account.profile.id === "owner";
   const canOrders =
     !account.mustChangePassword &&
     (account.profile.role === "admin" ||
@@ -105,14 +111,12 @@ export default function DashboardShell({
           account.modules.some((m) => m.id === n.id && m.enabled),
       );
 
-  const current = dashboardNavigation.find((n) => n.href === pathname);
+  const current = dashboardNavigation.find((n) =>
+    n.href === "/dashboard" ? pathname === n.href : pathname === n.href || pathname.startsWith(`${n.href}/`),
+  );
+  const title = pathname.endsWith("/password") ? "Kata sandi" : (current?.label ?? "Ringkasan");
   const waiting = orders.filter((o) => o.status === "waiting").length;
-
-  // Pilih hingga 3 item utama yang diizinkan untuk navigasi ringkas (mobile & tablet)
-  const primaryShortIds = ["summary", "orders", "menu", "tables", "wa_bot", "cafe", "reports"];
-  const quickNavItems = available
-    .filter((n) => primaryShortIds.includes(n.id))
-    .slice(0, 3);
+  const slots = mobileSlots(available);
 
   async function signOut(): Promise<void> {
     setLogoutBusy(true);
@@ -127,150 +131,41 @@ export default function DashboardShell({
     }
   }
 
-  const nav = (mobile = false): React.JSX.Element => (
-    <nav aria-label={mobile ? "Semua halaman" : "Navigasi dashboard"} className="space-y-5">
-      {["Kedai", "Operasional", "Konten", "Pengelolaan"].map((group) => {
-        const items = available.filter((n) => n.group === group);
-        if (items.length === 0) return null;
-        return (
-          <section key={group}>
-            <p className="mb-2 px-3 text-xs font-medium tracking-wide text-offwhite-darker">
-              {group}
-            </p>
-            <div className="grid gap-1">
-              {items.map((n) => (
-                <Link
-                  key={n.id}
-                  href={n.href}
-                  onClick={() => setOpen(false)}
-                  aria-current={pathname === n.href ? "page" : undefined}
-                  className={`flex min-h-11 items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm transition hover:bg-charcoal-lighter ${
-                    pathname === n.href
-                      ? "bg-charcoal-light font-medium text-offwhite"
-                      : "text-offwhite-muted"
-                  }`}
-                >
-                  <span>{n.label}</span>
-                  {n.id === "orders" && waiting > 0 ? (
-                    <span
-                      aria-label={`${waiting} pesanan menunggu`}
-                      className="rounded-md bg-terracotta px-2 py-0.5 text-xs font-semibold tabular-nums text-offwhite"
-                    >
-                      {waiting}
-                    </span>
-                  ) : pathname === n.href ? (
-                    <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-terracotta" />
-                  ) : null}
-                </Link>
-              ))}
-            </div>
-          </section>
-        );
-      })}
-    </nav>
-  );
-
   return (
     <Context.Provider value={{ account, orders, error, loading, refresh, muted, toggleMuted }}>
-      <div className="min-h-dvh bg-charcoal text-offwhite md:pl-28 xl:pl-60">
-        <aside className="fixed inset-y-0 left-0 z-30 hidden w-28 flex-col border-r border-offwhite/10 bg-charcoal-darkest px-3 py-6 md:flex xl:w-60 xl:px-4">
-          <Link
-            href="/dashboard"
-            className="mb-6 inline-flex min-h-11 items-center px-2 font-serif text-xl xl:px-3 xl:text-3xl"
-          >
-            CafeSite<span className="text-terracotta-light">.</span>
-          </Link>
-          <div className="hidden flex-1 overflow-y-auto xl:block">{nav()}</div>
-          <nav aria-label="Navigasi ringkas" className="grid gap-2 xl:hidden">
-            {available.slice(0, 4).map((n) => (
-              <Link
-                href={n.href}
-                key={n.id}
-                aria-current={pathname === n.href ? "page" : undefined}
-                className={`flex min-h-11 items-center justify-center rounded-lg px-2 py-2.5 text-center text-xs transition ${
-                  pathname === n.href
-                    ? "bg-charcoal-light font-medium text-offwhite"
-                    : "text-offwhite-muted hover:bg-charcoal-light/60"
-                }`}
-              >
-                <span>
-                  {n.id === "menu" ? "Menu" : n.label}
-                  {n.id === "orders" && waiting > 0 ? ` (${waiting})` : ""}
-                </span>
-              </Link>
-            ))}
-            {available.length > 0 && (
-              <button
-                type="button"
-                aria-expanded={open}
-                aria-haspopup="dialog"
-                onClick={() => setOpen(true)}
-                className="min-h-11 rounded-lg border border-offwhite/10 px-2 text-xs text-offwhite-muted transition hover:border-offwhite/40 hover:text-offwhite"
-              >
-                Lainnya
-              </button>
-            )}
-          </nav>
-          <div className="mt-auto border-t border-offwhite/10 pt-4">
-            <p className="hidden truncate px-3 text-sm font-medium text-offwhite xl:block">
-              {account.profile.name}
-            </p>
-            <p className="hidden truncate px-3 text-xs text-offwhite-darker xl:block">
-              {account.profile.role === "admin" ? "Pemilik" : "Staf kedai"}
-            </p>
-            {account.profile.role === "staff" && (
-              <Link
-                href="/dashboard/password"
-                className="mt-2 hidden min-h-11 items-center rounded-lg px-3 text-xs text-offwhite-muted hover:bg-charcoal-light hover:text-offwhite xl:flex"
-              >
-                Ubah kata sandi
-              </Link>
-            )}
-            <button
-              type="button"
-              disabled={logoutBusy}
-              onClick={() => void signOut()}
-              className="mt-1 flex min-h-11 w-full items-center justify-center rounded-lg px-3 text-xs text-offwhite-muted transition hover:bg-charcoal-light hover:text-offwhite xl:justify-start xl:text-sm"
-            >
-              {logoutBusy ? "Keluar…" : "Keluar"}
-            </button>
-          </div>
-        </aside>
+      <div className="min-h-dvh bg-charcoal text-offwhite md:pl-24 xl:pl-60">
+        {!account.mustChangePassword && (
+          <Sidebar
+            pathname={pathname}
+            items={available}
+            waiting={waiting}
+            name={account.profile.name}
+            roleLabel={isOwner ? "Pemilik" : account.profile.role === "admin" ? "Admin" : "Staf kedai"}
+            canChangePassword={!isOwner}
+            logoutBusy={logoutBusy}
+            onSignOut={() => void signOut()}
+          />
+        )}
 
-        <div className="mx-auto max-w-[1440px] px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-5 md:px-6 md:pb-10 xl:px-10 xl:pt-8">
-          <header className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-offwhite/10 pb-5">
-            <div className="min-w-0">
-              <p className="mb-1 text-xs text-offwhite-darker">
-                Ruang kelola <span className="md:hidden">/ CafeSite</span>
-              </p>
-              <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl">
-                {pathname.endsWith("/password")
-                  ? "Kata sandi"
-                  : (current?.label ?? "Ringkasan")}
-              </h1>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Link href="/" target="_blank" className={adminSecondaryClass}>
-                Lihat website ↗
-              </Link>
-              {account.profile.role === "staff" && !pathname.endsWith("/password") && (
-                <Link href="/dashboard/password" className={adminSecondaryClass}>
-                  Kata sandi
-                </Link>
-              )}
-            </div>
-          </header>
+        <TopBar
+          title={title}
+          waiting={waiting}
+          canOrders={canOrders}
+          muted={muted}
+          onToggleMuted={toggleMuted}
+        />
 
+        <div className="mx-auto max-w-[1280px] px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-5 md:px-6 md:pb-12 md:pt-6 xl:px-10 xl:pt-8">
           {error && (
             <div
               role="alert"
-              className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-terracotta/50 bg-terracotta/10 p-4 text-sm"
+              className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-terracotta-light/40 bg-terracotta/10 p-4 text-sm"
             >
-              <span>! {error}</span>
+              <span>{error}</span>
               <button
                 type="button"
                 onClick={() => void refresh()}
-                className="min-h-11 rounded-lg px-3 font-medium underline"
+                className="min-h-11 rounded-md px-3 font-medium underline"
               >
                 Coba lagi
               </button>
@@ -283,70 +178,27 @@ export default function DashboardShell({
         </div>
 
         {!account.mustChangePassword && (
-          <nav
-            aria-label="Navigasi utama"
-            style={{
-              gridTemplateColumns: `repeat(${Math.max(1, quickNavItems.length + 1)}, minmax(0, 1fr))`,
-            }}
-            className="fixed inset-x-0 bottom-0 z-30 grid border-t border-offwhite/10 bg-charcoal-darkest px-2 pb-[env(safe-area-inset-bottom)] md:hidden"
-          >
-            {quickNavItems.map((n) => (
-              <Link
-                key={n.id}
-                href={n.href}
-                aria-current={pathname === n.href ? "page" : undefined}
-                className={`flex min-h-14 items-center justify-center border-t-2 px-1 text-center text-xs transition ${
-                  pathname === n.href
-                    ? "border-terracotta font-semibold text-offwhite"
-                    : "border-transparent text-offwhite-muted"
-                }`}
-              >
-                <span className="truncate">
-                  {n.id === "menu" ? "Menu" : n.label}
-                  {n.id === "orders" && waiting > 0 ? ` (${waiting})` : ""}
-                </span>
-              </Link>
-            ))}
-            <button
-              type="button"
-              aria-expanded={open}
-              aria-haspopup="dialog"
-              onClick={() => setOpen(true)}
-              className="min-h-14 border-t-2 border-transparent px-1 text-xs text-offwhite-muted"
-            >
-              Lainnya
-            </button>
-          </nav>
+          <MobileNav
+            pathname={pathname}
+            slots={slots}
+            waiting={waiting}
+            moreOpen={open}
+            onMore={() => setOpen(true)}
+          />
         )}
 
         {open && (
           <DashboardDialog title="Ruang kelola" onClose={() => setOpen(false)}>
-            {nav(true)}
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-offwhite/10 pt-4">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{account.profile.name}</p>
-                <p className="truncate text-xs text-offwhite-darker">{account.profile.email}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                {account.profile.role === "staff" && (
-                  <Link
-                    className={adminSecondaryClass}
-                    href="/dashboard/password"
-                    onClick={() => setOpen(false)}
-                  >
-                    Kata sandi
-                  </Link>
-                )}
-                <button
-                  type="button"
-                  disabled={logoutBusy}
-                  onClick={() => void signOut()}
-                  className={adminSecondaryClass}
-                >
-                  {logoutBusy ? "Keluar…" : "Keluar"}
-                </button>
-              </div>
-            </div>
+            <NavSheet
+              pathname={pathname}
+              items={available}
+              name={account.profile.name}
+              email={account.profile.email}
+              canChangePassword={!isOwner}
+              logoutBusy={logoutBusy}
+              onNavigate={() => setOpen(false)}
+              onSignOut={() => void signOut()}
+            />
           </DashboardDialog>
         )}
       </div>

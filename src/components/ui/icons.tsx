@@ -692,3 +692,255 @@ export function SearchIcon({ className = "w-5 h-5" }: IconProps) {
 
 
 
+
+
+/* ---------- Ikon dashboard admin (gaya sama: 24px, stroke 1.75) ---------- */
+
+function Glyph({ className, children }: { className: string; children: React.ReactNode }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
+
+export function HomeIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M3 11.5 12 4l9 7.5" />
+      <path d="M5 10v10h14V10" />
+      <path d="M10 20v-6h4v6" />
+    </Glyph>
+  );
+}
+
+export function ReceiptIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z" />
+      <path d="M9 8h6" />
+      <path d="M9 12h6" />
+    </Glyph>
+  );
+}
+
+export function BellIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M6 9a6 6 0 1 1 12 0c0 6 2 7.5 2 7.5H4S6 15 6 9z" />
+      <path d="M10 20a2 2 0 0 0 4 0" />
+    </Glyph>
+  );
+}
+
+export function BellOffIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M8.5 4.7A6 6 0 0 1 18 9c0 3 .5 5 1.3 6.3" />
+      <path d="M6 9c0 6-2 7.5-2 7.5h11" />
+      <path d="M10 20a2 2 0 0 0 4 0" />
+      <path d="m3 3 18 18" />
+    </Glyph>
+  );
+}
+
+export function MenuIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
+    </Glyph>
+  );
+}
+
+export function MoreIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <circle cx="5" cy="12" r="1.25" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.25" fill="currentColor" />
+      <circle cx="19" cy="12" r="1.25" fill="currentColor" />
+    </Glyph>
+  );
+}
+
+export function EditIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z" />
+      <path d="m13.5 6.5 4 4" />
+    </Glyph>
+  );
+}
+
+export function TrashIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M4 7h16" />
+      <path d="M9 7V4h6v3" />
+      <path d="M6 7l1 13h10l1-13" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </Glyph>
+  );
+}
+
+export function LogOutIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M10 4H5v16h5" />
+      <path d="M15 8l4 4-4 4" />
+      <path d="M19 12H9" />
+    </Glyph>
+  );
+}
+
+export function UserIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+    </Glyph>
+  );
+}
+
+export function SettingsIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M4 7h10" />
+      <path d="M18 7h2" />
+      <circle cx="16" cy="7" r="2" />
+      <path d="M4 17h2" />
+      <path d="M10 17h10" />
+      <circle cx="8" cy="17" r="2" />
+    </Glyph>
+  );
+}
+
+export function WarningIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M12 4 2.5 20h19L12 4z" />
+      <path d="M12 10v4" />
+      <circle cx="12" cy="17" r=".75" fill="currentColor" />
+    </Glyph>
+  );
+}
+
+export function InfoIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5" />
+      <circle cx="12" cy="8" r=".75" fill="currentColor" />
+    </Glyph>
+  );
+}
+
+export function EyeIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </Glyph>
+  );
+}
+
+export function DownloadIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M12 4v11" />
+      <path d="m7 11 5 5 5-5" />
+      <path d="M5 20h14" />
+    </Glyph>
+  );
+}
+
+export function PrinterIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M7 9V3h10v6" />
+      <path d="M7 17H4v-7h16v7h-3" />
+      <path d="M7 14h10v7H7z" />
+    </Glyph>
+  );
+}
+
+export function FilterIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M3 5h18l-7 8v6l-4-2v-4L3 5z" />
+    </Glyph>
+  );
+}
+
+export function RefreshIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M20 11a8 8 0 0 0-14.5-4" />
+      <path d="M5 3v4h4" />
+      <path d="M4 13a8 8 0 0 0 14.5 4" />
+      <path d="M19 21v-4h-4" />
+    </Glyph>
+  );
+}
+
+export function TableIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M3 9h18" />
+      <path d="M5 9v10" />
+      <path d="M19 9v10" />
+      <path d="M3 9l1.5-4h15L21 9" />
+    </Glyph>
+  );
+}
+
+export function ChatIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M4 5h16v11H9l-5 4V5z" />
+      <path d="M8 10h8" />
+    </Glyph>
+  );
+}
+
+export function ChartIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M4 20V4" />
+      <path d="M4 20h16" />
+      <path d="M8 16v-4" />
+      <path d="M12 16V8" />
+      <path d="M16 16v-6" />
+    </Glyph>
+  );
+}
+
+export function ShieldIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3z" />
+      <path d="m9 12 2 2 4-4" />
+    </Glyph>
+  );
+}
+
+export function GalleryIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="10" r="1.5" />
+      <path d="m4 18 5-5 4 4 3-3 4 4" />
+    </Glyph>
+  );
+}

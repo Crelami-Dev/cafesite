@@ -1,17 +1,27 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { DashboardSummary as Summary, Order } from "@/types";
+import type { DashboardSummary as Summary } from "@/types";
+import { ChevronRightIcon } from "@/components/ui/icons";
 import { useDashboard } from "./DashboardShell";
-import { adminRequest, adminError, adminSecondaryClass } from "./admin-api";
+import { adminRequest, adminError } from "./admin-api";
 import { formatRupiah, queueLabel, fulfillmentLabel, waitingLabel } from "./orders/order-format";
-import WaConnectionPanel from "./WaConnectionPanel";
+import OrderStatusBadge from "./orders/OrderStatusBadge";
+import WaStatusRow from "./WaStatusRow";
+import Card from "./ui/Card";
+import EmptyState from "./ui/EmptyState";
+import PageHeader from "./ui/PageHeader";
+import Skeleton from "./ui/Skeleton";
+import StatTile from "./ui/StatTile";
+import StatusBadge from "./ui/StatusBadge";
 
-function statusBadge(status: Order["status"]): string {
-  if (status === "waiting") return "◷ Menunggu";
-  if (status === "preparing") return "↻ Diproses";
-  return "✓ Siap";
-}
+const QUICK_LINKS: { id: string; label: string; href: string }[] = [
+  { id: "orders", label: "Papan pesanan", href: "/dashboard/orders" },
+  { id: "menu", label: "Kelola menu", href: "/dashboard/menu" },
+  { id: "tables", label: "Meja & QR", href: "/dashboard/tables" },
+  { id: "cafe", label: "Info kafe", href: "/dashboard/cafe" },
+  { id: "reports", label: "Laporan penjualan", href: "/dashboard/reports" },
+];
 
 export default function DashboardSummary(): React.JSX.Element {
   const { account, orders } = useDashboard();
@@ -46,174 +56,139 @@ export default function DashboardSummary(): React.JSX.Element {
   }, []);
 
   const can = (id: string): boolean =>
-    account.profile.role === "admin" ||
-    account.modules.some((m) => m.id === id && m.enabled);
+    account.profile.role === "admin" || account.modules.some((m) => m.id === id && m.enabled);
 
-  const metrics: { label: string; value: string; href: string; primary?: boolean }[] = [];
-  if (data?.revenue !== undefined && can("reports")) {
-    metrics.push({
-      label: "Penjualan lunas hari ini",
-      value: formatRupiah(data.revenue),
-      href: "/dashboard/reports",
-      primary: true,
-    });
-  }
-  if (data?.orderCount !== undefined && (can("reports") || can("orders"))) {
-    metrics.push({
-      label: "Pesanan masuk hari ini",
-      value: String(data.orderCount),
-      href: can("reports") ? "/dashboard/reports" : "/dashboard/orders",
-    });
-  }
-  if (data?.activeCount !== undefined && can("orders")) {
-    metrics.push({
-      label: "Antrean aktif",
-      value: String(data.activeCount),
-      href: "/dashboard/orders",
-    });
-  }
-  if (data?.availableTables !== undefined && can("tables")) {
-    metrics.push({
-      label: "Meja tersedia",
-      value: String(data.availableTables),
-      href: "/dashboard/tables",
-    });
-  }
+  const showRevenue = data?.revenue !== undefined && can("reports");
+  const showCount = data?.orderCount !== undefined && (can("reports") || can("orders"));
+  const showActive = data?.activeCount !== undefined && can("orders");
+  const showTables = data?.availableTables !== undefined && can("tables");
+  const hasMetrics = showRevenue || showCount || showActive || showTables;
+
+  const queue = [...orders].sort((a, b) => a.created_at.localeCompare(b.created_at)).slice(0, 6);
+  const quick = QUICK_LINKS.filter((q) => can(q.id));
+
+  const today = new Intl.DateTimeFormat("id-ID", {
+    timeZone: "Asia/Jakarta",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date());
 
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-offwhite-muted">
-          {new Intl.DateTimeFormat("id-ID", {
-            timeZone: "Asia/Jakarta",
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          }).format(new Date())}
-        </p>
-        <span className="text-xs text-offwhite-darker">Ringkasan hari ini · WIB</span>
-      </div>
+    <div className="grid gap-5 md:gap-6">
+      <PageHeader title="Hari ini" description={`${today} · WIB`} />
+      <p className="-mt-3 text-sm text-offwhite-muted md:hidden">{today}</p>
 
       {error && (
-        <p role="alert" className="rounded-lg border border-terracotta/50 p-3 text-sm text-terracotta-light">
-          ! {error}
+        <p role="alert" className="rounded-lg border border-terracotta-light/40 bg-terracotta/10 p-3 text-sm text-terracotta-light">
+          {error}
         </p>
       )}
 
       {!data && !error ? (
-        <p role="status" className="rounded-xl border border-offwhite/10 p-6 text-sm text-offwhite-muted">
-          Memuat ringkasan…
-        </p>
-      ) : metrics.length > 0 ? (
-        <section
-          aria-label="Angka operasional hari ini"
-          className="grid grid-cols-2 gap-3 xl:grid-cols-4"
-        >
-          {metrics.map((m) => (
-            <Link
-              href={m.href}
-              key={m.label}
-              className={`min-w-0 rounded-xl border p-4 sm:p-5 transition hover:-translate-y-0.5 ${
-                m.primary
-                  ? "col-span-2 xl:col-span-1 border-offwhite bg-offwhite text-charcoal"
-                  : "border-offwhite/10 bg-charcoal-light/40 text-offwhite"
-              }`}
-            >
-              <h2 className={`text-xs sm:text-sm ${m.primary ? "text-charcoal/80" : "text-offwhite-muted"}`}>
-                {m.label}
-              </h2>
-              <p
-                className={`mt-3 break-words font-semibold tabular-nums ${
-                  m.primary ? "text-2xl sm:text-3xl" : "text-xl sm:text-3xl"
-                }`}
-              >
-                {m.value}
-              </p>
-              <span className={`mt-3 block text-xs ${m.primary ? "text-charcoal/75" : "text-offwhite-darker"}`}>
-                Lihat detail ↗
-              </span>
-            </Link>
-          ))}
+        <div className="grid grid-cols-3 gap-3" aria-busy="true">
+          <Skeleton className="col-span-3 h-24" />
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+        </div>
+      ) : hasMetrics ? (
+        <section aria-label="Angka operasional hari ini" className="grid grid-cols-3 gap-3 xl:grid-cols-4">
+          {showRevenue && (
+            <StatTile
+              primary
+              className="col-span-3 xl:col-span-1"
+              label="Penjualan lunas"
+              value={formatRupiah(data!.revenue ?? 0)}
+              href="/dashboard/reports"
+            />
+          )}
+          {showCount && (
+            <StatTile
+              label="Pesanan"
+              value={String(data!.orderCount ?? 0)}
+              href={can("reports") ? "/dashboard/reports" : "/dashboard/orders"}
+            />
+          )}
+          {showActive && <StatTile label="Antrean" value={String(data!.activeCount ?? 0)} href="/dashboard/orders" />}
+          {showTables && <StatTile label="Meja kosong" value={String(data!.availableTables ?? 0)} href="/dashboard/tables" />}
         </section>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+      <div className="grid gap-5 md:gap-6 xl:grid-cols-[1.5fr_1fr]">
         {can("orders") && (
-          <section className="self-start rounded-xl border border-offwhite/10">
-            <header className="flex items-center justify-between gap-3 border-b border-offwhite/10 px-5 py-4">
-              <h2 className="font-serif text-2xl">Perlu ditangani</h2>
+          <Card aria-labelledby="queue-heading" className="self-start p-0 sm:p-0">
+            <header className="flex items-center justify-between gap-3 border-b border-offwhite/10 px-4 py-3 sm:px-5">
+              <h2 id="queue-heading" className="flex items-center gap-2 font-serif text-lg sm:text-xl">
+                Perlu ditangani
+                {orders.length > 0 && <StatusBadge tone="muted">{orders.length}</StatusBadge>}
+              </h2>
               <Link
                 href="/dashboard/orders"
-                className="inline-flex min-h-11 items-center px-2 text-sm text-offwhite-muted hover:text-offwhite"
+                className="inline-flex min-h-11 items-center gap-1 px-1 text-sm text-offwhite-muted hover:text-offwhite"
               >
-                Semua ↗
+                Semua <ChevronRightIcon className="size-4" />
               </Link>
             </header>
-            {orders.length === 0 ? (
-              <p className="p-6 text-sm text-offwhite-muted">Belum ada pesanan aktif saat ini.</p>
+            {queue.length === 0 ? (
+              <div className="p-4 sm:p-5">
+                <EmptyState title="Belum ada pesanan aktif" hint="Pesanan baru akan muncul di sini dan berbunyi." />
+              </div>
             ) : (
-              <div className="divide-y divide-offwhite/10">
-                {[...orders]
-                  .sort((a, b) => a.created_at.localeCompare(b.created_at))
-                  .slice(0, 6)
-                  .map((order) => (
+              <ul className="divide-y divide-offwhite/10">
+                {queue.map((order, i) => (
+                  <li key={order.id} className={i >= 3 ? "hidden md:block" : undefined}>
                     <Link
                       href={`/dashboard/orders?order=${order.id}`}
-                      key={order.id}
-                      className="flex flex-wrap items-center justify-between gap-4 p-5 transition hover:bg-charcoal-light"
+                      className="flex min-h-16 items-center justify-between gap-3 px-4 py-3 transition hover:bg-charcoal-lighter/50 sm:px-5"
                     >
                       <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-semibold tabular-nums">{queueLabel(order.queue_number)}</h3>
-                          <span className="rounded-md border border-offwhite/15 bg-charcoal-light px-2 py-0.5 text-xs text-offwhite-muted">
-                            {statusBadge(order.status)}
-                          </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-semibold tabular-nums">{queueLabel(order.queue_number)}</span>
+                          <OrderStatusBadge status={order.status} />
                         </div>
-                        <p className="mt-1 text-xs text-offwhite-muted">
-                          {fulfillmentLabel(order)} · {waitingLabel(order.created_at, now)} ·{" "}
-                          {order.payment_status === "paid" ? "✓ Lunas" : "○ Belum dibayar"}
+                        <p className="mt-0.5 truncate text-xs text-offwhite-muted">
+                          {fulfillmentLabel(order)} · {waitingLabel(order.created_at, now)}
                         </p>
                       </div>
-                      <strong className="text-sm font-semibold tabular-nums">
-                        {formatRupiah(order.total)}
-                      </strong>
+                      <div className="shrink-0 text-right">
+                        <p className="text-sm font-semibold tabular-nums">{formatRupiah(order.total)}</p>
+                        <p className="text-xs text-offwhite-darker">
+                          {order.payment_status === "paid" ? "Lunas" : "Belum bayar"}
+                        </p>
+                      </div>
                     </Link>
-                  ))}
-              </div>
+                  </li>
+                ))}
+              </ul>
             )}
-          </section>
+          </Card>
         )}
 
-        <section className="self-start rounded-xl border border-offwhite/10 p-5">
-          <h2 className="font-serif text-2xl">Akses cepat</h2>
-          <div className="mt-5 grid gap-3">
-            {[
-              ["orders", "Buka papan pesanan", "orders"],
-              ["menu", "Kelola menu kedai", "menu"],
-              ["tables", "Lihat meja & QR", "tables"],
-              ["cafe", "Ubah info kafe", "cafe"],
-              ["reports", "Buka laporan penjualan", "reports"],
-            ]
-              .filter(([id]) => can(id))
-              .map(([id, label, slug]) => (
-                <Link
-                  key={id}
-                  href={`/dashboard/${slug}`}
-                  className={`${adminSecondaryClass} justify-between`}
-                >
-                  <span>{label}</span>
-                  <span aria-hidden="true">↗</span>
-                </Link>
-              ))}
-          </div>
-          <p className="mt-5 text-xs leading-5 text-offwhite-muted">
-            Halaman dan angka mengikuti akses akun Anda.
-          </p>
-        </section>
+        <div className="grid content-start gap-5 md:gap-6">
+          {can("wa_bot") && <WaStatusRow />}
+          {quick.length > 0 && (
+            <Card aria-labelledby="quick-heading" className="hidden md:block">
+              <h2 id="quick-heading" className="font-serif text-xl">
+                Akses cepat
+              </h2>
+              <ul className="mt-4 grid gap-2">
+                {quick.map((q) => (
+                  <li key={q.id}>
+                    <Link
+                      href={q.href}
+                      className="flex min-h-11 items-center justify-between rounded-md border border-offwhite/10 px-3 text-sm text-offwhite transition hover:border-offwhite/30 hover:bg-charcoal-lighter/50"
+                    >
+                      {q.label}
+                      <ChevronRightIcon className="size-4 text-offwhite-darker" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </div>
       </div>
-
-      {can("wa_bot") && <WaConnectionPanel />}
     </div>
   );
 }

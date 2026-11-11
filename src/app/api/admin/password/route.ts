@@ -7,5 +7,5 @@ import { localError, localJson } from "@/lib/server/local-api";
 import { HttpError, objectValue, textValue } from "@/lib/server/validation";
 export async function PUT(request: Request): Promise<Response> {
   after(async()=>{await flushCloudBackup();});
-  try { const account = await requireLocalAdmin(request); if(account.profile.role === "admin") throw new HttpError(400,"Kata sandi pemilik dikelola melalui konfigurasi server."); const body=objectValue(await request.json()); await changeStaffPassword(account.profile.id,textValue(body.current,"Kata sandi saat ini",128),textValue(body.password,"Kata sandi baru",128)); (await cookies()).delete(SESSION_COOKIE); return localJson({ok:true}); } catch(error) { return localError(error); }
+  try { const account = await requireLocalAdmin(request); if(account.profile.id === "owner") throw new HttpError(400,"Kata sandi pemilik dikelola melalui konfigurasi server."); const body=objectValue(await request.json()); await changeStaffPassword(account.profile.id,textValue(body.current,"Kata sandi saat ini",128),textValue(body.password,"Kata sandi baru",128)); (await cookies()).delete(SESSION_COOKIE); return localJson({ok:true}); } catch(error) { return localError(error); }
 }

@@ -20,6 +20,7 @@ insert into public.staff_accounts (
   salt,
   enabled,
   must_change_password,
+  role,
   created_at
 ) values (
   'admin-utama',
@@ -29,6 +30,7 @@ insert into public.staff_accounts (
   'cafe_admin_salt_2026',
   1,
   0,
+  'admin', -- butuh kolom role: jalankan 09_staff_roles.sql lebih dulu
   now()
 )
 on conflict (id) do update set
@@ -36,7 +38,8 @@ on conflict (id) do update set
   password_hash = excluded.password_hash,
   salt = excluded.salt,
   enabled = 1,
-  must_change_password = 0;
+  must_change_password = 0,
+  role = 'admin';
 
 -- 2. Berikan hak akses penuh ke seluruh 10 modul operasional & pengelolaan
 delete from public.staff_permissions where account_id = 'admin-utama';

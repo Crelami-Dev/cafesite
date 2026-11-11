@@ -1,8 +1,9 @@
 "use client";
 import { useDialogFocus } from "../useDialogFocus";
 import type { AdminMenuRecord, Order, OrderStatus } from "@/types";
+import { CheckIcon, CloseIcon, ExternalLinkIcon } from "@/components/ui/icons";
 import AdminNotice from "../AdminNotice";
-import { adminButtonClass, adminSecondaryClass } from "../admin-api";
+import { adminButtonClass, adminDangerClass, adminSecondaryClass } from "../admin-api";
 import {
   formatPhone,
   formatRupiah,
@@ -11,6 +12,7 @@ import {
   queueLabel,
   whatsappLink,
 } from "./order-format";
+import OrderStatusBadge from "./OrderStatusBadge";
 
 interface OrderDetailDrawerProps {
   order: Order;
@@ -24,14 +26,7 @@ interface OrderDetailDrawerProps {
   onToggleMenu: (menuId: string, available: boolean) => void;
 }
 
-const statusLabel: Record<OrderStatus, string> = {
-  waiting: "◷ Menunggu",
-  preparing: "↻ Diproses",
-  ready: "✓ Siap diambil",
-  completed: "✓ Selesai",
-  cancelled: "✕ Dibatalkan",
-};
-
+/** Rincian pesanan: bottom-sheet di mobile, panel kanan di tablet/desktop. */
 export default function OrderDetailDrawer({
   order,
   menuIndex,
@@ -46,10 +41,11 @@ export default function OrderDetailDrawer({
   useDialogFocus(onClose);
   const canToggleMenu = order.status === "waiting" || order.status === "preparing";
   const nextAction = nextOrderAction(order);
+  const source = order.source === "whatsapp" ? "WhatsApp" : order.source === "web" ? "Website" : "";
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-charcoal-darkest/80"
+      className="fixed inset-0 z-50 flex items-end bg-charcoal-darkest/80 md:items-stretch"
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
@@ -59,124 +55,112 @@ export default function OrderDetailDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="order-detail-title"
-        className="ml-auto flex h-full w-full max-w-xl flex-col overflow-y-auto border-l border-charcoal-border bg-charcoal p-5 shadow-floating md:p-7"
+        className="flex max-h-[92dvh] w-full flex-col overflow-y-auto rounded-t-2xl border border-offwhite/10 bg-charcoal shadow-floating md:ml-auto md:max-h-none md:h-full md:max-w-xl md:rounded-none md:border-y-0 md:border-r-0"
       >
-        <header className="flex items-start justify-between gap-4 border-b border-charcoal-border pb-5">
+        <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-offwhite/10 bg-charcoal px-5 py-4 md:px-7">
           <div className="min-w-0">
-            <p className="text-xs text-offwhite-muted">Rincian pesanan · {statusLabel[order.status]}</p>
-            <h2 id="order-detail-title" className="mt-1 font-serif text-3xl tabular-nums">
-              {queueLabel(order.queue_number)}
-            </h2>
-            <p className="mt-2 truncate text-sm text-offwhite-muted">
+            <div className="flex items-center gap-2">
+              <h2 id="order-detail-title" className="text-3xl font-semibold tabular-nums">
+                {queueLabel(order.queue_number)}
+              </h2>
+              <OrderStatusBadge status={order.status} />
+            </div>
+            <p className="mt-1.5 truncate text-sm text-offwhite-muted">
               {order.customer_name} · {fulfillmentLabel(order)}
-              {order.source === "whatsapp"
-                ? " · via WhatsApp"
-                : order.source === "web"
-                  ? " · via website"
-                  : ""}
+              {source ? ` · ${source}` : ""}
             </p>
           </div>
           <button
             type="button"
-            className="min-h-11 shrink-0 rounded-lg px-3 text-sm text-offwhite-muted hover:bg-charcoal-light hover:text-offwhite"
+            aria-label="Tutup rincian"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-md text-offwhite-muted hover:bg-charcoal-light hover:text-offwhite"
             onClick={onClose}
           >
-            Tutup
+            <CloseIcon className="size-5" />
           </button>
         </header>
 
-        <section className="grid gap-2.5 border-b border-charcoal-border py-5 text-sm">
-          <p>
-            <span className="text-offwhite-darker">Pemesan:</span>{" "}
-            <strong className="text-offwhite">{order.customer_name}</strong>
-          </p>
-          <p className="flex flex-wrap items-center gap-2">
-            <span className="text-offwhite-darker">Nomor HP:</span>
-            <a
-              className="inline-flex min-h-11 items-center rounded-lg px-2 text-offwhite-muted underline hover:text-offwhite"
-              href={`tel:${order.phone}`}
-            >
-              {formatPhone(order.phone)}
-            </a>
-            <a
-              className="inline-flex min-h-11 items-center rounded-lg px-2 text-offwhite-muted underline hover:text-offwhite"
-              href={whatsappLink(order.phone)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Chat WhatsApp ↗
-            </a>
-          </p>
-          <p>
-            <span className="text-offwhite-darker">Pembayaran:</span>{" "}
-            <span>
-              {order.payment_status === "paid" ? "✓ Sudah lunas" : "○ Bayar di kasir (COD)"}
-            </span>
-          </p>
-          <p>
-            <span className="text-offwhite-darker">Total:</span>{" "}
-            <strong className="tabular-nums text-offwhite">{formatRupiah(order.total)}</strong>
-          </p>
-        </section>
+        <div className="grid gap-5 px-5 py-5 md:px-7">
+          <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 text-sm">
+            <dt className="text-offwhite-darker">Total</dt>
+            <dd className="text-right text-xl font-semibold tabular-nums">{formatRupiah(order.total)}</dd>
+            <dt className="text-offwhite-darker">Pembayaran</dt>
+            <dd className="flex items-center justify-end gap-1 text-right">
+              {order.payment_status === "paid" && <CheckIcon className="size-4" />}
+              {order.payment_status === "paid" ? "Sudah lunas" : "Bayar di kasir"}
+            </dd>
+            <dt className="text-offwhite-darker">Nomor HP</dt>
+            <dd className="flex flex-wrap items-center justify-end gap-1">
+              <a className="inline-flex min-h-11 items-center px-2 underline" href={`tel:${order.phone}`}>
+                {formatPhone(order.phone)}
+              </a>
+              <a
+                className="inline-flex min-h-11 items-center gap-1 px-2 underline"
+                href={whatsappLink(order.phone)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                WhatsApp <ExternalLinkIcon className="size-3.5" />
+              </a>
+            </dd>
+          </dl>
 
-        <section className="py-5">
-          <h3 className="font-serif text-xl">Isi pesanan ({order.items.length})</h3>
-          {order.items.length === 0 ? (
-            <p className="mt-4 text-sm text-offwhite-muted">Rincian item sedang dimuat…</p>
-          ) : (
-            <div className="mt-4 grid gap-3">
-              {order.items.map((item) => {
-                const menu = menuIndex[item.menu_item_id];
-                const available = menu?.is_available !== false;
-                return (
-                  <article key={item.id} className="rounded-xl border border-charcoal-border p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h4 className="font-semibold tabular-nums text-offwhite">
-                          {item.quantity}× {item.name}
-                        </h4>
-                        <p className="mt-1 text-xs tabular-nums text-offwhite-darker">
-                          {formatRupiah(item.unit_price)} per porsi · Subtotal{" "}
-                          {formatRupiah(item.unit_price * item.quantity)}
-                        </p>
-                        {item.notes && (
-                          <p className="mt-2 rounded-lg bg-charcoal-light/60 px-3 py-2 text-xs leading-5 text-offwhite">
-                            Catatan: {item.notes}
+          <section aria-labelledby="order-items-title">
+            <h3 id="order-items-title" className="font-serif text-lg">
+              Isi pesanan ({order.items.length})
+            </h3>
+            {order.items.length === 0 ? (
+              <p className="mt-3 text-sm text-offwhite-muted">Rincian item sedang dimuat…</p>
+            ) : (
+              <ul className="mt-3 grid gap-2.5">
+                {order.items.map((item) => {
+                  const menu = menuIndex[item.menu_item_id];
+                  const available = menu?.is_available !== false;
+                  return (
+                    <li key={item.id} className="rounded-lg border border-offwhite/10 bg-charcoal-light p-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold tabular-nums text-offwhite">
+                            {item.quantity}× {item.name}
                           </p>
+                          <p className="mt-1 text-xs tabular-nums text-offwhite-darker">
+                            {formatRupiah(item.unit_price * item.quantity)}
+                          </p>
+                          {item.notes && (
+                            <p className="mt-2 rounded-md bg-charcoal-darkest px-3 py-2 text-xs leading-5 text-offwhite">
+                              Catatan: {item.notes}
+                            </p>
+                          )}
+                        </div>
+                        {canToggleMenu && menu && (
+                          <button
+                            type="button"
+                            disabled={menuBusyId === item.menu_item_id}
+                            className={`${available ? adminSecondaryClass : adminButtonClass} shrink-0 !px-3 text-xs`}
+                            onClick={() => onToggleMenu(item.menu_item_id, !available)}
+                          >
+                            {menuBusyId === item.menu_item_id
+                              ? "Menyimpan…"
+                              : available
+                                ? "Tandai habis"
+                                : "Tersedia lagi"}
+                          </button>
                         )}
                       </div>
-                      {canToggleMenu && menu && (
-                        <button
-                          type="button"
-                          disabled={menuBusyId === item.menu_item_id}
-                          className={`min-h-11 shrink-0 rounded-xl border px-3 text-xs transition disabled:opacity-50 ${
-                            available
-                              ? "border-charcoal-border text-offwhite-muted hover:border-terracotta-light"
-                              : "border-offwhite/40 bg-offwhite/10 text-offwhite"
-                          }`}
-                          onClick={() => onToggleMenu(item.menu_item_id, !available)}
-                        >
-                          {menuBusyId === item.menu_item_id
-                            ? "Menyimpan…"
-                            : available
-                              ? "Tandai habis"
-                              : "Tersedia lagi"}
-                        </button>
+                      {menu && !available && (
+                        <p className="mt-2 text-xs text-terracotta-light">
+                          Menu ini sedang ditandai habis di halaman pemesanan.
+                        </p>
                       )}
-                    </div>
-                    {menu && !available && (
-                      <p className="mt-2 text-xs text-terracotta-light">
-                        ✕ Menu ini sedang ditandai habis di halaman pemesanan.
-                      </p>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </section>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </div>
 
-        <div className="mt-auto grid gap-3 border-t border-charcoal-border pt-5 pb-[env(safe-area-inset-bottom)]">
+        <div className="sticky bottom-0 mt-auto grid gap-2.5 border-t border-offwhite/10 bg-charcoal px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 md:px-7">
           <AdminNotice message={error} error />
           {nextAction && (
             <button
@@ -191,20 +175,16 @@ export default function OrderDetailDrawer({
           {order.payment_status === "unpaid" &&
             !["completed", "cancelled"].includes(order.status) &&
             !nextAction?.markPaid && (
-              <button
-                type="button"
-                disabled={busy}
-                className={adminSecondaryClass}
-                onClick={onMarkPaid}
-              >
-                {busy ? "Memproses…" : "✓ Tandai sudah lunas"}
+              <button type="button" disabled={busy} className={adminSecondaryClass} onClick={onMarkPaid}>
+                <CheckIcon className="size-4" />
+                {busy ? "Memproses…" : "Tandai sudah lunas"}
               </button>
             )}
           {order.status === "waiting" && order.payment_status !== "paid" && (
             <button
               type="button"
               disabled={busy}
-              className="min-h-11 rounded-xl border border-terracotta/50 px-4 text-sm font-medium text-terracotta-light transition hover:bg-terracotta/10 hover:text-offwhite disabled:opacity-50"
+              className={adminDangerClass}
               onClick={() => {
                 if (
                   window.confirm(
@@ -218,9 +198,6 @@ export default function OrderDetailDrawer({
               Batalkan pesanan
             </button>
           )}
-          <button type="button" className={adminSecondaryClass} onClick={onClose}>
-            Kembali ke papan pesanan
-          </button>
         </div>
       </aside>
     </div>

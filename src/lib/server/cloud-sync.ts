@@ -12,7 +12,35 @@ function markPending():void {
 export function mirrorWriteToSupabase(_resource:string,_payload:Record<string,unknown>):void {markPending();}
 export function mirrorDeleteToSupabase(_resource:string,_id:string):void {markPending();}
 export function mirrorOrderToSupabase(_id:string):void {markPending();}
-export function mirrorStaffToSupabase(_id:string):void {markPending();}
+/**
+ * Salin SATU akun staf (beserta izin modulnya) dari SQLite ke tabel live Supabase, supaya akun itu
+ * juga bisa masuk di situs publik. Hanya akun; data kafe lain tetap lewat backup terisolasi.
+ * Mengembalikan "off" bila Supabase tidak dipakai, "pending" bila gagal (backup ditandai tertunda).
+ */
+export async function mirrorStaffToSupabase(id:string,revokeSessions=false):Promise<"saved"|"pending"|"off"> {
+ if(isCloudPrimaryEnv()||process.env.NODE_ENV==="test")return "off";
+ const cloud=getServiceSupabase();if(!cloud)return "off";
+ try{
+  const db=getLocalDb();
+  const row=db.prepare("SELECT * FROM staff_accounts WHERE id=?").get(id);
+  if(!row)return "off";
+  const modules=db.prepare("SELECT module FROM staff_permissions WHERE account_id=?").all(id).map(p=>String(p.module));
+  if(row.role==="admin"){
+   const probe=await cloud.from("staff_accounts").select("role").limit(1);
+   if(probe.error?.code==="42703"){console.warn("[staff-sync] Jalankan supabase/09_staff_roles.sql agar peran admin ikut tersalin.");markPending();return "pending";}
+  }
+  const {error}=await cloud.rpc("cafesite_save_staff",{
+   input:{id:String(row.id),name:String(row.name),email:String(row.email).toLowerCase(),salt:String(row.salt),password_hash:String(row.password_hash),enabled:Number(row.enabled)===1?1:0,must_change_password:Number(row.must_change_password)===1?1:0,role:row.role==="admin"?"admin":"staff",created_at:String(row.created_at)},
+   permissions:modules,
+   revoke_sessions:revokeSessions,
+  }).abortSignal(AbortSignal.timeout(6000));
+  if(error){console.warn("[staff-sync] Akun belum tersalin ke Supabase:",error.code,error.message);markPending();return "pending";}
+  return "saved";
+ }catch(error){
+  console.warn("[staff-sync] Akun belum tersalin ke Supabase:",error instanceof Error?error.name:"error");
+  markPending();return "pending";
+ }
+}
 export function mirrorDeleteStaffToSupabase(_id:string):void {markPending();}
 export interface BackupStatus {state:"cloud"|"unconfigured"|"pending"|"saved";savedAt?:string}
 const state=globalThis as typeof globalThis & {__cafeBackupPromise?:Promise<BackupStatus>};

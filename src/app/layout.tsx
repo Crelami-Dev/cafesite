@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { SITE_URL, siteConfig } from "@/config/site";
@@ -64,6 +64,14 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
 };
 
+// Mengunci pinch-zoom di mobile (Android/Chrome).
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -71,7 +79,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" data-scroll-behavior="smooth" className={`${playfair.variable} ${plusJakarta.variable}`}>
-      <body className="min-h-screen bg-charcoal text-offwhite font-sans antialiased">
+      <body className="min-h-screen touch-pan-x touch-pan-y bg-charcoal text-offwhite font-sans antialiased">
         {/* Structured data — LocalBusiness & WebSite (SEO / AI search) */}
         <JsonLd data={buildWebSiteJsonLd()} />
 

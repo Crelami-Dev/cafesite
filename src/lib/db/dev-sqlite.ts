@@ -18,7 +18,7 @@ import type { MenuItem, PublicContent } from "@/types";
 const DB_FILE = path.join(process.cwd(), ".data", "cafesite.dev.db");
 
 // Disimpan di globalThis agar tidak bocor tiap HMR reload.
-const store = globalThis as typeof globalThis & { __cafeDevDb?: DatabaseSync; __cafeDevDbSchema?: string };
+const store = globalThis as typeof globalThis & { __cafeDevDb?: DatabaseSync; __cafeDevDbSchema?: string; __cafeStaffRoleReady?: boolean };
 
 /**
  * Skema bersama dengan bot WhatsApp (server/src/db/database.ts). DDL ini HARUS identik;
@@ -140,12 +140,25 @@ END;
 INSERT OR IGNORE INTO dashboard_migrations VALUES (1, strftime('%Y-%m-%dT%H:%M:%fZ','now'));
 `;
 
+/** Migrasi ringan: tabel lama belum punya kolom role (admin/staf). */
+function ensureStaffRole(conn: DatabaseSync): void {
+  const columns = conn.prepare("PRAGMA table_info(staff_accounts)").all();
+  if (!columns.some((c) => c.name === "role")) {
+    conn.exec("ALTER TABLE staff_accounts ADD COLUMN role TEXT NOT NULL DEFAULT 'staff'");
+  }
+}
+
 function open(): DatabaseSync {
   if (isCloudPrimaryEnv()) throw new Error("SQLite is disabled in cloud mode; use Supabase.");
   if (store.__cafeDevDb) {
     if (store.__cafeDevDbSchema !== SCHEMA_SQL) {
       store.__cafeDevDb.exec(SCHEMA_SQL);
       store.__cafeDevDbSchema = SCHEMA_SQL;
+    }
+    // Koneksi lama (HMR) bisa lahir sebelum kolom role ada; periksa sekali per proses.
+    if (!store.__cafeStaffRoleReady) {
+      ensureStaffRole(store.__cafeDevDb);
+      store.__cafeStaffRoleReady = true;
     }
     return store.__cafeDevDb;
   }
@@ -158,6 +171,8 @@ function open(): DatabaseSync {
   // WAL + busy_timeout: dashboard dan bot WhatsApp menulis ke file yang sama tanpa saling mengunci.
   conn.exec("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON;");
   conn.exec(SCHEMA_SQL);
+  ensureStaffRole(conn);
+  store.__cafeStaffRoleReady = true;
   const seeded = conn.prepare("SELECT 1 AS n FROM content WHERE key = '_initialized'").get()?.n;
   if (!seeded) {
     const insertMenu = conn.prepare(

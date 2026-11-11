@@ -12,6 +12,11 @@ import {
   adminSecondaryClass,
 } from "./admin-api";
 import AdminNotice from "./AdminNotice";
+import { CupIcon, PlusIcon, SearchIcon } from "@/components/ui/icons";
+import EmptyState from "./ui/EmptyState";
+import PageHeader from "./ui/PageHeader";
+import SegmentedTabs from "./ui/SegmentedTabs";
+import Skeleton from "./ui/Skeleton";
 import MenuFormModal from "./MenuFormModal";
 import MenuCategoryGroup from "./MenuCategoryGroup";
 import CategoryManagerModal from "./CategoryManagerModal";
@@ -136,6 +141,32 @@ export default function MenuManager(): React.JSX.Element {
     }
   }
 
+  async function toggleAvailable(record: AdminMenuRecord, available: boolean): Promise<void> {
+    setError("");
+    const previous = rows;
+    setRows((current) => current.map((r) => (r.id === record.id ? { ...r, is_available: available } : r)));
+    try {
+      await adminRequest("manage?resource=menu", {
+        method: "PUT",
+        body: JSON.stringify({ item: { ...record.data, isAvailable: available }, sortOrder: record.sort_order }),
+      });
+      setMessage(`${record.data.name} ${available ? "tersedia lagi" : "ditandai habis"}.`);
+    } catch (cause: unknown) {
+      setRows(previous);
+      setError(adminError(cause));
+    }
+  }
+
+  function setFilter(values: Record<string, string>): void {
+    const p = new URLSearchParams(params.toString());
+    for (const [key, value] of Object.entries(values)) {
+      if (value) p.set(key, value);
+      else p.delete(key);
+    }
+    const qs = p.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
+
   async function handleReorder(
     category: MenuCategory,
     updatedCategoryRecords: AdminMenuRecord[],
@@ -189,11 +220,11 @@ export default function MenuManager(): React.JSX.Element {
 
   if (loading && rows.length === 0 && !error) {
     return (
-      <section className="rounded-xl border border-charcoal-border bg-charcoal p-6">
-        <p role="status" className="text-sm text-offwhite-muted">
-          Menyiapkan daftar menu…
-        </p>
-      </section>
+      <div className="grid gap-3" aria-busy="true">
+        <Skeleton className="h-12" />
+        <Skeleton className="h-40" />
+        <Skeleton className="h-40" />
+      </div>
     );
   }
 
@@ -215,122 +246,118 @@ export default function MenuManager(): React.JSX.Element {
   const hasFilter = Boolean(query || categoryFilter || availability);
 
   return (
-    <div className="grid gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-xl text-sm leading-6 text-offwhite-muted">
-          Menu yang tersimpan di sini langsung tampil di halaman pemesanan dan situs kedai.
-        </p>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            className={`${adminSecondaryClass} shrink-0 text-xs sm:text-sm`}
-            onClick={() => setCategoryModalOpen(true)}
-          >
-            Kelola kategori ({categories.length})
-          </button>
-          <button
-            type="button"
-            className={`${adminButtonClass} shrink-0 text-xs sm:text-sm`}
-            onClick={() =>
-              setModal({
-                initial: {
-                  ...blank,
-                  category: (categories[0]?.id as MenuCategory) || "coffee",
-                  id: "",
-                },
-                initialSort: rows.length,
-                editing: false,
-              })
-            }
-          >
-            + Tambah menu
-          </button>
-        </div>
-      </div>
+    <div className="grid gap-4 md:gap-5">
+      <PageHeader
+        title="Menu kedai"
+        description="Perubahan langsung tampil di halaman pemesanan dan situs kedai."
+        actions={
+          <>
+            <button type="button" className={adminSecondaryClass} onClick={() => setCategoryModalOpen(true)}>
+              Kategori ({categories.length})
+            </button>
+            <button
+              type="button"
+              className={adminButtonClass}
+              onClick={() =>
+                setModal({
+                  initial: {
+                    ...blank,
+                    category: (categories[0]?.id as MenuCategory) || "coffee",
+                    id: "",
+                  },
+                  initialSort: rows.length,
+                  editing: false,
+                })
+              }
+            >
+              <PlusIcon className="size-4" /> Tambah menu
+            </button>
+          </>
+        }
+      />
 
       <form
-        className="grid gap-3 rounded-xl border border-offwhite/10 bg-charcoal-light/20 p-4 sm:grid-cols-2 lg:grid-cols-4"
+        role="search"
         onSubmit={(e) => {
           e.preventDefault();
-          const f = new FormData(e.currentTarget);
-          const p = new URLSearchParams();
-          for (const key of ["q", "category", "availability"]) {
-            const value = String(f.get(key) || "").trim();
-            if (value) p.set(key, value);
-          }
-          const qs = p.toString();
-          router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+          setFilter({ q: String(new FormData(e.currentTarget).get("q") || "").trim() });
         }}
       >
-        <label className="grid gap-1.5 text-xs text-offwhite-muted">
-          Cari menu
+        <label className="relative block">
+          <span className="sr-only">Cari menu</span>
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-offwhite-darker" />
           <input
             key={query}
             name="q"
             defaultValue={query}
-            placeholder="Nama atau deskripsi menu"
-            className={adminInputClass}
+            placeholder="Cari nama atau deskripsi menu"
+            className={`${adminInputClass} pl-9`}
+            onBlur={(e) => {
+              if (e.currentTarget.value.trim() !== query) setFilter({ q: e.currentTarget.value.trim() });
+            }}
           />
         </label>
-        <label className="grid gap-1.5 text-xs text-offwhite-muted">
-          Kategori
-          <select
-            key={categoryFilter}
-            name="category"
-            defaultValue={categoryFilter}
-            className={adminInputClass}
-          >
-            <option value="">Semua kategori</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="grid gap-1.5 text-xs text-offwhite-muted">
-          Ketersediaan
-          <select
-            key={availability}
-            name="availability"
-            defaultValue={availability}
-            className={adminInputClass}
-          >
-            <option value="">Semua status</option>
-            <option value="available">✓ Tersedia</option>
-            <option value="unavailable">✕ Habis</option>
-          </select>
-        </label>
-        <div className="flex flex-wrap items-end gap-2">
-          <button type="submit" className={adminSecondaryClass}>
-            Terapkan
-          </button>
-          {hasFilter && (
-            <button
-              type="button"
-              onClick={() => router.replace(pathname, { scroll: false })}
-              className={adminSecondaryClass}
-            >
-              Reset
-            </button>
-          )}
-        </div>
       </form>
+
+      <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div role="group" aria-label="Filter kategori" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0">
+          {[{ id: "", name: "Semua" }, ...categories].map((c) => {
+            const active = categoryFilter === c.id;
+            return (
+              <button
+                key={c.id || "all"}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setFilter({ category: c.id })}
+                className={`inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm transition ${
+                  active
+                    ? "border-terracotta bg-terracotta text-offwhite-pure"
+                    : "border-offwhite/20 text-offwhite-muted hover:border-offwhite/40 hover:text-offwhite"
+                }`}
+              >
+                {c.name}
+              </button>
+            );
+          })}
+        </div>
+        <div className="lg:w-72">
+          <SegmentedTabs
+            label="Filter ketersediaan"
+            value={(availability || "all") as "all" | "available" | "unavailable"}
+            options={[
+              { value: "all", label: "Semua" },
+              { value: "available", label: "Tersedia" },
+              { value: "unavailable", label: "Habis" },
+            ]}
+            onChange={(v) => setFilter({ availability: v === "all" ? "" : v })}
+          />
+        </div>
+      </div>
 
       <AdminNotice message={error} error />
       <AdminNotice message={message} />
 
-      <section className="rounded-xl border border-charcoal-border bg-charcoal p-5 md:p-6">
-        {rows.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-charcoal-border p-6 text-center text-sm text-offwhite-darker">
-            Belum ada menu. Gunakan tombol “+ Tambah menu” untuk mulai mengisi.
-          </p>
-        ) : visibleGroups.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-charcoal-border p-6 text-center text-sm text-offwhite-muted">
-            Tidak ada menu yang cocok dengan filter atau kata kunci pencarian ini.
-          </p>
-        ) : (
-          visibleGroups.map(({ category, records }) => (
+      {rows.length === 0 ? (
+        <EmptyState
+          icon={<CupIcon className="size-8" />}
+          title="Belum ada menu"
+          hint="Tambahkan menu pertama agar bisa dipesan."
+        />
+      ) : visibleGroups.length === 0 ? (
+        <EmptyState
+          title="Tidak ada menu yang cocok"
+          hint="Coba kata kunci lain."
+          action={
+            hasFilter ? (
+              <button type="button" onClick={() => router.replace(pathname, { scroll: false })} className={adminSecondaryClass}>
+                Hapus filter
+              </button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <div className="grid gap-4">
+          {visibleGroups.map(({ category, records }) => (
             <MenuCategoryGroup
               key={category.id}
               category={category.id}
@@ -345,11 +372,12 @@ export default function MenuManager(): React.JSX.Element {
                 })
               }
               onRemove={(record) => void remove(record)}
+              onToggleAvailable={(record, value) => void toggleAvailable(record, value)}
               onReorder={(reordered) => void handleReorder(category.id, reordered)}
             />
-          ))
-        )}
-      </section>
+          ))}
+        </div>
+      )}
 
       {modal && (
         <MenuFormModal
