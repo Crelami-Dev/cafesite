@@ -156,7 +156,8 @@ export function MenuPicker({ items }: { items: MenuItem[] }): React.JSX.Element 
                         src={result.item.image}
                         alt={result.item.name}
                         fill
-                        sizes="(min-width: 768px) 240px, 100vw"
+                        priority
+                        sizes="240px"
                         unoptimized={!result.item.image.startsWith("/Image/")}
                         className="object-cover"
                       />
