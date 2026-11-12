@@ -10,15 +10,15 @@ Suite skill frontend modular berbasis `SKILL.md` murni untuk membangun halaman w
 Atlas-Skill/
 ├── plugin.json
 ├── README.md
-├── demo-landing/
-│   ├── vendor/anime.esm.min.js     # Bundle lokal anime.js v4 untuk demo HTML offline-ready
-│   └── index.html                  # Proof landing page non-cafe KawalHook
+├── demo-landing/                   # Demo static HTML + anime.js v4 (Dev-tool KawalHook)
+├── demo-school/                    # Demo Next.js App Router + next/image + anime.js v4 (SMA Aksara Nusantara)
 └── skills/
-    ├── atlas-plan/SKILL.md         # 1. Blueprint 7 poin: domain, 60-30-10 + WCAG AA, radius, tipografi & anime.js
-    ├── atlas-anti-slop/SKILL.md    # 2. Anti-slop & anti-wireframe + standar motion anime.js v4
-    ├── atlas-lean-code/SKILL.md    # 3. CSS native dulu, server-first, pola bersih releaseStyle anime.js
+    ├── atlas-plan/SKILL.md         # 1. Blueprint 7 poin: domain, 2+1 warna (60-30-10), radius, & anime.js
+    ├── atlas-design/SKILL.md       # 2. Frontend Design Craft: arah visual khas domain + foto + tipografi
+    ├── atlas-anti-slop/SKILL.md    # 3. Anti-slop & anti-wireframe + standar motion anime.js v4
+    ├── atlas-lean-code/SKILL.md    # 4. CSS native dulu, server-first, pola bersih releaseStyle anime.js
     └── atlas-checker/
-        ├── SKILL.md                # 4. Audit 5 lapis + inspeksi screenshot 1:1 per fold
+        ├── SKILL.md                # 5. Audit 5 lapis + inspeksi screenshot 1:1 per fold
         └── scripts/
             └── quick-check.mjs     # Audit otomatis 5 viewport + contrast + stuck-opacity + smoke clicks
 ```
@@ -54,10 +54,11 @@ Atau salin folder `Atlas-Skill/` ke `%USERPROFILE%\.gemini\config\plugins\atlas-
 
 ## Cara Kerja & Standar Animasi (`anime.js` v4)
 
-1. **`atlas-plan`:** Mengunci identitas domain, rasio warna **60-30-10** dengan kontras minimum WCAG AA (`4.5:1`), keluarga corner radius tunggal, *centerpiece* interaktif, serta rencana gerak `anime.js` sebelum kode ditulis.
-2. **`atlas-anti-slop`:** Menolak grid 3-card kembar berulang, wireframe datar, dan copywriting klise; mewajibkan kedalaman visual nyata serta gerakan `anime.js` v4 (hero entrance stagger, scroll reveal aman tanpa stuck `opacity: 0`, SVG signal draw, & feedback state).
-3. **`atlas-lean-code`:** Layout memakai CSS `grid`/`flex`/`clamp()`, sementara timeline/stagger/SVG choreography memakai `anime.js` (`import { animate, stagger, svg } from "animejs"` di Next.js `"use client"`, atau bundle ESM lokal untuk static HTML) lengkap dengan helper `releaseStyle` dan `prefers-reduced-motion`.
-4. **`atlas-checker`:** Menjalankan build + `quick-check.mjs` across `320px–1440px`, mengecek **overflow, broken image/console errors, contrast WCAG, elemen macet `opacity: 0` pasca-scroll, overlap sibling, tap target mobile, smoke test klik tab/drawer**, lalu membaca langsung screenshot **1:1 per fold** (`top`, `mid`, `low`) sebelum mengakhiri task.
+1. **`atlas-plan`:** Mengunci blueprint 7 poin sebelum menulis kode (identitas domain, kontras WCAG, radius tunggal, *centerpiece*, dan rencana gerak `anime.js`).
+2. **`atlas-design`:** Menentukan identitas visual orisinal sesuai topik website — **selalu memakai 2 Warna Wajib (60% kanvas + 30% struktur/teks) + 1 Warna Pendukung (10% aksen)** yang dipilih khusus untuk domainnya, dipadukan dengan tipografi berkarakter & fotografi/visual yang relevan (tanpa mengulang template).
+3. **`atlas-anti-slop`:** Menolak grid 3-card kembar berulang, wireframe datar, dan copywriting klise; mewajibkan gerakan `anime.js` v4 (hero entrance stagger, scroll reveal aman tanpa stuck `opacity: 0`, SVG signal draw, & feedback state).
+4. **`atlas-lean-code`:** Layout memakai CSS `grid`/`flex`/`clamp()`, sementara timeline/stagger/SVG choreography memakai `anime.js` (`import { animate, stagger, svg } from "animejs"` di Next.js `"use client"`, atau bundle ESM lokal untuk static HTML) lengkap dengan helper `releaseStyle` dan `prefers-reduced-motion`.
+5. **`atlas-checker`:** Menjalankan build + `quick-check.mjs` across `320px–1440px`, mengecek **overflow, broken image/console errors, contrast WCAG, elemen macet `opacity: 0` pasca-scroll, overlap sibling, tap target mobile, smoke test klik tab/drawer**, lalu membaca langsung screenshot **1:1 per fold** (`top`, `mid`, `low`) sebelum mengakhiri task.
 
 ---
 

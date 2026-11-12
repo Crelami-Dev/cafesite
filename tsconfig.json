@@ -40,6 +40,7 @@
   ],
   "exclude": [
     "node_modules",
-    "server"
+    "server",
+    "Atlas-Skill/demo-school"
   ]
 }

@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  /* 2 Core Colors (60% Chalk + 30% Botanical Forest) + 1 Support Accent (10% Ochre) */
+  --chalk: #F7F5EE;
+  --chalk-soft: #EFECE2;
+  --chalk-card: #FFFFFF;
+  --forest: #153226;
+  --forest-muted: #3A5449;
+  --forest-line: rgba(21, 50, 38, 0.14);
+  --forest-line-strong: rgba(21, 50, 38, 0.28);
+  --ochre: #9A5B0A;
+  --ochre-hover: #7D4806;
+  --ochre-tint: #FDF6EB;
+  --radius-main: 6px;
+}
+
+@theme inline {
+  --color-chalk: var(--chalk);
+  --color-chalk-soft: var(--chalk-soft);
+  --color-chalk-card: var(--chalk-card);
+  --color-forest: var(--forest);
+  --color-forest-muted: var(--forest-muted);
+  --color-ochre: var(--ochre);
+  --color-ochre-hover: var(--ochre-hover);
+  --font-serif: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  background-color: var(--chalk);
+  color: var(--forest);
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+  overflow-x: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+

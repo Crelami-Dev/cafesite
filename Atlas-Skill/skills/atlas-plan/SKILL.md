@@ -19,10 +19,12 @@ Unless the user explicitly invokes `/plan`, keep the plan tight (7 bullets, no m
 1. **Theme, Domain Identity & Signature Centerpiece:**
    - Define the brand, audience, and physical/digital craft of the trade.
    - Lock **at least one domain-authentic interactive centerpiece** (never an empty hero box or generic illustration): e.g., live payload inspector + animated SVG topology for dev tools, live schedule/seat picker for events, calibrated photo showcase + quick order flow for hospitality.
-2. **Palette Discipline (60 / 30 / 10) & WCAG Contrast:**
-   - `60%` Primary canvas + subtle secondary ground (`--bg`, `--bg-grid`/texture if suitable).
-   - `30%` Structural contrast: ink (`--ink`), secondary slate/stone (`--muted`), layered surfaces (`--surface`, `--surface-elevated`), hairline borders (`--line`).
-   - `10%` Single primary accent (`--accent` + hover state) reserved strictly for primary actions, active tabs, and critical markers.
+2. **Palette Discipline (2 Core Colors + 1 Support Accent / 60-30-10):**
+   - Pick **3 domain-authentic colors fresh per site** (follow **atlas-design** rules; never copy palette defaults from an unrelated example site):
+     - `60%` **Core 1 (Canvas):** Primary ground + subtle surface steps.
+     - `30%` **Core 2 (Structure):** Ink + secondary opacity scale + hairline borders.
+     - `10%` **Support Accent:** Single catalyst color for primary CTAs, active tabs, and key markers.
+   - Never introduce an unprompted 4th decorative hue.
    - **Hard Contrast Gate:** Normal body text and buttons must exceed **4.5:1** contrast; large display headings (`>= 24px` or bold `>= 19px`) must exceed **3.0:1**. Never place muted gray text on a tinted medium surface without verifying contrast.
 3. **Surface Depth & Unified Geometry (One Radius Family):**
    - Distinguish **canvas vs elevated panel vs inset terminal/media** via subtle step differences (`--bg` vs `--surface` vs `--ink` band), hairline borders (`1px`), and restraint — not generic blurred drop shadows everywhere.
@@ -54,3 +56,4 @@ Unless the user explicitly invokes `/plan`, keep the plan tight (7 bullets, no m
 - Implement strictly what the prompt or repository architecture calls for.
 - Never invent unrequested dashboards, auth gates, fake testimonials, vanity counters (`"99.99% Satisfaction | 50k Customers"`), or unverified external asset URLs.
 - Keep copy grounded in real product specs, pricing, limits, and concrete actions.
+- **Execution Order:** `atlas-plan` → **atlas-design** → **atlas-anti-slop** → **atlas-lean-code** → **atlas-checker**.

@@ -22,6 +22,7 @@ const eslintConfig = defineConfig([
     ".data/**",
     ".taste-skill/**",
     "public/assets/**",
+    "Atlas-Skill/**",
   ]),
 ]);
 

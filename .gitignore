@@ -50,3 +50,9 @@ next-env.d.ts
 
 # Foto menu yang diunggah lewat dashboard (mode lokal)
 public/uploads/
+
+# Demo Next.js terisolasi di Atlas-Skill
+Atlas-Skill/demo-school/node_modules/
+Atlas-Skill/demo-school/.next/
+Atlas-Skill/demo-school/next-env.d.ts
+Atlas-Skill/demo-school/*.tsbuildinfo
