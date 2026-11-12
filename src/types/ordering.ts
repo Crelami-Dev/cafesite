@@ -23,6 +23,8 @@ export interface CustomerOrdersLinkProps { className?: string; onClick?: () => v
 export interface CustomerOrdersState {
   orders: Order[]; hasOrders: boolean; loading: boolean; error: string; unavailable: string[];
   refresh: () => Promise<void>; enabled: boolean; enable: () => Promise<void>;
+  alerts: Order[]; alarmActive: boolean; muted: boolean;
+  toggleMute: () => void; dismissAlert: (orderId?: string) => void;
 }
 export interface OrderMenuProps { initialMenu: MenuItem[]; table: OrderTable | null; scanGrant?: ScanGrant }
 export interface OrderMenuCardProps { item: MenuItem; quantity: number; onAdd: () => void; onDecrease: () => void }
