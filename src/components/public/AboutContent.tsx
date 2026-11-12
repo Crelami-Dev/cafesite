@@ -20,7 +20,7 @@ export function AboutContent({
   photos?: GalleryPhoto[];
 }): React.JSX.Element {
   const leadPhoto = photos?.[0] ?? {
-    src: "/Image/Gallery/gal-01-window-table.jpg",
+    src: "/Image/Gallery/gal-01-window-table.webp",
     alt: `Meja kayu di samping jendela ${cafe.name} dengan cangkir kopi dan cahaya siang`,
   };
 
@@ -74,12 +74,11 @@ export function AboutContent({
             {/* Kolom kanan: Satu bingkai editorial utuh yang seimbang di Mobile, Tablet, dan Desktop */}
             <div className="lg:col-span-6">
               <CafePhoto
-                src={leadPhoto.src || "/Image/Gallery/gal-01-window-table.jpg"}
+                src={leadPhoto.src || "/Image/Gallery/gal-01-window-table.webp"}
                 alt={leadPhoto.alt || `Suasana ${cafe.name}`}
                 className="aspect-[16/10] w-full rounded-none border border-offwhite/12 lg:aspect-[5/4]"
                 sizes="(min-width: 1024px) 580px, (min-width: 768px) 92vw, 100vw"
                 priority
-                moment
               />
             </div>
           </div>

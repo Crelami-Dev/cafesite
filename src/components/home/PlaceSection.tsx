@@ -77,11 +77,10 @@ export function PlaceSection({ photos = [] }: { photos?: GalleryPhoto[] } = {}):
               data-reveal
             >
               <CafePhoto
-                src={mainPhoto?.src || "/Image/Gallery/gal-01-window-table.jpg"}
+                src={mainPhoto?.src || "/Image/Gallery/gal-01-window-table.webp"}
                 alt={mainPhoto?.alt || mainPhoto?.title || "Meja kayu di samping jendela dengan cangkir kopi dan cahaya siang"}
                 className="m-zoom h-full w-full"
                 sizes="(min-width: 1024px) 588px, (min-width: 640px) calc(100vw - 48px), calc((100vw - 60px) / 2)"
-                moment
               />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 border-t border-offwhite/15 bg-charcoal-darkest/85 px-4 py-2.5 text-xs text-offwhite">
                 <span className="truncate font-medium">{mainLabel}</span>
@@ -96,7 +95,7 @@ export function PlaceSection({ photos = [] }: { photos?: GalleryPhoto[] } = {}):
                 aria-label={`Lihat galeri: ${sideLabel}`}
               >
                 <CafePhoto
-                  src={sidePhoto?.src || "/Image/Gallery/gal-02-morning-brew.jpg"}
+                  src={sidePhoto?.src || "/Image/Gallery/gal-02-morning-brew.webp"}
                   alt={sidePhoto?.alt || sidePhoto?.title || "Barista menuang kopi hasil seduhan manual ke cangkir putih"}
                   className="m-zoom h-full w-full"
                   sizes="(min-width: 1024px) 320px, (min-width: 640px) 55vw, calc((100vw - 60px) / 2)"

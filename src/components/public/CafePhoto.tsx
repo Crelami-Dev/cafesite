@@ -1,10 +1,10 @@
-import Image from "next/image";
+import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
 import type { CafePhotoProps } from "@/types";
+
 export function CafePhoto({
   src,
   alt,
   className = "",
-  moment = false,
   reveal = false,
   priority = false,
   sizes = "(min-width: 1024px) 600px, 100vw",
@@ -13,16 +13,15 @@ export function CafePhoto({
   return (
     <figure
       className={`relative overflow-hidden bg-charcoal-light ${className}`}
-      data-reveal={reveal && !moment ? "wipe" : undefined}
-      data-moment={moment ? "picture-develops" : undefined}
-      data-moment-opts={moment ? '{"look":"film"}' : undefined}
+      data-reveal={reveal ? "wipe" : undefined}
     >
-      <Image
+      <ProgressiveImage
         src={src}
         alt={alt}
         fill
         sizes={sizes}
-        preload={priority}
+        priority={priority}
+        disableSkeleton={priority}
         unoptimized={unoptimized}
         className="object-cover"
       />

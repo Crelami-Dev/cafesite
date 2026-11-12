@@ -214,8 +214,42 @@ html:has(.cafe-public) { scroll-behavior:auto; }
 .visit-section { background: var(--color-charcoal-light); }
 .visit-section .visit-panel { background: var(--color-charcoal); }
 @media(max-width:639px) { .faq-section { padding-block: 56px; } }
-.m-zoom img { transition: transform .6s var(--ease); }
+.m-zoom img { transition: transform .6s var(--ease), opacity .22s var(--ease); }
+.cafe-img-media { transition: opacity .22s var(--ease); }
 a:hover > .m-zoom img, .m-zoom:hover img { transform: scale(1.03); }
+
+@keyframes cafe-skeleton-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.cafe-img-skeleton {
+  overflow: hidden;
+  background-color: var(--color-charcoal-lighter);
+  box-shadow: inset 0 0 0 1px rgb(241 238 232 / 0.08);
+}
+
+.cafe-img-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(241 238 232 / 0.09) 50%,
+    transparent 100%
+  );
+  animation: cafe-skeleton-sweep 1.25s var(--ease) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cafe-img-skeleton::after {
+    animation: none;
+  }
+  .cafe-img-media {
+    transition: none;
+  }
+}
 @media(min-width:768px) { .visit-panel__cols { grid-template-columns: 1fr 1fr; } .visit-panel { padding: 40px; } }
 @media(min-width:1024px) {
  .visit-split { grid-template-columns: repeat(12, minmax(0,1fr)); align-items: stretch; }

@@ -1,6 +1,6 @@
 "use client";
-import Image from "next/image";
 import { useState } from "react";
+import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
 import { formatPrice } from "@/lib/utils";
 import { MinusIcon, PlusIcon } from "@/components/ui/icons";
 import type { OrderMenuCardProps } from "@/types";
@@ -15,7 +15,7 @@ export function OrderMenuCard({
     <article className="order-card flex gap-5 border-b border-offwhite/15 py-6">
       <div className="order-card-image relative h-28 w-28 shrink-0 overflow-hidden bg-charcoal-light">
         {item.image && !failed ? (
-          <Image
+          <ProgressiveImage
             src={item.image}
             alt={item.name}
             fill

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 import { localError, localJson } from "@/lib/server/local-api";
 import { requireLocalAdmin } from "@/lib/server/local-session";
 import { HttpError } from "@/lib/server/validation";
@@ -30,16 +31,24 @@ export async function POST(request: Request): Promise<Response> {
     const bytes = new Uint8Array(await file.arrayBuffer());
     const ext = detect(bytes);
     if (!ext) throw new HttpError(400, "Foto harus JPG, PNG, WebP, atau AVIF.");
-    const name = `${randomUUID()}.${ext}`;
+
+    const maxWidth = folder === "gallery" ? 1400 : 900;
+    const webpBuffer = await sharp(bytes)
+      .rotate()
+      .resize({ width: maxWidth, withoutEnlargement: true })
+      .webp({ quality: 82, effort: 4 })
+      .toBuffer();
+
+    const name = `${randomUUID()}.webp`;
     if(isCloudPrimaryEnv()) {
       const db=cloudDb(); const objectPath=`${folder}/${name}`;
-      const result=await db.storage.from("cafe-assets").upload(objectPath,bytes,{contentType:`image/${ext==="jpg"?"jpeg":ext}`,upsert:false});
+      const result=await db.storage.from("cafe-assets").upload(objectPath,webpBuffer,{contentType:"image/webp",upsert:false});
       checkCloud(result.error);
       return localJson({url:db.storage.from("cafe-assets").getPublicUrl(objectPath).data.publicUrl},201);
     }
     const dir = path.join(process.cwd(), ".data", "uploads", folder);
     await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, name), bytes);
+    await writeFile(path.join(dir, name), webpBuffer);
     return localJson({ url: `/api/media/${folder}/${name}` }, 201);
   } catch (error) { return localError(error); }
 }

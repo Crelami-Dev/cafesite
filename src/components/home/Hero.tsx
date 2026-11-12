@@ -15,10 +15,12 @@ export async function Hero(): Promise<React.JSX.Element> {
       {/* Foto penuh tanpa teks/overlay; kata-kata ada di bawahnya (mobile sampai desktop). */}
       <div className="cafe-hero__photo" data-enter-media>
         <Image
-          src="/Image/hero/hero_authentic.jpg"
+          src="/Image/hero/hero_authentic.webp"
           alt="Secangkir kopi di meja dekat jendela, dengan area duduk dan bar kedai di belakang"
           fill
           priority
+          fetchPriority="high"
+          loading="eager"
           sizes="100vw"
         />
       </div>

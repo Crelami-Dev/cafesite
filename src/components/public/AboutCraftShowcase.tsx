@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { animate } from "animejs";
+import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
 import {
   ArrowRightIcon,
   ChevronLeftIcon,
@@ -31,7 +31,7 @@ const CHAPTERS: CraftChapter[] = [
     summary: "Single origin Sumatra & Jawa Barat dengan jadwal sangrai mingguan.",
     detail:
       "Kami beli langsung dari petani mitra dan hanya menyimpan batch segar agar rasa di cangkir konsisten tanpa perasa tambahan.",
-    src: "/Image/Menu/V60.png",
+    src: "/Image/Menu/V60.webp",
     alt: "Kopi manual brew V60 dituang perlahan ke gelas sajian",
   },
   {
@@ -42,7 +42,7 @@ const CHAPTERS: CraftChapter[] = [
     summary: "Rasio air, suhu, dan gilingan dihitung di setiap gelas.",
     detail:
       "Dari pour-over V60 sampai kopi susu, tiap racikan ditimbang rapi supaya rasa akhirnya tetap seimbang saat dingin maupun hangat.",
-    src: "/Image/Gallery/gal-02-morning-brew.jpg",
+    src: "/Image/Gallery/gal-02-morning-brew.webp",
     alt: "Barista menyeduh kopi manual pagi hari di bar seduh",
   },
   {
@@ -53,7 +53,7 @@ const CHAPTERS: CraftChapter[] = [
     summary: "Colokan dekat, cahaya teduh, dan kursi yang aman buat seharian.",
     detail:
       "Meja jendela untuk kerja sendiri, meja panjang untuk diskusi, dan area semi-outdoor teduh untuk sore yang lebih santai.",
-    src: "/Image/Gallery/gal-06-lampu-bar.jpg",
+    src: "/Image/Gallery/gal-06-lampu-bar.webp",
     alt: "Tamu membaca dan duduk nyaman di area dalam kedai dekat jendela",
   },
 ];
@@ -195,7 +195,7 @@ export function AboutCraftShowcase(): React.JSX.Element {
               ref={stageRef}
               className="relative aspect-[16/9] w-full overflow-hidden rounded-none border border-offwhite/15 bg-charcoal-light lg:aspect-[16/10]"
             >
-              <Image
+              <ProgressiveImage
                 key={current.id}
                 src={current.src}
                 alt={current.alt}

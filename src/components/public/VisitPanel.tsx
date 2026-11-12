@@ -81,7 +81,7 @@ export function VisitPanel({ cafe, configured }: VisitPanelProps): React.JSX.Ele
             </div>
           ) : (
             <CafePhoto
-              src="/Image/Gallery/gal-06-lampu-bar.jpg"
+              src="/Image/Gallery/gal-06-lampu-bar.webp"
               alt="Ruang dalam CafeSite yang terang: tamu membaca di kursi kayu dekat jendela besar"
               className="visit-photo"
               sizes="(min-width: 1024px) 588px, 100vw"

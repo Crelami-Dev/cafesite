@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { animate } from "animejs";
+import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
 import { ArrowRightIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/icons";
 import { prefersReducedMotion } from "@/lib/motion";
 import { formatPrice } from "@/lib/utils";
@@ -134,40 +134,6 @@ export function FeaturedMenuInteractive({
 
   return (
     <div className="mt-7 md:mt-10">
-      {/* Bar Filter Ringkas */}
-      {availableGroups.length > 1 && (
-        <div
-          className="mb-6 flex flex-wrap items-center justify-between gap-3"
-          role="tablist"
-          aria-label="Filter kategori menu favorit"
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            {availableGroups.map((g) => {
-              const isSelected = group === g.id;
-              return (
-                <button
-                  key={g.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={isSelected}
-                  onClick={() => handleGroupChange(g.id)}
-                  className={`inline-flex min-h-10 items-center rounded-md border px-4 py-1.5 text-xs font-medium transition sm:text-sm ${
-                    isSelected
-                      ? "border-terracotta bg-terracotta text-offwhite-pure"
-                      : "border-offwhite/15 bg-charcoal/50 text-offwhite-muted hover:border-offwhite/35 hover:text-offwhite"
-                  }`}
-                >
-                  {g.label}
-                </button>
-              );
-            })}
-          </div>
-          <p className="hidden text-xs text-offwhite-muted md:block">
-            Klik item di daftar untuk melihat detail menu
-          </p>
-        </div>
-      )}
-
       {/* Grid Utama: Spotlight Menu Kiri + Papan Daftar Interaktif Kanan */}
       <div className="grid items-stretch gap-7 md:grid-cols-12 md:gap-7 lg:gap-10">
         {/* Kolom Spotlight Menu Aktif */}
@@ -192,7 +158,7 @@ export function FeaturedMenuInteractive({
             className="relative aspect-[16/10] w-full overflow-hidden rounded-none bg-charcoal-light md:aspect-[5/4]"
           >
             {activeItem.image ? (
-              <Image
+              <ProgressiveImage
                 key={activeItem.id}
                 src={activeItem.image}
                 alt={activeItem.name}
@@ -279,16 +245,15 @@ export function FeaturedMenuInteractive({
                     type="button"
                     onClick={() => selectItem(item.id)}
                     aria-current={isSelected ? "true" : undefined}
-                    className={`group flex w-full items-center gap-3.5 py-3.5 text-left transition sm:gap-4 sm:py-4 ${
-                      isSelected
+                    className={`group flex w-full items-center gap-3.5 py-3.5 text-left transition sm:gap-4 sm:py-4 ${isSelected
                         ? "border-l-2 border-terracotta-light bg-charcoal/55 pl-3.5 pr-3 sm:pl-4"
                         : "pl-0 pr-2 hover:bg-charcoal/25"
-                    }`}
+                      }`}
                   >
                     {/* Thumbnail bersih hanya untuk Tablet & Desktop agar Mobile tetap ringkas satu baris */}
                     {item.image && (
-                      <span className="relative hidden size-14 shrink-0 overflow-hidden rounded-none bg-charcoal md:block">
-                        <Image
+                      <span className="relative hidden size-14 shrink-0 overflow-hidden rounded-none border border-offwhite/10 bg-charcoal md:block">
+                        <ProgressiveImage
                           src={item.image}
                           alt={item.name}
                           fill
@@ -302,11 +267,10 @@ export function FeaturedMenuInteractive({
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline gap-2.5">
                         <span
-                          className={`truncate text-[15px] font-medium transition-colors sm:text-[17px] ${
-                            isSelected
+                          className={`truncate text-[15px] font-medium transition-colors sm:text-[17px] ${isSelected
                               ? "text-terracotta-light"
                               : "text-offwhite group-hover:text-terracotta-light"
-                          }`}
+                            }`}
                         >
                           {item.name}
                         </span>

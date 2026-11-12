@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
-import Image from "next/image";
 import { animate } from "animejs";
+import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -124,7 +124,7 @@ export function GalleryLightbox({
           className="relative h-[62svh] w-full"
         >
           {photo.src && (
-            <Image
+            <ProgressiveImage
               key={photo.id}
               src={photo.src}
               alt={photo.alt || photo.title || "Foto CafeSite"}

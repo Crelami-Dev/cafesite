@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
 import { formatPrice } from "@/lib/utils";
 import { ImageIcon } from "@/components/ui/icons";
 import type { MenuItem } from "@/types";
@@ -31,7 +31,7 @@ export function MenuItemRow({ item, index, showImage = true }: MenuItemRowProps)
           }`}
         >
           {item.image ? (
-            <Image src={item.image} alt="" fill sizes="80px" className="object-cover" />
+            <ProgressiveImage src={item.image} alt="" fill sizes="80px" className="object-cover" />
           ) : (
             <span aria-hidden="true" className="grid h-full place-items-center">
               <ImageIcon className="h-6 w-6 text-charcoal-muted" />

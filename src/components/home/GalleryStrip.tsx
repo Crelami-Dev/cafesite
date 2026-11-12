@@ -1,22 +1,22 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
+import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
 
 const photos = [
   {
-    src: "/Image/Gallery/gal-01-window-table.jpg",
+    src: "/Image/Gallery/gal-01-window-table.webp",
     alt: "Meja pojok dekat jendela dengan cahaya sore alami",
     label: "Meja Jendela",
     desc: "Sudut favorit untuk membaca atau bekerja dengan cahaya alami.",
   },
   {
-    src: "/Image/Gallery/gal-10-meja-komunal.jpg",
+    src: "/Image/Gallery/gal-10-meja-komunal.webp",
     alt: "Meja komunal kayu solid lapang dengan colokan listrik",
     label: "Meja Komunal",
     desc: "Dirancang cukup luas untuk laptop, catatan, dan diskusi santai.",
   },
   {
-    src: "/Image/Gallery/gal-02-morning-brew.jpg",
+    src: "/Image/Gallery/gal-02-morning-brew.webp",
     alt: "Barista sedang menyeduh kopi manual brew V60 dengan presisi",
     label: "Bar Seduh Manual",
     desc: "Single origin Nusantara diseduh pelan dengan takaran terjaga.",
@@ -68,7 +68,7 @@ export function GalleryStrip(): React.JSX.Element {
               className="taste-card group flex flex-col overflow-hidden rounded-xl border border-offwhite/10 bg-charcoal-light transition-all hover:border-offwhite/30"
             >
               <div className="relative aspect-[4/3] w-full overflow-hidden bg-charcoal-darkest">
-                <Image
+                <ProgressiveImage
                   src={photo.src}
                   alt={photo.alt}
                   fill

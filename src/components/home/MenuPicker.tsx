@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import {
@@ -152,11 +152,10 @@ export function MenuPicker({ items }: { items: MenuItem[] }): React.JSX.Element 
                       data-picker-part
                       data-reveal="wipe"
                     >
-                      <Image
+                      <ProgressiveImage
                         src={result.item.image}
                         alt={result.item.name}
                         fill
-                        priority
                         sizes="240px"
                         unoptimized={!result.item.image.startsWith("/Image/")}
                         className="object-cover"

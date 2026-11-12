@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import { animate } from "animejs";
+import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
 import { GalleryLightbox } from "./GalleryLightbox";
 import { ChevronLeftIcon, ChevronRightIcon, ExpandIcon } from "@/components/ui/icons";
 import { prefersReducedMotion, revealNow } from "@/lib/motion";
@@ -255,11 +255,11 @@ export function GalleryGrid({
                 aria-label={`Perbesar ${spotlightPhoto.alt || spotlightPhoto.title || "foto kedai"}`}
               >
                 {spotlightPhoto.src && (
-                  <Image
+                  <ProgressiveImage
                     src={spotlightPhoto.src}
                     alt={spotlightPhoto.alt || spotlightPhoto.title || "Suasana CafeSite"}
                     fill
-                    sizes="100vw"
+                    sizes="calc(100vw - 48px)"
                     unoptimized={!spotlightPhoto.src.startsWith("/Image/")}
                     className="object-cover"
                   />
@@ -329,11 +329,11 @@ export function GalleryGrid({
                   } ${spanClass}`}
                 >
                   {photo.src && (
-                    <Image
+                    <ProgressiveImage
                       src={photo.src}
                       alt={photo.alt || photo.title || "Suasana CafeSite"}
                       fill
-                      sizes={spanClass.includes("col-span-2") ? "100vw" : "48vw"}
+                      sizes={spanClass.includes("col-span-2") ? "calc(100vw - 48px)" : "46vw"}
                       unoptimized={!photo.src.startsWith("/Image/")}
                       className="object-cover"
                     />
@@ -363,11 +363,9 @@ export function GalleryGrid({
               className={`m-zoom group relative overflow-hidden rounded-none border border-offwhite/12 bg-charcoal-light text-left transition hover:border-offwhite/35 ${spec.className}`}
               aria-label={`Perbesar ${photo.alt || photo.title || "foto kedai"}`}
               data-reveal={animateIn ? undefined : true}
-              data-moment={index === 0 ? "picture-develops" : undefined}
-              data-moment-opts={index === 0 ? '{"look":"film"}' : undefined}
             >
               {photo.src && (
-                <Image
+                <ProgressiveImage
                   src={photo.src}
                   alt={photo.alt || photo.title || "Suasana CafeSite"}
                   fill

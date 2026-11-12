@@ -121,7 +121,7 @@ export async function LocationContent(): Promise<React.JSX.Element> {
                   </div>
                   <iframe
                     src={embedUrl}
-                    loading="eager"
+                    loading="lazy"
                     title={`Peta lokasi ${cafe.name}`}
                     className="relative z-10 h-full w-full border-0"
                     referrerPolicy="no-referrer-when-downgrade"
@@ -136,7 +136,7 @@ export async function LocationContent(): Promise<React.JSX.Element> {
                 </div>
               ) : (
                 <CafePhoto
-                  src="/Image/hero/hero_authentic.jpg"
+                  src="/Image/hero/hero_authentic.webp"
                   alt={`Cangkir kopi susu dan buku catatan di meja kayu ${cafe.name}`}
                   className="aspect-[4/3] w-full rounded-none lg:h-full lg:min-h-[460px] lg:aspect-auto"
                   moment

@@ -11,7 +11,7 @@ export default function AuthPage(): React.JSX.Element {
     <div className="grid min-h-dvh bg-charcoal text-offwhite lg:grid-cols-[1.05fr_1fr]">
       <aside className="relative hidden overflow-hidden bg-charcoal-darkest lg:block">
         <Image
-          src="/Image/hero/hero_interior.jpg"
+          src="/Image/hero/hero_interior.webp"
           alt="Suasana interior kedai kopi yang hangat"
           fill
           priority

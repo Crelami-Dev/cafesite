@@ -26,7 +26,7 @@ export const galleryPhotos: GalleryPhoto[] = [
     aspect: "landscape",
     year: "2024",
     title: "Meja Pojok Jendela",
-    src: "/Image/Gallery/gal-01-window-table.jpg",
+    src: "/Image/Gallery/gal-01-window-table.webp",
     alt: "Meja pojok kayu di samping jendela kafe dengan cahaya sore yang hangat",
     caption:
       "Sudut ini yang biasanya dipilih orang yang lagi mikir atau sekadar males ditanya-tanya.",
@@ -37,7 +37,7 @@ export const galleryPhotos: GalleryPhoto[] = [
     aspect: "portrait",
     year: "2024",
     title: "Seduhan Pagi Hari",
-    src: "/Image/Gallery/gal-02-morning-brew.jpg",
+    src: "/Image/Gallery/gal-02-morning-brew.webp",
     alt: "Barista menyeduh kopi manual brew V60 dengan uap mengepul hangat",
     caption:
       "Uap pertama dari cangkir V60 pagi hari. Kadang kopinya cuma alasan buat duduk diam.",
@@ -48,7 +48,7 @@ export const galleryPhotos: GalleryPhoto[] = [
     aspect: "square",
     year: "2024",
     title: "Sudut Tenang",
-    src: "/Image/Gallery/gal-04-quiet-corner.jpg",
+    src: "/Image/Gallery/gal-04-quiet-corner.webp",
     alt: "Cangkir kopi susu dan buku catatan di meja kayu CafeSite, tanaman hijau di belakang",
     caption:
       "Seseorang yang duduk sendirian di pojok, nggak buka HP, cuma mandang ke luar lama banget.",
@@ -59,7 +59,7 @@ export const galleryPhotos: GalleryPhoto[] = [
     aspect: "portrait",
     year: "2024",
     title: "Pasta Hangat Sore",
-    src: "/Image/Gallery/gal-05-pasta-sore.jpg",
+    src: "/Image/Gallery/gal-05-pasta-sore.webp",
     alt: "Sepiring fettuccine carbonara creamy hangat dengan potongan ayam panggang",
     caption:
       "Pasta hangat pas hujan deras di luar. Porsinya pas buat nemenin sampai gerimis reda.",
@@ -70,7 +70,7 @@ export const galleryPhotos: GalleryPhoto[] = [
     aspect: "portrait",
     year: "2024",
     title: "Ruang Baca Terang",
-    src: "/Image/Gallery/gal-06-lampu-bar.jpg",
+    src: "/Image/Gallery/gal-06-lampu-bar.webp",
     alt: "Ruang dalam CafeSite yang terang: tamu membaca di kursi kayu dekat jendela besar",
     caption:
       "Jendela besar, kursi kayu, dan buku di tangan. Sudut ini paling cepat penuh kalau siang.",
@@ -81,7 +81,7 @@ export const galleryPhotos: GalleryPhoto[] = [
     aspect: "landscape",
     year: "2024",
     title: "Americano di Meja Kayu",
-    src: "/Image/Gallery/gal-07-dua-cangkir.jpg",
+    src: "/Image/Gallery/gal-07-dua-cangkir.webp",
     alt: "Dua cangkir americano di meja kayu CafeSite",
     caption:
       "Dua cangkir sisa obrolan dua jam. Yang satu habis duluan, yang satu dingin pelan-pelan.",
@@ -92,7 +92,7 @@ export const galleryPhotos: GalleryPhoto[] = [
     aspect: "square",
     year: "2024",
     title: "Butter Croissant",
-    src: "/Image/Gallery/gal-09-croissant.jpg",
+    src: "/Image/Gallery/gal-09-croissant.webp",
     alt: "Artisanal butter croissant renyah keemasan di atas papan kayu",
     caption:
       "Croissant yang renyah berantakan di meja. Remahannya sengaja nggak langsung dibersihin.",
@@ -103,7 +103,7 @@ export const galleryPhotos: GalleryPhoto[] = [
     aspect: "square",
     year: "2024",
     title: "Latte di Meja Kayu",
-    src: "/Image/Gallery/gal-12-latte-kayu.png",
+    src: "/Image/Gallery/gal-12-latte-kayu.webp",
     alt: "Caramel macchiato dengan saus karamel lezat di atas meja kayu",
     caption:
       "Latte hangat di meja kayu. Busa susunya tebal, belum diaduk karena sayang.",
@@ -114,7 +114,7 @@ export const galleryPhotos: GalleryPhoto[] = [
     aspect: "landscape",
     year: "2024",
     title: "Nasi Goreng Kampung",
-    src: "/Image/Gallery/gal-13-nasgor.jpg",
+    src: "/Image/Gallery/gal-13-nasgor.webp",
     alt: "Sepiring nasi goreng kampung rempah dengan telur mata sapi dan kerupuk",
     caption:
       "Sepiring nasi goreng yang dipesen pas jam nanggung, waktu perut mulai rewel minta diisi.",

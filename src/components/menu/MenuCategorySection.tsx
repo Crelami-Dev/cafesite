@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { Container } from "@/components/ui/Container";
+import { ProgressiveImage } from "@/components/ui/ProgressiveImage";
 import { MenuItemRow } from "@/components/menu/MenuItemRow";
 import { ImageIcon } from "@/components/ui/icons";
 import { menuItems, type MenuCategoryMeta } from "@/data/menu";
@@ -60,7 +60,7 @@ export function MenuCategorySection({
             }`}
           >
             {categoryImage ? (
-              <Image
+              <ProgressiveImage
                 src={categoryImage}
                 alt={category.name}
                 fill
