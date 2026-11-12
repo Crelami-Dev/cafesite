@@ -671,6 +671,28 @@ export function QrCodeIcon({ className = "w-5 h-5" }: IconProps) {
   );
 }
 
+export function BarcodeIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 5v14" />
+      <path d="M6 5v14" />
+      <path d="M10 5v14" />
+      <path d="M14 5v14" />
+      <path d="M17 5v14" />
+      <path d="M21 5v14" />
+    </svg>
+  );
+}
+
 export function SearchIcon({ className = "w-5 h-5" }: IconProps) {
   return (
     <svg
