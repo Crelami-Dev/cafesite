@@ -36,7 +36,7 @@ export function GalleryFilterBar({
                   key={category.id}
                   onClick={() => onSelectCategory(category.id)}
                   aria-pressed={active}
-                  className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition sm:gap-2 sm:px-4 sm:text-sm ${
+                  className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition sm:gap-2 sm:px-4 sm:text-sm ${
                     active
                       ? "border-terracotta bg-terracotta text-offwhite-pure"
                       : "border-offwhite/15 bg-charcoal-light/50 text-offwhite-muted hover:border-offwhite/35 hover:text-offwhite"

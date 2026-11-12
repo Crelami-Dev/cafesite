@@ -116,7 +116,7 @@ export function LocationInteractiveGuides({
                   <div
                     ref={guidePanelRef}
                     role="tabpanel"
-                    className="mt-5 rounded-lg border border-offwhite/12 bg-charcoal-light/50 p-5"
+                    className="mt-5 rounded-none border border-offwhite/12 bg-charcoal-light/50 p-5"
                   >
                     <h3 className="font-serif text-xl font-medium text-offwhite">
                       {selectedGuide.title}
@@ -161,7 +161,7 @@ export function LocationInteractiveGuides({
                         {item.question}
                       </span>
                       <span
-                        className={`inline-flex size-8 shrink-0 items-center justify-center rounded-full border transition ${
+                        className={`inline-flex size-8 shrink-0 items-center justify-center rounded-md border transition ${
                           isOpen
                             ? "border-terracotta bg-terracotta/15 text-terracotta-light"
                             : "border-offwhite/15 text-offwhite-muted"

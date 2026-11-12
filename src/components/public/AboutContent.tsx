@@ -23,10 +23,6 @@ export function AboutContent({
     src: "/Image/Gallery/gal-01-window-table.jpg",
     alt: `Meja kayu di samping jendela ${cafe.name} dengan cangkir kopi dan cahaya siang`,
   };
-  const insetPhoto = photos?.[2] ?? {
-    src: "/Image/Gallery/gal-03-calm-corner.jpg",
-    alt: `Sudut tenang ${cafe.name} dengan cangkir kopi di atas meja kayu`,
-  };
 
   return (
     <>
@@ -36,7 +32,7 @@ export function AboutContent({
         aria-labelledby="about-heading"
       >
         <Container>
-          <div className="grid items-center gap-10 lg:grid-cols-12 lg:gap-10">
+          <div className="grid items-center gap-8 lg:grid-cols-12 lg:gap-12">
             {/* Kolom kiri: Judul langsung + narasi ringkas + fakta padat */}
             <div className="lg:col-span-6">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-terracotta-light">
@@ -75,29 +71,16 @@ export function AboutContent({
               </div>
             </div>
 
-            {/* Kolom kanan: Kolase asimetris bersih 2 foto (ringkas di mobile, bertumpuk artistik di desktop/tablet) */}
+            {/* Kolom kanan: Satu bingkai editorial utuh yang seimbang di Mobile, Tablet, dan Desktop */}
             <div className="lg:col-span-6">
-              <div className="grid grid-cols-12 items-end gap-3 sm:gap-4">
-                <div className="col-span-8">
-                  <CafePhoto
-                    src={leadPhoto.src || "/Image/Gallery/gal-01-window-table.jpg"}
-                    alt={leadPhoto.alt || `Suasana ${cafe.name}`}
-                    className="aspect-[4/3] w-full rounded-lg lg:aspect-[4/5]"
-                    sizes="(min-width: 1024px) 380px, 65vw"
-                    priority
-                    moment
-                  />
-                </div>
-                <div className="col-span-4 pb-3 lg:pb-8">
-                  <CafePhoto
-                    src={insetPhoto.src || "/Image/Gallery/gal-03-calm-corner.jpg"}
-                    alt={insetPhoto.alt || `Sudut meja tenang ${cafe.name}`}
-                    className="aspect-[3/4] w-full rounded-lg"
-                    sizes="(min-width: 1024px) 200px, 32vw"
-                    reveal
-                  />
-                </div>
-              </div>
+              <CafePhoto
+                src={leadPhoto.src || "/Image/Gallery/gal-01-window-table.jpg"}
+                alt={leadPhoto.alt || `Suasana ${cafe.name}`}
+                className="aspect-[16/10] w-full rounded-none border border-offwhite/12 lg:aspect-[5/4]"
+                sizes="(min-width: 1024px) 580px, (min-width: 768px) 92vw, 100vw"
+                priority
+                moment
+              />
             </div>
           </div>
         </Container>

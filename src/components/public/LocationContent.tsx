@@ -111,7 +111,7 @@ export async function LocationContent(): Promise<React.JSX.Element> {
             {/* Kolom kanan: Bingkai Peta tanpa filter CSS pada iframe agar tile Google Maps selalu tampil tajam */}
             <div className="lg:col-span-6">
               {hasValidEmbed ? (
-                <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl border border-offwhite/15 bg-charcoal-light lg:h-full lg:min-h-[460px] lg:aspect-auto">
+                <div className="relative aspect-[16/10] w-full overflow-hidden rounded-none border border-offwhite/15 bg-charcoal-light lg:h-full lg:min-h-[460px] lg:aspect-auto">
                   <div
                     className="absolute inset-0 z-0 flex flex-col items-center justify-center gap-2 px-6 text-center text-xs text-offwhite-muted"
                     aria-hidden="true"
@@ -128,7 +128,7 @@ export async function LocationContent(): Promise<React.JSX.Element> {
                     allowFullScreen
                   />
                   <div className="pointer-events-none absolute inset-x-3 bottom-3 z-20 flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-offwhite/20 bg-charcoal/90 px-3 py-1 text-xs font-medium text-offwhite shadow-floating backdrop-blur-sm">
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-offwhite/20 bg-charcoal/90 px-3 py-1 text-xs font-medium text-offwhite shadow-floating backdrop-blur-sm">
                       <MapPinIcon className="size-3.5 text-terracotta-light" />
                       <span>{cafe.city}</span>
                     </span>
@@ -138,7 +138,7 @@ export async function LocationContent(): Promise<React.JSX.Element> {
                 <CafePhoto
                   src="/Image/hero/hero_authentic.jpg"
                   alt={`Cangkir kopi susu dan buku catatan di meja kayu ${cafe.name}`}
-                  className="aspect-[4/3] w-full rounded-xl lg:h-full lg:min-h-[460px] lg:aspect-auto"
+                  className="aspect-[4/3] w-full rounded-none lg:h-full lg:min-h-[460px] lg:aspect-auto"
                   moment
                 />
               )}

@@ -193,7 +193,7 @@ export function AboutCraftShowcase(): React.JSX.Element {
           >
             <div
               ref={stageRef}
-              className="relative aspect-[16/9] w-full overflow-hidden rounded-lg border border-offwhite/15 bg-charcoal-light lg:aspect-[16/10]"
+              className="relative aspect-[16/9] w-full overflow-hidden rounded-none border border-offwhite/15 bg-charcoal-light lg:aspect-[16/10]"
             >
               <Image
                 key={current.id}

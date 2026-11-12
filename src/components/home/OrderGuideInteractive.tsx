@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { animate } from "animejs";
-import { ArrowRightIcon, ChatIcon, CheckIcon } from "@/components/ui/icons";
+import { animate, stagger } from "animejs";
+import {
+  ArrowRightIcon,
+  ArtisanalBrewIcon,
+  ChatIcon,
+  CheckIcon,
+  ClockIcon,
+} from "@/components/ui/icons";
 import { prefersReducedMotion } from "@/lib/motion";
 
 interface OrderStep {
@@ -12,7 +18,11 @@ interface OrderStep {
   shortLabel: string;
   title: string;
   description: string;
+  ticketBadge: string;
+  ticketIcon: "clock" | "brew" | "check";
   ticketState: string;
+  totalLabel: string;
+  isPaid: boolean;
   activeStepIndex: number;
 }
 
@@ -20,68 +30,89 @@ const ORDER_STEPS: OrderStep[] = [
   {
     id: 0,
     number: "01",
-    shortLabel: "Scan QR",
-    title: "Scan QR di meja atau kasir",
+    shortLabel: "Menunggu",
+    title: "Scan QR & pilih menu di meja",
     description:
-      "Buka halaman pesan lewat QR meja atau bawa pulang tanpa instal aplikasi.",
-    ticketState: "Menunggu konfirmasi di kasir.",
+      "Atur takaran gula, es terpisah, atau catatan khusus—tanpa antre lama hanya untuk memesan.",
+    ticketBadge: "Menunggu Bayar",
+    ticketIcon: "clock",
+    ticketState: "Tunjukkan nomor ini di kasir untuk bayar dan masuk antrean.",
+    totalLabel: "Total · bayar di kasir",
+    isPaid: false,
     activeStepIndex: 0,
   },
   {
     id: 1,
     number: "02",
-    shortLabel: "Pilih Menu",
-    title: "Atur menu dan catatannya",
+    shortLabel: "Diproses",
+    title: "Bayar di kasir, pesanan langsung diracik",
     description:
-      "Tulis takaran gula, es terpisah, atau susu pilihan langsung di tiap item.",
-    ticketState: "Pesananmu sedang dibuat barista.",
+      "Setelah kasir konfirmasi pembayaranmu, tiket di layarmu otomatis pindah ke tahap diracik barista.",
+    ticketBadge: "Sedang Diracik",
+    ticketIcon: "brew",
+    ticketState: "Pembayaran diterima — barista sedang menyiapkan pesananmu.",
+    totalLabel: "Total · lunas di kasir",
+    isPaid: true,
     activeStepIndex: 1,
   },
   {
     id: 2,
     number: "03",
-    shortLabel: "Ambil",
-    title: "Bayar di kasir, tunggu bel berbunyi",
+    shortLabel: "Siap",
+    title: "Tunggu bel & getar khas CafeSite",
     description:
-      "Biarkan tab aktif—bel dan getar khas CafeSite memberi tanda saat siap.",
-    ticketState: "Pesanan siap diambil di meja kasir.",
+      "Biarkan tab aktif saat menunggu. Begitu selesai, bel dan getar khas berbunyi agar tinggal diambil.",
+    ticketBadge: "Siap Diambil",
+    ticketIcon: "check",
+    ticketState: "Bel berbunyi! Pesananmu siap diambil di meja kasir.",
+    totalLabel: "Total · lunas di kasir",
+    isPaid: true,
     activeStepIndex: 2,
   },
 ];
 
 const TICKET_STEPS = ["Menunggu", "Diproses", "Siap", "Selesai"] as const;
 
+function TicketBadgeIcon({ kind }: { kind: OrderStep["ticketIcon"] }) {
+  if (kind === "clock") {
+    return <ClockIcon className="size-3.5 text-offwhite-muted" />;
+  }
+  if (kind === "brew") {
+    return <ArtisanalBrewIcon className="size-3.5 text-terracotta-light" />;
+  }
+  return <CheckIcon className="size-3.5 text-terracotta-light" />;
+}
+
 export function OrderGuideInteractive(): React.JSX.Element {
-  // Default ke tahap 2 ("Diproses") agar pratinjau tiket langsung hidup saat pertama terlihat
   const [activeStep, setActiveStep] = useState<number>(1);
   const statusTextRef = useRef<HTMLParagraphElement | null>(null);
   const ticketRef = useRef<HTMLElement | null>(null);
   const stepBarsRef = useRef<Array<HTMLLIElement | null>>([]);
   const hasInteracted = useRef(false);
+  const barAnimRef = useRef<ReturnType<typeof animate> | null>(null);
 
   const current = ORDER_STEPS[activeStep] ?? ORDER_STEPS[1];
 
   useEffect(() => {
-    if (!hasInteracted.current || prefersReducedMotion()) return;
+    if (!hasInteracted.current) return;
+
+    barAnimRef.current?.cancel();
+    barAnimRef.current = null;
+
+    if (prefersReducedMotion()) {
+      stepBarsRef.current.forEach((el, idx) => {
+        if (!el) return;
+        el.style.setProperty("--fill", idx <= current.activeStepIndex ? "1" : "0");
+      });
+      return;
+    }
 
     if (statusTextRef.current) {
       animate(statusTextRef.current, {
         opacity: [0, 1],
         y: [6, 0],
-        duration: 360,
+        duration: 340,
         ease: "outQuart",
-      });
-    }
-
-    const doneBars = stepBarsRef.current.filter(
-      (el): el is HTMLLIElement =>
-        el !== null && el.hasAttribute("data-done"),
-    );
-    if (doneBars.length) {
-      animate(doneBars, {
-        "--fill": [0.35, 1],
-        duration: 420,
-        ease: "inOutQuart",
       });
     }
 
@@ -92,7 +123,29 @@ export function OrderGuideInteractive(): React.JSX.Element {
         ease: "outQuart",
       });
     }
-  }, [activeStep]);
+
+    // Reset semua 4 bar ke 0 terlebih dulu, lalu isi bar aktif secara berurutan (1 penuh -> 2 penuh -> 3 penuh)
+    const activeBars: HTMLLIElement[] = [];
+    stepBarsRef.current.forEach((el, idx) => {
+      if (!el) return;
+      el.style.setProperty("--fill", "0");
+      if (idx <= current.activeStepIndex) {
+        activeBars.push(el);
+      }
+    });
+
+    if (activeBars.length) {
+      barAnimRef.current = animate(activeBars, {
+        "--fill": [0, 1],
+        duration: 380,
+        delay: stagger(400),
+        ease: "outCubic",
+        onComplete: () => {
+          activeBars.forEach((el) => el.style.setProperty("--fill", "1"));
+        },
+      });
+    }
+  }, [activeStep, current.activeStepIndex]);
 
   const handleSelectStep = (index: number): void => {
     hasInteracted.current = true;
@@ -150,7 +203,7 @@ export function OrderGuideInteractive(): React.JSX.Element {
           </p>
         </div>
 
-        {/* Desktop & Tablet: 3 baris ledger interaktif tanpa card gemuk */}
+        {/* Desktop & Tablet: 3 baris ledger interaktif (ubah saat diklik, bukan saat hover) */}
         <ol
           className="mt-7 hidden divide-y divide-offwhite/12 border-y border-offwhite/12 md:block"
           data-reveal-group
@@ -162,8 +215,7 @@ export function OrderGuideInteractive(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => handleSelectStep(index)}
-                  onMouseEnter={() => handleSelectStep(index)}
-                  className="group flex w-full items-start gap-5 py-4 text-left transition focus-visible:outline-2"
+                  className="group flex w-full cursor-pointer items-start gap-5 py-4 text-left transition focus-visible:outline-2"
                 >
                   <span
                     className={`font-serif text-2xl leading-none tabular-nums transition-colors ${
@@ -222,24 +274,28 @@ export function OrderGuideInteractive(): React.JSX.Element {
         </div>
       </div>
 
-      {/* Kolom kanan: Figure tiket antrean yang dipertahankan & terhubung ke tahap terpilih */}
+      {/* Kolom kanan: Figure tiket antrean yang menyesuaikan tiap tahap & beranimasi berurutan */}
       <div className="md:col-span-5 lg:col-span-6 lg:justify-self-end lg:w-full lg:max-w-[400px]">
         <figure
           ref={ticketRef}
           className="ticket mx-auto"
           data-reveal="ticket"
           role="img"
-          aria-label={`Gambaran tiket nomor antrean di HP: nomor A-012, ${current.ticketState}`}
+          aria-label={`Gambaran tiket nomor antrean di HP: nomor A-012, tahap ${current.shortLabel}, ${current.ticketState}`}
         >
           <div className="ticket__head">
             <span className="font-serif text-xl">CafeSite.</span>
-            <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider text-offwhite-muted">
-              <CheckIcon className="size-3.5 text-terracotta-light" />
-              Pratinjau Tiket
+            <span
+              className={`inline-flex items-center gap-1.5 text-xs uppercase tracking-wider ${
+                current.isPaid ? "text-offwhite" : "text-offwhite-muted"
+              }`}
+            >
+              <TicketBadgeIcon kind={current.ticketIcon} />
+              <span>{current.ticketBadge}</span>
             </span>
           </div>
           <p className="ticket__queue">A-012</p>
-          <p ref={statusTextRef} className="text-base text-offwhite-muted">
+          <p ref={statusTextRef} className="min-h-[44px] text-base text-offwhite-muted">
             {current.ticketState}
           </p>
           <ol className="ticket__steps" aria-hidden="true">
@@ -266,8 +322,10 @@ export function OrderGuideInteractive(): React.JSX.Element {
               <dd>Rp 24.000</dd>
             </div>
             <div className="ticket__total">
-              <dt>Total · sudah dibayar</dt>
-              <dd>Rp 52.000</dd>
+              <dt>{current.totalLabel}</dt>
+              <dd className={current.isPaid ? "text-terracotta-light" : "text-offwhite"}>
+                Rp 52.000
+              </dd>
             </div>
           </dl>
         </figure>
@@ -275,4 +333,3 @@ export function OrderGuideInteractive(): React.JSX.Element {
     </div>
   );
 }
-

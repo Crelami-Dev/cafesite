@@ -16,7 +16,7 @@ import { revealNow } from "@/lib/motion";
 import type { MenuItem } from "@/types";
 
 const OPTION_BASE =
-  "flex min-h-11 flex-col items-start justify-center rounded-lg border px-4 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta";
+  "flex min-h-11 flex-col items-start justify-center rounded-none border px-4 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta";
 const OPTION_ON = "border-terracotta bg-terracotta/15 font-medium text-offwhite";
 const OPTION_OFF = "border-offwhite/20 bg-charcoal-light/40 text-offwhite hover:border-offwhite/40";
 
@@ -143,12 +143,12 @@ export function MenuPicker({ items }: { items: MenuItem[] }): React.JSX.Element 
 
         <div aria-live="polite" className="mt-10">
           {result !== null && (
-            <div ref={resultRef} className="rounded-xl border border-offwhite/15 bg-charcoal-light p-6">
+            <div ref={resultRef} className="rounded-none border border-offwhite/15 bg-charcoal-light p-6">
               {result.item ? (
                 <div className="grid gap-6 md:grid-cols-[240px_minmax(0,1fr)] md:items-center">
                   {result.item.image && (
                     <div
-                      className="relative aspect-[4/3] overflow-hidden rounded-lg bg-charcoal"
+                      className="relative aspect-[4/3] overflow-hidden rounded-none bg-charcoal"
                       data-picker-part
                       data-reveal="wipe"
                     >

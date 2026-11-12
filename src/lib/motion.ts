@@ -52,7 +52,7 @@ function hide(el: HTMLElement, kind: RevealKind): void {
   }
 }
 
-/** Garis status tiket terisi satu per satu, seperti pesanan yang berpindah tahap. */
+/** Garis status tiket terisi satu per satu secara berurutan (1 penuh -> 2 penuh -> 3 penuh). */
 function playTicketStatus(el: HTMLElement, delay: number): Stoppable[] {
   const steps = parts(el, ".ticket__steps li[data-done]");
   if (!steps.length) return [];
@@ -60,9 +60,9 @@ function playTicketStatus(el: HTMLElement, delay: number): Stoppable[] {
   return [
     animate(steps, {
       "--fill": [0, 1],
-      duration: 520,
-      delay: stagger(380, { start: delay }),
-      ease: "inOutQuart",
+      duration: 420,
+      delay: stagger(440, { start: delay }),
+      ease: "outCubic",
       onComplete: () => steps.forEach(release),
     }),
   ];

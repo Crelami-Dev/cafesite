@@ -77,7 +77,7 @@ export function Testimonials({
             <figure
               key={item.id}
               data-card
-              className="flex w-[85%] shrink-0 snap-start flex-col rounded-md border border-charcoal-border/50 bg-charcoal-light/50 p-6 sm:w-[calc((100%-16px)/2)] lg:w-[calc((100%-32px)/3)]"
+              className="flex w-[85%] shrink-0 snap-start flex-col rounded-none border border-charcoal-border/50 bg-charcoal-light/50 p-6 sm:w-[calc((100%-16px)/2)] lg:w-[calc((100%-32px)/3)]"
             >
               <div className="flex items-center gap-2 text-terracotta-light">
                 <StarIcon className="h-4 w-4" />
