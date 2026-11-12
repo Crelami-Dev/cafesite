@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import QRCode from "qrcode";
 import type { Order } from "@/types";
 import { CloseIcon, DownloadIcon, PrinterIcon } from "@/components/ui/icons";
@@ -21,6 +22,7 @@ interface ReceiptModalProps {
  *
  * Menampilkan representasi fisik kertas thermal 57mm yang presisi,
  * dengan aksi 1-klik untuk "Cetak Struk" (Thermal POS) dan "Simpan PDF".
+ * Ukuran halaman otomatis menyesuaikan 58mm x panjang konten (tanpa sisa kertas A4).
  */
 export default function ReceiptModal({
   order,
@@ -31,7 +33,12 @@ export default function ReceiptModal({
   useDialogFocus(onClose);
   const [qrUrl, setQrUrl] = useState<string>("");
   const [printing, setPrinting] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const printTriggered = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Buat QR code mini hitam-putih murni
   useEffect(() => {
@@ -60,14 +67,81 @@ export default function ReceiptModal({
     };
   }, [order.id]);
 
-  // Fungsi Cetak via Window Print dengan setelan judul file rapi
+  // Fungsi penyesuaian ukuran kertas 58mm dinamis sebelum dialog cetak dibuka
+  const applyThermalPageSize = (): number => {
+    const portal = document.getElementById("receipt-print-portal");
+    if (!portal) return 180;
+
+    // Buat clone sementara dengan lebar tepat 58mm untuk mengukur tinggi asli kertas kasir
+    const clone = portal.cloneNode(true) as HTMLElement;
+    clone.id = "temp-thermal-measure-clone";
+    clone.style.position = "absolute";
+    clone.style.left = "-9999px";
+    clone.style.top = "0";
+    clone.style.width = "58mm";
+    clone.style.display = "block";
+    clone.style.visibility = "hidden";
+    document.body.appendChild(clone);
+
+    const paper = clone.querySelector(".receipt-thermal-paper") as HTMLElement | null;
+    if (paper) {
+      paper.style.width = "58mm";
+      paper.style.maxWidth = "58mm";
+      paper.style.padding = "3mm 2.5mm";
+    }
+
+    const heightPx = clone.scrollHeight || clone.offsetHeight;
+    clone.remove();
+
+    // 1px ≈ 0.264583 mm @ 96 DPI. Tambahkan 4mm margin aman
+    const heightMm = Math.max(90, Math.ceil(heightPx * 0.264583) + 4);
+
+    let style = document.getElementById("thermal-page-size-style") as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "thermal-page-size-style";
+      document.head.appendChild(style);
+    }
+
+    style.textContent = `
+      @page {
+        size: 58mm ${heightMm}mm !important;
+        margin: 0mm !important;
+      }
+      @media print {
+        html, body {
+          width: 58mm !important;
+          max-width: 58mm !important;
+          height: ${heightMm}mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          overflow: hidden !important;
+        }
+      }
+    `;
+
+    return heightMm;
+  };
+
+  // Bersihkan override style saat modal ditutup
+  useEffect(() => {
+    return () => {
+      const style = document.getElementById("thermal-page-size-style");
+      if (style) style.remove();
+    };
+  }, []);
+
+  // Fungsi Cetak via Window Print dengan setelan ukuran 58mm dan judul file otomatis
   const triggerPrint = (isPdf = false): void => {
     setPrinting(true);
     const originalTitle = document.title;
     const cleanQueue = queueLabel(order.queue_number).replace(/[^a-zA-Z0-9-]/g, "");
     document.title = `Struk-${cleanQueue}-CafeSite`;
 
-    // Pastikan area print siap
+    applyThermalPageSize();
+
+    // Pastikan ukuran @page telah diterapkan di DOM sebelum browser print dipanggil
     setTimeout(() => {
       window.print();
       document.title = originalTitle;
@@ -76,11 +150,11 @@ export default function ReceiptModal({
   };
 
   useEffect(() => {
-    if (autoPrint && !printTriggered.current && qrUrl) {
+    if (autoPrint && !printTriggered.current && qrUrl && mounted) {
       printTriggered.current = true;
       triggerPrint(false);
     }
-  }, [autoPrint, qrUrl]);
+  }, [autoPrint, qrUrl, mounted]);
 
   return (
     <div
@@ -102,7 +176,7 @@ export default function ReceiptModal({
             <h2 id="receipt-modal-title" className="font-serif text-lg font-medium text-offwhite">
               Struk Transaksi · {queueLabel(order.queue_number)}
             </h2>
-            <p className="text-xs text-offwhite-muted">Ukuran standar thermal kasir 57–58 mm</p>
+            <p className="text-xs text-offwhite-muted">Ukuran kertas pas roll thermal 57–58 mm</p>
           </div>
           <button
             type="button"
@@ -130,7 +204,7 @@ export default function ReceiptModal({
             onClick={() => triggerPrint(true)}
             disabled={printing}
             className={`${adminSecondaryClass} !min-h-10 text-xs font-medium gap-2 border-offwhite/20`}
-            title="Pilih 'Save as PDF' di jendela dialog cetak"
+            title="Pilih 'Save as PDF' di dialog cetak — ukuran kertas langsung pas 58mm"
           >
             <DownloadIcon className="size-4" />
             <span>Simpan PDF</span>
@@ -155,7 +229,7 @@ export default function ReceiptModal({
             </div>
 
             <p className="mt-3 text-center text-[11px] text-offwhite-darker leading-relaxed">
-              Tips: Pada dialog print, gunakan margin <strong>None</strong> dan aktifkan <strong>Background graphics</strong> untuk hasil cetak thermal terbaik.
+              Ukuran kertas otomatis <strong>58mm × panjang pesanan</strong>. Pada printer kasir atau Save as PDF, tidak akan menyisakan ruang kosong A4.
             </p>
           </div>
         </div>
@@ -172,10 +246,15 @@ export default function ReceiptModal({
         </footer>
       </div>
 
-      {/* Target Cetak Terisolasi (Hanya muncul saat @media print) */}
-      <div id="receipt-print-portal" className="hidden print:block">
-        <ReceiptThermal order={order} cashierName={cashierName} qrDataUrl={qrUrl} />
-      </div>
+      {/* Target Cetak Terisolasi (Langsung di body agar bebas dari layout dashboard) */}
+      {mounted &&
+        createPortal(
+          <div id="receipt-print-portal" className="hidden print:block">
+            <ReceiptThermal order={order} cashierName={cashierName} qrDataUrl={qrUrl} />
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
+

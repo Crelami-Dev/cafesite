@@ -272,33 +272,36 @@ a:hover > .m-zoom img, .m-zoom:hover img { transform: scale(1.03); }
 }
 
 @media print {
-  body * { visibility: hidden !important; }
+  /* Sembunyikan seluruh layout dashboard kecuali target cetak terisolasi */
+  body > *:not(#receipt-print-portal):not(.qr-print-section) {
+    display: none !important;
+  }
   .qr-print-section, .qr-print-section * { visibility: visible !important; }
   .qr-print-section { position: absolute !important; inset: 0 !important; display: grid !important; width: 100% !important; background: white !important; color: black !important; }
   .qr-print-card { break-inside: avoid; page-break-inside: avoid; }
-  @page { margin: 0; size: auto; }
 
   /* Cetak Struk Kasir Thermal 57-58 mm */
-  #receipt-print-portal, #receipt-print-portal * {
-    visibility: visible !important;
-  }
   #receipt-print-portal {
-    position: fixed !important;
-    left: 0 !important;
-    top: 0 !important;
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
     width: 58mm !important;
     max-width: 58mm !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
     color: #000000 !important;
-    display: block !important;
     box-shadow: none !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+  #receipt-print-portal * {
+    visibility: visible !important;
   }
   #receipt-print-portal .receipt-thermal-paper {
     width: 58mm !important;
     max-width: 58mm !important;
-    padding: 4mm 3mm !important;
+    padding: 3mm 2.5mm !important;
     box-shadow: none !important;
   }
 }
