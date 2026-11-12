@@ -1,8 +1,11 @@
 "use client";
+
+import { useState } from "react";
 import OrderPanel from "./OrderPanel";
 import type { AdminMenuRecord, Order, OrderStatus } from "@/types";
-import { CheckIcon, CloseIcon, ExternalLinkIcon } from "@/components/ui/icons";
+import { CheckIcon, CloseIcon, DownloadIcon, ExternalLinkIcon, PrinterIcon, ReceiptIcon } from "@/components/ui/icons";
 import AdminNotice from "../AdminNotice";
+import { useDashboard } from "../DashboardShell";
 import { adminButtonClass, adminDangerClass, adminSecondaryClass } from "../admin-api";
 import {
   formatPhone,
@@ -13,6 +16,7 @@ import {
   whatsappLink,
 } from "./order-format";
 import OrderStatusBadge from "./OrderStatusBadge";
+import ReceiptModal from "./ReceiptModal";
 
 interface OrderDetailDrawerProps {
   order: Order;
@@ -38,12 +42,20 @@ export default function OrderDetailDrawer({
   onUpdateStatus,
   onToggleMenu,
 }: OrderDetailDrawerProps): React.JSX.Element {
+  const { account } = useDashboard();
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [autoPrint, setAutoPrint] = useState(false);
+
   const canToggleMenu = order.status === "waiting" || order.status === "preparing";
   const nextAction = nextOrderAction(order);
   const source = order.source === "whatsapp" ? "WhatsApp" : order.source === "web" ? "Website" : "";
+  const cashierName = account?.profile?.name || "Kasir";
+  const isPaidOrInProcess =
+    order.payment_status === "paid" || ["preparing", "ready", "completed"].includes(order.status);
 
   return (
-    <OrderPanel titleId="order-detail-title" onClose={onClose}>
+    <>
+      <OrderPanel titleId="order-detail-title" onClose={onClose}>
         <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-offwhite/10 bg-charcoal px-5 py-4 dashboard-wide:px-7">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -57,14 +69,28 @@ export default function OrderDetailDrawer({
               {source ? ` · ${source}` : ""}
             </p>
           </div>
-          <button
-            type="button"
-            aria-label="Tutup rincian"
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-md text-offwhite-muted hover:bg-charcoal-light hover:text-offwhite"
-            onClick={onClose}
-          >
-            <CloseIcon className="size-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                setAutoPrint(false);
+                setShowReceipt(true);
+              }}
+              aria-label="Lihat pratinjau struk kasir"
+              title="Lihat pratinjau struk thermal 57mm"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-offwhite-muted transition hover:bg-charcoal-light hover:text-offwhite"
+            >
+              <ReceiptIcon className="size-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Tutup rincian"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-offwhite-muted transition hover:bg-charcoal-light hover:text-offwhite"
+              onClick={onClose}
+            >
+              <CloseIcon className="size-5" />
+            </button>
+          </div>
         </header>
 
         <div className="grid gap-5 px-5 py-5 dashboard-wide:px-7">
@@ -149,6 +175,39 @@ export default function OrderDetailDrawer({
 
         <div className="sticky bottom-0 mt-auto grid gap-2.5 border-t border-offwhite/10 bg-charcoal px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 dashboard-wide:px-7">
           <AdminNotice message={error} error />
+
+          {/* Tombol Cetak Struk & Simpan PDF saat sudah lunas atau dalam proses */}
+          {isPaidOrInProcess && (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setAutoPrint(true);
+                  setShowReceipt(true);
+                }}
+                title="Buka dan cetak struk kasir thermal 57mm"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-offwhite/20 bg-charcoal-light px-3 py-2.5 text-xs font-semibold text-offwhite transition hover:border-offwhite/40 hover:bg-charcoal-lighter active:scale-[.98] disabled:cursor-wait disabled:opacity-50"
+              >
+                <PrinterIcon className="size-4 text-terracotta-light" />
+                <span>Cetak Struk</span>
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setAutoPrint(false);
+                  setShowReceipt(true);
+                }}
+                title="Buka struk thermal dan simpan berkas PDF"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-offwhite/20 bg-charcoal-light px-3 py-2.5 text-xs font-semibold text-offwhite transition hover:border-offwhite/40 hover:bg-charcoal-lighter active:scale-[.98] disabled:cursor-wait disabled:opacity-50"
+              >
+                <DownloadIcon className="size-4 text-offwhite" />
+                <span>Simpan PDF</span>
+              </button>
+            </div>
+          )}
+
           {nextAction && (
             <button
               type="button"
@@ -159,6 +218,7 @@ export default function OrderDetailDrawer({
               {busy ? "Memproses…" : nextAction.label}
             </button>
           )}
+
           {order.payment_status === "unpaid" &&
             !["completed", "cancelled"].includes(order.status) &&
             !nextAction?.markPaid && (
@@ -167,6 +227,7 @@ export default function OrderDetailDrawer({
                 {busy ? "Memproses…" : "Tandai sudah lunas"}
               </button>
             )}
+
           {order.status === "waiting" && order.payment_status !== "paid" && (
             <button
               type="button"
@@ -186,6 +247,20 @@ export default function OrderDetailDrawer({
             </button>
           )}
         </div>
-    </OrderPanel>
+      </OrderPanel>
+
+      {/* Modal Pratinjau Struk Kasir Thermal */}
+      {showReceipt && (
+        <ReceiptModal
+          order={order}
+          cashierName={cashierName}
+          autoPrint={autoPrint}
+          onClose={() => {
+            setShowReceipt(false);
+            setAutoPrint(false);
+          }}
+        />
+      )}
+    </>
   );
 }
