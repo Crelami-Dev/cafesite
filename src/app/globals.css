@@ -8,6 +8,21 @@
   }
 }
 
+/* Tata letak dashboard shell: padding-left pas mengikuti lebar sidebar */
+.dashboard-shell-layout {
+  padding-left: 0;
+}
+@media (min-width: 48rem) and (orientation: landscape) {
+  .dashboard-shell-layout {
+    padding-left: 6rem; /* 96px (w-24) rail navigasi tablet landscape */
+  }
+}
+@media (min-width: 80rem) {
+  .dashboard-shell-layout {
+    padding-left: 15rem; /* 240px (w-60) sidebar penuh desktop */
+  }
+}
+
 @theme {
   /* ========================================================================= */
   /* TRIPARTITE 3-COLOR SYSTEM (THE 60 - 30 - 10 RULE)                        */

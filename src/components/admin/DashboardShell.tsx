@@ -131,7 +131,7 @@ export default function DashboardShell({
 
   return (
     <Context.Provider value={{ account, orders, error, loading, refresh, muted, toggleMuted }}>
-      <div className="min-h-dvh bg-charcoal text-offwhite dashboard-wide:pl-24 xl:pl-60">
+      <div className="dashboard-shell-layout min-h-dvh bg-charcoal text-offwhite">
         {!account.mustChangePassword && (
           <Sidebar
             pathname={pathname}
