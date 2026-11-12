@@ -59,15 +59,21 @@ export async function LocationContent(): Promise<React.JSX.Element> {
                   </p>
                 )}
 
-                <div className="mt-6 flex flex-wrap items-center gap-3">
-                  <Button href={cafe.googleMapsUrl} isExternal size="lg">
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                  <Button
+                    href={cafe.googleMapsUrl}
+                    isExternal
+                    size="lg"
+                    className="w-full sm:w-auto"
+                  >
                     Buka Google Maps ↗
                   </Button>
                   <Button
                     href={buildWhatsAppUrl(cafe.whatsapp, "general")}
                     variant="outline"
+                    size="lg"
                     isExternal
-                    className="taste-btn-press"
+                    className="taste-btn-press w-full sm:w-auto"
                   >
                     Tanya via WhatsApp ↗
                   </Button>
@@ -76,7 +82,7 @@ export async function LocationContent(): Promise<React.JSX.Element> {
                       href={cafe.instagramUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex min-h-11 items-center px-3 text-sm text-offwhite-muted underline underline-offset-4 transition hover:text-offwhite"
+                      className="inline-flex min-h-11 items-center justify-center px-3 text-sm text-offwhite-muted underline underline-offset-4 transition hover:text-offwhite sm:justify-start"
                     >
                       Instagram {cafe.instagram} ↗
                     </a>

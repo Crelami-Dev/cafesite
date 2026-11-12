@@ -284,17 +284,17 @@ export function AboutCraftShowcase(): React.JSX.Element {
         </div>
 
         {/* Mobile/Tablet footer CTA */}
-        <div className="mt-7 flex flex-wrap items-center gap-4 lg:hidden">
+        <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 lg:hidden">
           <Link
             href="/order"
-            className="btn btn--primary min-h-11 flex-1 gap-2 text-sm sm:flex-none"
+            className="btn btn--primary w-full gap-2 sm:w-auto"
           >
             <span>Pesan menu</span>
             <ArrowRightIcon className="size-4" />
           </Link>
           <Link
             href="/location"
-            className="inline-flex min-h-11 items-center rounded-md border border-offwhite/20 px-4 text-sm text-offwhite transition hover:border-offwhite/40"
+            className="btn btn--secondary w-full text-offwhite transition hover:border-offwhite/45 hover:bg-charcoal-light sm:w-auto"
           >
             Lokasi & jam buka
           </Link>

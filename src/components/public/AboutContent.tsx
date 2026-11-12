@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { CafePhoto } from "./CafePhoto";
@@ -58,16 +57,18 @@ export function AboutContent({
                 ))}
               </ul>
 
-              <div className="mt-8 flex flex-wrap items-center gap-4">
-                <Button href="/menu" size="lg">
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+                <Button href="/menu" size="lg" className="w-full sm:w-auto">
                   Lihat menu & harga
                 </Button>
-                <Link
-                  className="inline-flex min-h-12 items-center rounded-md border border-offwhite/20 px-5 text-sm font-medium text-offwhite transition hover:border-offwhite/45 hover:bg-charcoal-light"
+                <Button
                   href="/gallery"
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto"
                 >
                   Lihat galeri suasana
-                </Link>
+                </Button>
               </div>
             </div>
 
