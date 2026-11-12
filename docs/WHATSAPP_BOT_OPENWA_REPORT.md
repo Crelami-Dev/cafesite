@@ -89,7 +89,7 @@ Konfigurasi minimal:
 
 | File | Variabel |
 |---|---|
-| `.env.local` (root) | `CONTENT_SOURCE=sqlite`, `LOCAL_ADMIN_EMAIL`, `LOCAL_ADMIN_PASSWORD`, `WA_BOT_CONTROL_URL=http://127.0.0.1:8787`, `WA_BOT_CONTROL_TOKEN` |
+| `.env.local` (root) | `CONTENT_SOURCE=sqlite`, `WA_BOT_CONTROL_URL=http://127.0.0.1:8787`, `WA_BOT_CONTROL_TOKEN` |
 | `server/.env.local` | `BOT_CONTROL_TOKEN` (**harus sama** dengan `WA_BOT_CONTROL_TOKEN`, min. 16 karakter), `PUPPETEER_EXECUTABLE_PATH` (path Chrome) |
 | Opsional | `NVIDIA_API_KEY`, `NVIDIA_MODEL` (jawaban AI); `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_BASE_URL` (pencarian dokumen berbasis makna) |
 

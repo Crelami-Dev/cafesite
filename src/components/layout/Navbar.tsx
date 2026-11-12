@@ -1,4 +1,6 @@
 "use client";
+import { CustomerOrdersLink } from "@/components/order/CustomerOrdersLink";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -104,6 +106,7 @@ export function Navbar(): React.JSX.Element {
         </div>
 
         <div className="site-actions">
+          <CustomerOrdersLink compact className="text-xs sm:text-sm" />
           <Link
             href="/order"
             className="btn btn--primary btn--nav"
@@ -157,6 +160,7 @@ export function Navbar(): React.JSX.Element {
           </div>
 
           <nav className="my-6 flex flex-col" aria-label="Menu seluler">
+            <CustomerOrdersLink className="mobile-navigation__link" onClick={() => close()} />
             {links.map((link) => (
               <Link
                 key={link.href}

@@ -15,7 +15,7 @@ import type { MenuItem, PublicContent } from "@/types";
  * Baris `cafe` di tabel content sengaja tidak di-seed: info kafe masih contoh, jadi mode pratinjau tetap aktif.
  * Ubah isi lewat DB (mis. DB Browser for SQLite) atau hapus filenya untuk seed ulang.
  */
-const DB_FILE = path.join(process.cwd(), ".data", "cafesite.dev.db");
+const DB_FILE = process.env.CAFE_SQLITE_PATH || path.join(process.cwd(), ".data", "cafesite.dev.db");
 
 // Disimpan di globalThis agar tidak bocor tiap HMR reload.
 const store = globalThis as typeof globalThis & { __cafeDevDb?: DatabaseSync; __cafeDevDbSchema?: string; __cafeStaffRoleReady?: boolean };
@@ -63,8 +63,18 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
-CREATE UNIQUE INDEX IF NOT EXISTS one_active_order_per_table ON orders(table_id)
-  WHERE table_id IS NOT NULL AND status IN ('waiting','preparing','ready');
+
+DROP INDEX IF EXISTS one_active_order_per_table;
+CREATE TRIGGER IF NOT EXISTS require_paid_before_processing BEFORE UPDATE OF status ON orders
+WHEN NEW.status IN ('preparing','ready','completed') AND NEW.payment_status<>'paid' AND NEW.status<>OLD.status
+BEGIN SELECT RAISE(ABORT,'Konfirmasi pembayaran sebelum memproses pesanan.'); END;
+CREATE INDEX IF NOT EXISTS active_orders_by_table ON orders(table_id,status);
+CREATE TABLE IF NOT EXISTS order_scan_tickets (
+ token_hash TEXT PRIMARY KEY, browser_hash TEXT NOT NULL,
+ source_id TEXT NOT NULL REFERENCES cafe_tables(id), expires_at TEXT NOT NULL,
+ used_order_id TEXT REFERENCES orders(id), request_key TEXT, payload_hash TEXT
+);
+
 CREATE INDEX IF NOT EXISTS orders_created ON orders(created_at DESC);
 CREATE TABLE IF NOT EXISTS order_items (
   id TEXT PRIMARY KEY,
@@ -141,6 +151,11 @@ INSERT OR IGNORE INTO dashboard_migrations VALUES (1, strftime('%Y-%m-%dT%H:%M:%
 `;
 
 /** Migrasi ringan: tabel lama belum punya kolom role (admin/staf). */
+
+export function ensureOrderFlowSchema(conn: DatabaseSync): void {
+  if (!conn.prepare("PRAGMA table_info(cafe_tables)").all().some(c => c.name === "order_mode")) conn.exec("ALTER TABLE cafe_tables ADD COLUMN order_mode TEXT NOT NULL DEFAULT 'dine_in' CHECK(order_mode IN ('dine_in','takeaway'))");
+  conn.exec("UPDATE cafe_tables SET order_mode='takeaway' WHERE id='TKW-01'; DROP INDEX IF EXISTS one_active_order_per_table;");
+}
 function ensureStaffRole(conn: DatabaseSync): void {
   const columns = conn.prepare("PRAGMA table_info(staff_accounts)").all();
   if (!columns.some((c) => c.name === "role")) {
@@ -153,6 +168,7 @@ function open(): DatabaseSync {
   if (store.__cafeDevDb) {
     if (store.__cafeDevDbSchema !== SCHEMA_SQL) {
       store.__cafeDevDb.exec(SCHEMA_SQL);
+      ensureOrderFlowSchema(store.__cafeDevDb);
       store.__cafeDevDbSchema = SCHEMA_SQL;
     }
     // Koneksi lama (HMR) bisa lahir sebelum kolom role ada; periksa sekali per proses.
@@ -171,6 +187,7 @@ function open(): DatabaseSync {
   // WAL + busy_timeout: dashboard dan bot WhatsApp menulis ke file yang sama tanpa saling mengunci.
   conn.exec("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON;");
   conn.exec(SCHEMA_SQL);
+  ensureOrderFlowSchema(conn);
   ensureStaffRole(conn);
   store.__cafeStaffRoleReady = true;
   const seeded = conn.prepare("SELECT 1 AS n FROM content WHERE key = '_initialized'").get()?.n;

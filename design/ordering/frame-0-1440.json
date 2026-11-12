@@ -1,0 +1,1 @@
+[{"command":"node.create","as":"screen","params":{"type":"frame","name":"Pesanan saya 1440","x":0,"y":0,"width":1440,"height":1080,"props":{"fill":"#20201E","layout":"vertical","padding":80,"gap":24}}}]

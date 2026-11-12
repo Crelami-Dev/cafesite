@@ -48,8 +48,18 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
-CREATE UNIQUE INDEX IF NOT EXISTS one_active_order_per_table ON orders(table_id)
-  WHERE table_id IS NOT NULL AND status IN ('waiting','preparing','ready');
+
+DROP INDEX IF EXISTS one_active_order_per_table;
+CREATE TRIGGER IF NOT EXISTS require_paid_before_processing BEFORE UPDATE OF status ON orders
+WHEN NEW.status IN ('preparing','ready','completed') AND NEW.payment_status<>'paid' AND NEW.status<>OLD.status
+BEGIN SELECT RAISE(ABORT,'Konfirmasi pembayaran sebelum memproses pesanan.'); END;
+CREATE INDEX IF NOT EXISTS active_orders_by_table ON orders(table_id,status);
+CREATE TABLE IF NOT EXISTS order_scan_tickets (
+ token_hash TEXT PRIMARY KEY, browser_hash TEXT NOT NULL,
+ source_id TEXT NOT NULL REFERENCES cafe_tables(id), expires_at TEXT NOT NULL,
+ used_order_id TEXT REFERENCES orders(id), request_key TEXT, payload_hash TEXT
+);
+
 CREATE INDEX IF NOT EXISTS orders_created ON orders(created_at DESC);
 CREATE TABLE IF NOT EXISTS order_items (
   id TEXT PRIMARY KEY,
@@ -125,12 +135,18 @@ END;
 INSERT OR IGNORE INTO dashboard_migrations VALUES (1, strftime('%Y-%m-%dT%H:%M:%fZ','now'));
 `;
 
+
+export function ensureOrderFlowSchema(conn: Db): void {
+  if (!conn.prepare("PRAGMA table_info(cafe_tables)").all().some(c => c.name === "order_mode")) conn.exec("ALTER TABLE cafe_tables ADD COLUMN order_mode TEXT NOT NULL DEFAULT 'dine_in' CHECK(order_mode IN ('dine_in','takeaway'))");
+  conn.exec("UPDATE cafe_tables SET order_mode='takeaway' WHERE id='TKW-01'; DROP INDEX IF EXISTS one_active_order_per_table;");
+}
 export function openDatabase(file: string): Db {
   if (file !== ":memory:") mkdirSync(path.dirname(path.resolve(file)), { recursive: true });
   const db = new DatabaseSync(file);
   // WAL + busy_timeout: dashboard (Next.js) dan bot menulis ke file yang sama tanpa saling mengunci.
   db.exec("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON;");
   db.exec(SCHEMA_SQL);
+  ensureOrderFlowSchema(db);
   return db;
 }
 

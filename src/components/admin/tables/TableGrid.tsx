@@ -8,6 +8,8 @@ interface TableGridProps {
   onEdit: (table: AdminTable) => void;
   onClean: (table: AdminTable) => void;
   onDelete: (table: AdminTable) => void;
+  /** Id meja yang sedang diproses; tombolnya dikunci. */
+  pendingIds?: ReadonlySet<string>;
 }
 
 export default function TableGrid(props: TableGridProps): React.JSX.Element {
@@ -31,7 +33,7 @@ export default function TableGrid(props: TableGridProps): React.JSX.Element {
           </button>
         </div>
       ) : (
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="mt-5 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
           {props.tables.map((table) => (
             <TableCard
               key={table.id}
@@ -40,6 +42,7 @@ export default function TableGrid(props: TableGridProps): React.JSX.Element {
               onEdit={() => props.onEdit(table)}
               onClean={() => props.onClean(table)}
               onDelete={() => props.onDelete(table)}
+              pending={Boolean(props.pendingIds?.has(table.id))}
             />
           ))}
         </div>

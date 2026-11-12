@@ -17,7 +17,7 @@ export interface AdminBootstrap { profile: AdminProfile; modules: AdminModuleSet
 export interface AdminMenuRecord { id: string; data: MenuItem; is_available: boolean; sort_order: number; }
 export interface AdminFloor { id: string; name: string; sort_order: number; }
 export interface AdminTableActiveOrder { id: string; queue_number: number; customer_name: string; status: "waiting" | "preparing" | "ready"; total: number; }
-export interface AdminTable { id: string; floor_id: string; label: string; x: number; y: number; status: "available" | "occupied" | "dirty"; /** Kunci QR meja (mode lokal); tanpa ini QR tidak bisa membuka halaman pesan. */ qr_key?: string; active_order?: AdminTableActiveOrder | null; }
+export interface AdminTable { id: string; floor_id: string; label: string; x: number; y: number; status: "available" | "occupied" | "dirty"; order_mode?: "dine_in" | "takeaway"; /** Kunci QR meja (mode lokal); tanpa ini QR tidak bisa membuka halaman pesan. */ qr_key?: string; active_order?: AdminTableActiveOrder | null; active_orders?: AdminTableActiveOrder[]; }
 export interface AdminFloorForm { id?: string; name: string; sortOrder: number; }
 export interface AdminTableForm { id: string; floorId: string; label: string; status: AdminTable["status"]; }
 export interface AdminFieldProps { label: string; children: ReactNode; hint?: string; }

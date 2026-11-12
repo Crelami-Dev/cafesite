@@ -6,10 +6,10 @@ import { WifiIcon, PlugIcon, LeafIcon, MosqueIcon } from "@/components/ui/icons"
 import type { GalleryPhoto } from "@/types";
 
 const FACILITIES = [
-  { id: "wifi", icon: WifiIcon, title: "Wi-Fi kencang", text: "Cukup untuk meeting online dan kerja seharian." },
-  { id: "plug", icon: PlugIcon, title: "Stopkontak di hampir tiap meja", text: "Meja indoor dan meja komunal, tanpa rebutan." },
-  { id: "outdoor", icon: LeafIcon, title: "Area semi-outdoor", text: "Beratap dan teduh; boleh merokok, anabul berkalung tali boleh ikut." },
-  { id: "prayer", icon: MosqueIcon, title: "Musholla dan toilet bersih", text: "Sajadah, mukena, dan tempat wudhu tersedia." },
+  { id: "wifi", icon: WifiIcon, title: "Wi-Fi kencang", text: "Cukup untuk meeting online dan kerja seharian.", shortTitle: "Wi-Fi kencang", shortText: "Aman untuk kerja." },
+  { id: "plug", icon: PlugIcon, title: "Stopkontak di hampir tiap meja", text: "Meja indoor dan meja komunal, tanpa rebutan.", shortTitle: "Stopkontak banyak", shortText: "Tanpa rebutan." },
+  { id: "outdoor", icon: LeafIcon, title: "Area semi-outdoor", text: "Beratap dan teduh; boleh merokok, anabul berkalung tali boleh ikut.", shortTitle: "Semi-outdoor", shortText: "Teduh, anabul boleh." },
+  { id: "prayer", icon: MosqueIcon, title: "Musholla dan toilet bersih", text: "Sajadah, mukena, dan tempat wudhu tersedia.", shortTitle: "Musholla & toilet", shortText: "Bersih, ada mukena." },
 ] as const;
 
 /**
@@ -31,17 +31,29 @@ export function PlaceSection({ photos = [] }: { photos?: GalleryPhoto[] } = {}):
               <h2 id="place-heading" className="public-h2" data-reveal>
                 Ruang untuk kerja, baca, dan ngobrol
               </h2>
-              <p className="mt-5 max-w-xl text-lg leading-relaxed text-offwhite-muted" data-reveal>
-                Meja jendela untuk yang mau tenang, meja komunal panjang untuk kerja bareng, dan sudut semi-outdoor untuk
-                sore yang santai.
+              <p className="mt-4 max-w-xl text-base leading-relaxed text-offwhite-muted lg:mt-5 lg:text-lg" data-reveal>
+                <span className="lg:hidden">Meja jendela untuk fokus, meja komunal untuk kerja bareng, teras untuk sore santai.</span>
+                <span className="hidden lg:inline">
+                  Meja jendela untuk yang mau tenang, meja komunal panjang untuk kerja bareng, dan sudut semi-outdoor untuk
+                  sore yang santai.
+                </span>
               </p>
-              <ul className="mt-8 divide-y divide-offwhite/15 border-y border-offwhite/15" data-reveal-group>
-                {FACILITIES.map(({ id, icon: Icon, title, text }) => (
-                  <li key={id} className="flex gap-4 py-4" data-draw>
-                    <Icon className="mt-1 h-5 w-5 shrink-0 text-terracotta-light" />
+              <ul
+                className="mt-6 grid grid-cols-2 gap-x-5 gap-y-5 border-y border-offwhite/15 py-5 lg:mt-8 lg:block lg:divide-y lg:divide-offwhite/15 lg:py-0"
+                data-reveal-group
+              >
+                {FACILITIES.map(({ id, icon: Icon, title, text, shortTitle, shortText }) => (
+                  <li key={id} className="flex flex-col items-start gap-2 lg:flex-row lg:gap-4 lg:py-4" data-draw>
+                    <Icon className="h-5 w-5 shrink-0 text-terracotta-light lg:mt-1" />
                     <div>
-                      <h3 className="text-base font-medium">{title}</h3>
-                      <p className="text-base leading-relaxed text-offwhite-muted">{text}</p>
+                      <h3 className="text-[15px] font-medium leading-snug lg:text-base">
+                        <span className="lg:hidden">{shortTitle}</span>
+                        <span className="hidden lg:inline">{title}</span>
+                      </h3>
+                      <p className="mt-0.5 text-[13px] leading-snug text-offwhite-muted lg:mt-0 lg:text-base lg:leading-relaxed">
+                        <span className="lg:hidden">{shortText}</span>
+                        <span className="hidden lg:inline">{text}</span>
+                      </p>
                     </div>
                   </li>
                 ))}
@@ -68,12 +80,12 @@ export function PlaceSection({ photos = [] }: { photos?: GalleryPhoto[] } = {}):
                 src={mainPhoto?.src || "/Image/Gallery/gal-01-window-table.jpg"}
                 alt={mainPhoto?.alt || mainPhoto?.title || "Meja kayu di samping jendela dengan cangkir kopi dan cahaya siang"}
                 className="m-zoom h-full w-full"
-                sizes="(min-width: 1024px) 588px, 100vw"
+                sizes="(min-width: 1024px) 588px, (min-width: 640px) calc(100vw - 48px), calc((100vw - 60px) / 2)"
                 moment
               />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 border-t border-offwhite/15 bg-charcoal-darkest/85 px-4 py-2.5 text-xs text-offwhite">
                 <span className="truncate font-medium">{mainLabel}</span>
-                <span className="shrink-0 text-offwhite-muted">01 / Ruang</span>
+                <span className="hidden shrink-0 text-offwhite-muted sm:inline">01 / Ruang</span>
               </div>
             </Link>
 
@@ -82,17 +94,16 @@ export function PlaceSection({ photos = [] }: { photos?: GalleryPhoto[] } = {}):
                 href="/gallery"
                 className="collage-bento__sub group relative block overflow-hidden border border-offwhite/15 bg-charcoal-light"
                 aria-label={`Lihat galeri: ${sideLabel}`}
-                data-reveal="wipe"
               >
                 <CafePhoto
                   src={sidePhoto?.src || "/Image/Gallery/gal-02-morning-brew.jpg"}
                   alt={sidePhoto?.alt || sidePhoto?.title || "Barista menuang kopi hasil seduhan manual ke cangkir putih"}
                   className="m-zoom h-full w-full"
-                  sizes="(min-width: 1024px) 320px, 60vw"
+                  sizes="(min-width: 1024px) 320px, (min-width: 640px) 55vw, calc((100vw - 60px) / 2)"
                 />
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 border-t border-offwhite/15 bg-charcoal-darkest/85 px-3.5 py-2 text-xs text-offwhite">
                   <span className="truncate font-medium">{sideLabel}</span>
-                  <span className="shrink-0 text-offwhite-muted">02</span>
+                  <span className="hidden shrink-0 text-offwhite-muted sm:inline">02</span>
                 </div>
               </Link>
 

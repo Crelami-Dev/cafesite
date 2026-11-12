@@ -179,7 +179,7 @@ test("pesanan yang sudah disiapkan kasir tidak bisa dibatalkan lewat chat", asyn
   const { db, say } = chat();
   await say("halo bot");
   await say("pesan 1 americano"); await say("selesai"); await say("takeaway"); await say("Dewi"); await say("08123456789"); await say("konfirmasi");
-  db.exec("UPDATE orders SET status = 'preparing'");
+  db.exec("UPDATE orders SET status = 'preparing',payment_status='paid',paid_amount=total");
   assert.match(await say("status"), /sedang disiapkan/);
   assert.match(await say("batalkan pesanan"), /sudah diproses[\s\S]*hubungi kasir/i);
   assert.equal(db.prepare("SELECT status FROM orders").get()?.status, "preparing");
@@ -193,7 +193,7 @@ test("pembatalan yang diabaikan tidak membatalkan; kasir memproses saat menunggu
   assert.match(await say("harga americano"), /Rp22\.000/); // jawaban lain = tidak jadi batal
   assert.equal(db.prepare("SELECT status FROM orders").get()?.status, "waiting");
   await say("batalkan pesanan");
-  db.exec("UPDATE orders SET status = 'preparing'"); // kasir keburu memproses
+  db.exec("UPDATE orders SET status = 'preparing',payment_status='paid',paid_amount=total"); // kasir keburu memproses
   assert.match(await say("ya"), /baru saja diproses kasir/);
   assert.equal(db.prepare("SELECT status FROM orders").get()?.status, "preparing");
 });

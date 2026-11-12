@@ -8,7 +8,7 @@ export interface AvailableTable {
 
 /** Jumlah meja yang diatur di dashboard (berapa pun statusnya). 0 = kafe belum memakai pengaturan meja. */
 export function countTables(db: Db): number {
-  return Number(db.prepare("SELECT COUNT(*) AS n FROM cafe_tables").get()?.n ?? 0);
+  return Number(db.prepare("SELECT COUNT(*) AS n FROM cafe_tables WHERE order_mode='dine_in'").get()?.n ?? 0);
 }
 
 /** Meja berstatus 'available' saja (bukan occupied/dirty), lengkap dengan nama lantai. */
@@ -17,7 +17,7 @@ export function fetchAvailableTables(db: Db): AvailableTable[] {
     .prepare(
       `SELECT t.id, t.label, COALESCE(f.name, '') AS floor_name
        FROM cafe_tables t LEFT JOIN floors f ON f.id = t.floor_id
-       WHERE t.status = 'available'
+       WHERE t.status = 'available' AND t.order_mode='dine_in'
        ORDER BY COALESCE(f.sort_order, 0), t.id`,
     )
     .all()

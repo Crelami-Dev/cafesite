@@ -6,22 +6,23 @@ import type { OrderResponse, PendingOrderRequest } from "@/types/ordering";
 
 export const LAST_ORDER_KEY = "cafesite:last-order";
 const ORDER_TOKENS_KEY = "cafesite:order-tokens";
-const MAX_REMEMBERED_ORDERS = 10;
+export const ORDER_REGISTRY_EVENT = "cafesite:orders-change";
+let memoryTokens: Record<string, string> = {};
+let volatileStorage = false;
 let customerSession: Promise<string> | null = null;
 
-function readOrderTokens(): Record<string, string> {
+export function readOrderTokens(): Record<string, string> {
   try {
-    const value = JSON.parse(localStorage.getItem(ORDER_TOKENS_KEY) || "{}") as unknown;
-    return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, string>) : {};
-  } catch { return {}; }
+    const value = JSON.parse(localStorage.getItem(ORDER_TOKENS_KEY) || (volatileStorage ? JSON.stringify(memoryTokens) : "{}")) as unknown;
+    return value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).filter(([id, token]) => /^[0-9a-f-]{36}$/.test(id) && typeof token === "string" && token.length <= 128)) as Record<string,string> : {};
+  } catch { return memoryTokens; }
 }
 
 /** Simpan token akses pesanan (bukan data pribadi) agar halaman status bisa dibuka lagi dari browser ini. */
 export function rememberOrderToken(orderId: string, token: string): void {
-  try {
-    const entries = Object.entries(readOrderTokens()).filter(([id]) => id !== orderId).slice(-(MAX_REMEMBERED_ORDERS - 1));
-    localStorage.setItem(ORDER_TOKENS_KEY, JSON.stringify(Object.fromEntries([...entries, [orderId, token]])));
-  } catch { /* Penyimpanan diblokir: status tetap bisa ditanyakan ke kasir. */ }
+  memoryTokens = { ...readOrderTokens(), [orderId]: token };
+  try { localStorage.setItem(ORDER_TOKENS_KEY, JSON.stringify(memoryTokens)); volatileStorage = false; } catch { volatileStorage = true; /* This tab keeps access until it closes. */ }
+  window.dispatchEvent(new Event(ORDER_REGISTRY_EVENT));
 }
 
 export async function customerAccessToken(create: boolean = false): Promise<string> {
@@ -80,7 +81,7 @@ export function queueLabel(number: number): string {
 }
 
 export function canAddToOrder(order: Order): boolean {
-  return !["completed", "cancelled"].includes(order.status) && order.payment_status === "unpaid";
+  return order.status === "waiting" && order.payment_status === "unpaid";
 }
 
 /**

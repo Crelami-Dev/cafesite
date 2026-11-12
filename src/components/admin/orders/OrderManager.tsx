@@ -1,5 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import CashierOrderScanner from "./CashierOrderScanner";
+
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import type { AdminMenuRecord, Order, OrderStatus } from "@/types";
 import { ChevronLeftIcon, ChevronRightIcon, FilterIcon, ReceiptIcon, SearchIcon } from "@/components/ui/icons";
@@ -48,6 +50,8 @@ export default function OrderManager({ canManageMenu }: Props): React.JSX.Elemen
   const [detail, setDetail] = useState<Order | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  /** Penjaga klik ganda seketika: satu perubahan pesanan/menu pada satu waktu. */
+  const flying = useRef(false);
   const [menu, setMenu] = useState<Record<string, AdminMenuRecord>>({});
   const [now, setNow] = useState(() => Date.now());
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -93,7 +97,7 @@ export default function OrderManager({ canManageMenu }: Props): React.JSX.Elemen
         });
     };
     load();
-    const timer = setInterval(load, 5000);
+    const timer = setInterval(load, 10000);
     document.addEventListener("visibilitychange", load);
     return () => {
       live = false;
@@ -102,8 +106,10 @@ export default function OrderManager({ canManageMenu }: Props): React.JSX.Elemen
     };
   }, [history, query]);
 
+  // Pesanan aktif sudah lengkap (dengan item) dari polling shell; ambil terpisah hanya bila tidak ada di sana.
+  const selectedIsActive = Boolean(selectedId && orders.some((o) => o.id === selectedId));
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId || selectedIsActive) return;
     let live = true;
     adminRequest<{ orders: Order[] }>(`orders?id=${selectedId}`)
       .then((r) => {
@@ -115,7 +121,7 @@ export default function OrderManager({ canManageMenu }: Props): React.JSX.Elemen
     return () => {
       live = false;
     };
-  }, [selectedId, orders]);
+  }, [selectedId, selectedIsActive]);
 
   useEffect(() => {
     if (!canManageMenu) return;
@@ -133,8 +139,9 @@ export default function OrderManager({ canManageMenu }: Props): React.JSX.Elemen
   }, [canManageMenu]);
 
   async function change(order: Order, next?: OrderStatus, markPaid = false): Promise<void> {
-    if (busy) return;
+    if (flying.current) return;
     if (markPaid && !window.confirm("Konfirmasi pembayaran sudah diterima kasir?")) return;
+    flying.current = true;
     setBusy(order.id);
     setError("");
     try {
@@ -150,26 +157,30 @@ export default function OrderManager({ canManageMenu }: Props): React.JSX.Elemen
       setDetail(result.order);
       await refresh();
     } catch (e) {
+      // 409 = pesanan sudah diubah staf lain: daftar dimuat ulang agar tombol berikutnya memakai data terbaru.
       setError(adminError(e));
       await refresh();
     } finally {
+      flying.current = false;
       setBusy("");
     }
   }
 
   async function toggleMenu(id: string, available: boolean): Promise<void> {
     const row = menu[id];
-    if (!row) return;
+    if (!row || flying.current) return;
+    flying.current = true;
     setBusy(id);
     try {
       await adminRequest("manage?resource=menu", {
         method: "PUT",
         body: JSON.stringify({ item: { ...row.data, isAvailable: available }, sortOrder: row.sort_order }),
       });
-      setMenu({ ...menu, [id]: { ...row, is_available: available } });
+      setMenu((current) => ({ ...current, [id]: { ...(current[id] ?? row), is_available: available } }));
     } catch (e) {
       setError(adminError(e));
     } finally {
+      flying.current = false;
       setBusy("");
     }
   }
@@ -205,7 +216,7 @@ export default function OrderManager({ canManageMenu }: Props): React.JSX.Elemen
 
   return (
     <div className="grid gap-4 md:gap-5">
-      <PageHeader title="Pesanan" description="Pantau dan proses pesanan yang masuk." />
+      <PageHeader title="Pesanan" description="Konfirmasi pembayaran sebelum pesanan diproses." actions={<CashierOrderScanner onFound={id => update({ order: id })} />} />
 
       <SegmentedTabs
         label="Tampilan pesanan"

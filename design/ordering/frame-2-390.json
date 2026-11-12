@@ -1,0 +1,1 @@
+[{"command":"node.create","as":"screen","params":{"type":"frame","name":"Konfirmasi kasir 390","x":1520,"y":2400,"width":390,"height":1080,"props":{"fill":"#20201E","layout":"vertical","padding":24,"gap":24}}}]

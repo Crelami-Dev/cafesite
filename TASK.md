@@ -375,4 +375,41 @@ Update status di setiap task seiring progress.
 - [x] Verifikasi headless Chrome (1440 & 390, 5 halaman): tidak ada style inline tersisa, tanpa overflow horizontal, tanpa error konsol; `tsc` dan `eslint` bersih.
 - [x] Tiket antrean: nomor berhitung, rincian muncul per baris, garis status terisi berurutan (diputar ulang saat hover).
 - [x] Fasilitas (beranda): baris muncul berurutan dan ikon garisnya menggambar diri (`data-draw`).
+
+## Perbaikan QR meja (2026-11-12)
+
+- [x] Konfirmasi produksi melalui `vercel logs`: `/order?meja=TKW` gagal dengan digest `2252458779`, pesan `Kunci QR dan pesanan cloud belum dikonfigurasi`. `/api/catalog` berhasil membaca 13 menu; `/`, `/menu`, dan `/order` tanpa parameter berhasil.
+- [x] Tolak QR cloud tanpa kunci sebelum mengakses secret/database; tiga tes regresi guard cloud lolos (`node --test scripts/cloud-order-guard.test.mjs`).
+- [x] Error boundary memakai `retry` Next 16.3, pesan umum yang tidak menyalahkan data kedai, dan kode digest untuk penelusuran log; dokumentasikan `ORDER_ACCESS_SECRET` di `.env.example`.
+
+- [x] Telusuri QR screenshot `/order?meja=TKW`: tanpa parameter `k`, hasil decode diabaikan oleh parser scanner sementara server mewajibkan kunci.
+- [x] Scanner menjelaskan QR terbaca tanpa kunci/QR lain; cek dukungan format native, kesiapan video, dan hentikan sesi bila mesin deteksi terus gagal.
+- [x] Pembuat QR menolak kunci kosong; modal dashboard menangani kegagalan URL tanpa menghasilkan QR yang tidak dapat dipakai.
+- [x] Empat tes regresi alur payload QR, penolakan QR tanpa kunci, URL tujuan, dan keluaran PNG/SVG lolos (`server/node_modules/.bin/tsx --test scripts/qr-scan.test.ts`).
+- [x] Sinkronkan enam konfigurasi aplikasi ke Vercel Production dari `.env.local`, termasuk secret QR valid yang sudah disediakan user dan domain QR; Production memakai Supabase. Konfigurasi Supabase Preview/Development dipertahankan.
+- [x] Deploy produksi `dpl_EFhu24QV8p1ihmsWXt8qRGHRj8j9` ke `https://cafesite-five.vercel.app` (2026-11-12). Build lokal dan cloud lolos; tujuh tes QR lolos; lint 0 error (8 warning variabel tidak terpakai).
+- [x] Verifikasi live: katalog 13 menu/1 meja, beranda, menu, layar scan tanpa QR, penolakan QR lama tanpa kunci, dan QR bertanda tangan membuka `Pilih menu, kami siapkan`; seluruh request 200 tanpa digest error.
+- [x] Paket deployment tidak menyertakan `.env`, database lokal, atau direktori privat; preferensi auto-deploy berikutnya dicatat di `AGENTS.md`.
+- [ ] Buat ulang QR dari dashboard dan uji kamera HP nyata; QR lama tanpa `k` tetap tidak berlaku.
+
+## Pesanan pribadi, pembayaran dahulu, dan pengingat (2026-11-12)
+
+- [x] Migrasi Supabase `12_customer_order_flow.sql` dan SQLite: mode QR, tiket 15 menit terikat browser/sekali pakai, beberapa pesanan per meja, pembayaran wajib sebelum proses dapur.
+- [x] Checkout, edit pesanan belum dibayar, batch riwayat bertoken, QR bukti kasir terpisah dari token pelanggan, dan konfirmasi pembayaran atomik dengan versi total terbaru.
+- [x] Desain FigCraft 1440/390 di `design/ordering/customer-orders.figcraft`; riwayat pelanggan, QR pembayaran, kasir, dan kanal takeaway khusus tersambung.
+- [x] Pemantau global dengan polling 5 detik, Realtime sebagai pemicu, pengingat suara/getar setelah interaksi, dan deduplikasi browser/tab.
+- [x] 123 tes otomatis (107 server, 5 SQLite, 4 PostgreSQL, 3 guard cloud, 4 QR) dan 21 pemeriksaan HTTP lokal/produksi lolos. Build produksi web dan build server lolos.
+- [x] 26 pemeriksaan browser hasil build produksi pada 375/390/1440: privasi, checkout/edit UI, scan baru, alarm/polling, deduplikasi tab, audio/getar tidak tersedia, dan layout kasir/takeaway lolos.
+- [x] Audit kualitas dicatat jujur di `docs/ORDER_FLOW_IMPLEMENTATION.md`: gate landing page `FAIL 21`; perf memberi false positive keluarga fallback `next/font`, CLS 0,000, tanpa request rusak. Tipografi FigCraft 1:1 belum terverifikasi karena font renderer tidak lengkap.
+- [x] Verifikasi skema Supabase produksi yang sudah tersedia, deploy `dpl_2SfsnimCUY19SLUQXunidvVorFet` ke `https://cafesite-five.vercel.app`, dan lolos 20 pemeriksaan live terkontrol. Semua pesanan uji tetap belum dibayar dan dibersihkan; tidak mencatat penjualan fiktif.
+- [ ] Uji Android/iPhone fisik (belum tersedia melalui lingkungan pengujian ini).
+
+## Penyempurnaan mobile beranda (2026-11-12)
+
+- [x] Fasilitas utama dan fasilitas ruang tampil 2×2 dengan copy ringkas pada mobile; susunan desktop dipertahankan.
+- [x] Kolase ruang mobile: dua foto sejajar, kartu teks pada baris berikutnya selebar dua kolom; `sizes` mengikuti lebar foto.
+- [x] Menu favorit mobile: foto utama 4:3, tombol penuh, thumbnail 56px; daftar tanpa titik-titik, nama/harga vertikal, deskripsi ringkas.
+- [x] TypeScript dan ESLint komponen terkait lolos.
+- [x] Render browser pada 375/390/1440px; tidak ditemukan overflow horizontal. Foto ruang mobile sejajar dan daftar menu tanpa titik-titik.
+- [ ] Perbandingan FigCraft belum dilakukan. Gate keseluruhan halaman masih `FAIL 76` (round 1): antara lain tinggi section, foto contoh beresolusi rendah, caption overlay, dan false positive shader-lint pada bundle webpack; lihat `.taste-skill/gate/consistency/report.json`.
 - [x] Rekomendasi menu: pilihan rasa mengikuti kategori (`CRAVING_FLAVORS` di `data/menu-picker.ts`), tidak ada lagi pasangan janggal seperti kopi gurih; pilihan dan kartu hasil dianimasikan.

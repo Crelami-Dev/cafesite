@@ -1,7 +1,7 @@
-import { OrderMenu } from "@/components/order/OrderMenu";
-import { OrderGate } from "@/components/order/OrderGate";
+import { OrderStart } from "@/components/order/OrderStart";
+
 import { getMenuItems } from "@/lib/content";
-import { isLocalMode } from "@/lib/server/local-session";
+
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import type { OrderPageProps } from "@/types/ordering";
@@ -22,17 +22,6 @@ export default async function OrderPage({ searchParams }: OrderPageProps): Promi
   const meja = typeof query.meja === "string" ? query.meja.slice(0, 60) : "";
   const key = typeof query.k === "string" ? query.k.slice(0, 64) : "";
 
-  if (isLocalMode()) {
-    const { resolveScannedTable } = await import("@/lib/server/local-orders");
-    const table = meja ? resolveScannedTable(meja, key) : null;
-    if (!table) return <OrderGate invalid={Boolean(meja)} />;
-    const menu = (await getMenuItems()).filter((item) => item.isAvailable !== false);
-    return <OrderMenu key={table.id} initialMenu={menu} table={table} />;
-  }
-
-  const {resolveCloudTable}=await import("@/lib/server/cloud-orders");
-  const table=meja?await resolveCloudTable(meja,key):null;
-  if(!table)return <OrderGate invalid={Boolean(meja)}/>;
-  const menu=(await getMenuItems()).filter(item=>item.isAvailable!==false);
-  return <OrderMenu key={table.id} initialMenu={menu} table={table}/>;
+  const menu = (await getMenuItems()).filter(item => item.isAvailable !== false);
+  return <OrderStart menu={menu} meja={meja} k={key} />;
 }

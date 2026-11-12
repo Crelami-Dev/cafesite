@@ -14,6 +14,8 @@ interface MenuRowProps {
   onEdit: () => void;
   onRemove: () => void;
   onToggleAvailable: (available: boolean) => void;
+  /** Sedang disimpan: semua aksi baris ini dinonaktifkan. */
+  pending?: boolean;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   onDragStart?: (e: React.DragEvent<HTMLElement>) => void;
@@ -36,6 +38,7 @@ export default function MenuRow({
   onEdit,
   onRemove,
   onToggleAvailable,
+  pending = false,
   onMoveUp,
   onMoveDown,
   onDragStart,
@@ -99,6 +102,7 @@ export default function MenuRow({
         <div className="flex items-center gap-1">
           <Switch
             checked={available}
+            disabled={pending}
             onChange={onToggleAvailable}
             label={`${data.name}: ${available ? "tersedia" : "habis"}`}
           />
@@ -121,7 +125,7 @@ export default function MenuRow({
           </button>
           <button
             type="button"
-            disabled={index === 0}
+            disabled={pending || index === 0}
             onClick={onMoveUp}
             aria-label={`Pindahkan ${data.name} ke atas`}
             className={iconButton}
@@ -130,18 +134,19 @@ export default function MenuRow({
           </button>
           <button
             type="button"
-            disabled={index === total - 1}
+            disabled={pending || index === total - 1}
             onClick={onMoveDown}
             aria-label={`Pindahkan ${data.name} ke bawah`}
             className={iconButton}
           >
             <ChevronDownIcon className="size-4" />
           </button>
-          <button type="button" onClick={onEdit} aria-label={`Ubah ${data.name}`} className={iconButton}>
+          <button type="button" disabled={pending} onClick={onEdit} aria-label={`Ubah ${data.name}`} className={iconButton}>
             <EditIcon className="size-4" />
           </button>
           <button
             type="button"
+            disabled={pending}
             onClick={onRemove}
             aria-label={`Hapus ${data.name}`}
             className={`${iconButton} hover:!text-terracotta-light`}

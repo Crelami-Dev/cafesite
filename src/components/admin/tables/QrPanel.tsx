@@ -23,14 +23,20 @@ export default function QrPanel({ table, floor, onClose }: QrPanelProps): React.
 
   useEffect(() => {
     let cancelled = false;
-    const nextUrl = tableOrderUrl(qrBaseUrl(), table.id, table.qr_key);
-    void Promise.all([qrPng(nextUrl), qrSvg(nextUrl)])
-      .then(([nextPng, nextSvg]) => {
-        if (cancelled) return;
-        setUrl(nextUrl);
-        setPng(nextPng);
-        setSvg(nextSvg);
-      })
+    // Pembuatan URL juga bisa gagal bila kunci server belum tersedia.
+    void Promise.resolve().then(async () => {
+      if (cancelled) return;
+      setPng("");
+      setSvg("");
+      setUrl("");
+      setError("");
+      const nextUrl = tableOrderUrl(qrBaseUrl(), table.id, table.qr_key);
+      const [nextPng, nextSvg] = await Promise.all([qrPng(nextUrl), qrSvg(nextUrl)]);
+      if (cancelled) return;
+      setUrl(nextUrl);
+      setPng(nextPng);
+      setSvg(nextSvg);
+    })
       .catch((cause: unknown) => { if (!cancelled) setError(adminError(cause)); });
     return () => { cancelled = true; };
   }, [table.id, table.qr_key]);
@@ -40,8 +46,8 @@ export default function QrPanel({ table, floor, onClose }: QrPanelProps): React.
       <section role="dialog" aria-modal="true" aria-labelledby="qr-title" className="w-full max-w-lg rounded-xl border border-charcoal-border bg-charcoal p-5 shadow-floating md:p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h2 id="qr-title" className="font-serif text-2xl">QR {table.label}</h2>
-            <p className="mt-1 truncate text-xs text-offwhite-darker">{floor?.name} · {table.id}</p>
+            <h2 id="qr-title" className="font-serif text-2xl">{table.order_mode === "takeaway" ? "QR Bawa pulang" : `QR ${table.label}`}</h2>
+            <p className="mt-1 truncate text-xs text-offwhite-darker">{table.order_mode === "takeaway" ? "Kanal bawa pulang" : floor?.name} · {table.id}</p>
           </div>
           <button type="button" className="min-h-11 shrink-0 px-2 text-sm text-offwhite-muted hover:text-offwhite" onClick={onClose}>Tutup</button>
         </div>
@@ -52,7 +58,7 @@ export default function QrPanel({ table, floor, onClose }: QrPanelProps): React.
           {png ? (
             <Image unoptimized src={png} width={288} height={288} alt={`QR pemesanan untuk ${table.label}`} className="aspect-square w-full max-w-72" />
           ) : (
-            <p className="grid aspect-square w-full max-w-72 place-items-center text-sm text-charcoal">Menyiapkan QR…</p>
+            <p className="grid aspect-square w-full max-w-72 place-items-center text-sm text-charcoal">{error ? "QR belum tersedia" : "Menyiapkan QR…"}</p>
           )}
         </div>
         {url && <p className="mt-3 break-all text-center text-xs text-offwhite-darker">{url}</p>}
@@ -75,7 +81,7 @@ export default function QrPanel({ table, floor, onClose }: QrPanelProps): React.
           <p className="text-lg">{floor?.name}</p>
           <h1 className="mt-2 text-4xl font-bold">{table.label}</h1>
           {png && <Image unoptimized src={png} width={288} height={288} alt="" className="mx-auto mt-5 h-72 w-72" />}
-          <p className="mt-4 text-sm">Pindai untuk memesan dari meja ini</p>
+          <p className="mt-4 text-sm">{table.order_mode === "takeaway" ? "Pindai untuk memesan bawa pulang" : "Pindai untuk memesan dari meja ini"}</p>
         </article>
       </div>
     </div>

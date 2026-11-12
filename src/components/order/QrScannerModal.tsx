@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CloseIcon } from "@/components/ui/icons";
-import { parseScan, rememberScan, scanUrl } from "@/lib/order-scan";
+import { parseScan, scanProblem, scanUrl } from "@/lib/order-scan";
 
 interface BarcodeDetectorResult {
   rawValue: string;
@@ -26,20 +26,28 @@ declare global {
 
 interface QrScannerModalProps {
   onClose: () => void;
+  onDecode?: (raw: string) => Promise<void>;
+  kind?: "table" | "cashier";
 }
 
 type ScanState = "starting" | "scanning" | "unsupported" | "denied" | "nocamera" | "error";
 
 
 export function QrScannerModal({
-  onClose,
+  onClose: closeProp, onDecode: decodeProp, kind = "table",
 }: QrScannerModalProps): React.JSX.Element {
+  const closeRef = useRef(closeProp), decodeRef = useRef(decodeProp);
+  useEffect(() => { closeRef.current = closeProp; decodeRef.current = decodeProp; }, [closeProp, decodeProp]);
+  const onClose = useCallback(() => closeRef.current(), []);
+  const onDecode = useCallback(async (raw: string): Promise<void> => { if (decodeRef.current) await decodeRef.current(raw); }, []);
+  const hasDecoder = Boolean(decodeProp);
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const frameRef = useRef<number | null>(null);
   const [state, setState] = useState<ScanState>("starting");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -87,14 +95,25 @@ export function QrScannerModal({
     }
 
     let cancelled = false;
-    const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
 
     async function start(): Promise<void> {
       try {
+        const Detector = window.BarcodeDetector!;
+        const formats = await Detector.getSupportedFormats?.();
+        if (formats && !formats.includes("qr_code")) {
+          if (!cancelled) setState("unsupported");
+          return;
+        }
+        const detector = new Detector({ formats: ["qr_code"] });
+        if (cancelled) return;
         if (!navigator.mediaDevices?.getUserMedia) throw new DOMException("no camera", "NotFoundError");
         // Kamera belakang; tampilannya tidak dicerminkan (tidak "ke-flip").
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
           audio: false,
         });
         if (cancelled) {
@@ -106,25 +125,45 @@ export function QrScannerModal({
         if (!video) return;
         video.srcObject = stream;
         await video.play();
+        if (cancelled) return;
         setState("scanning");
 
+        let failures = 0;
         const scan = async (): Promise<void> => {
           if (cancelled || !video) return;
           try {
+            if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+              frameRef.current = requestAnimationFrame(() => { void scan(); });
+              return;
+            }
             const results = await detector.detect(video);
+            if (cancelled) return;
+            failures = 0;
+            if (hasDecoder && results.length) {
+              try { await onDecode(results[0].rawValue); if (cancelled) return; stopCamera(); onClose(); return; }
+              catch (error) { if (!cancelled) setNotice(error instanceof Error ? error.message : "QR belum dapat dibaca."); }
+            }
             const found = results
               .map((result) => parseScan(result.rawValue))
               .find((value) => value);
-            if (found) {
+            if (found && !hasDecoder) {
               stopCamera();
-              rememberScan(found.meja, found.k);
+
               navigator.vibrate?.(60);
               router.push(scanUrl(found));
               onClose();
               return;
             }
+            if (!hasDecoder && results.length > 0) setNotice(scanProblem(results[0].rawValue) ?? "");
           } catch {
-            // Frame gagal dibaca—coba lagi di frame berikutnya, tidak perlu hentikan sesi.
+            if (cancelled) return;
+            failures += 1;
+            // Jangan tampilkan kamera seolah membaca bila mesin deteksi terus gagal.
+            if (failures >= 10) {
+              stopCamera();
+              setState("error");
+              return;
+            }
           }
           frameRef.current = requestAnimationFrame(() => {
             void scan();
@@ -133,6 +172,7 @@ export function QrScannerModal({
         void scan();
       } catch (cause) {
         if (cancelled) return;
+        stopCamera();
         setState(
           cause instanceof DOMException && cause.name === "NotAllowedError"
             ? "denied"
@@ -148,7 +188,7 @@ export function QrScannerModal({
       cancelled = true;
       stopCamera();
     };
-  }, [router, stopCamera, onClose]);
+  }, [router, stopCamera, onClose, onDecode, hasDecoder]);
 
   return (
     <div
@@ -175,14 +215,14 @@ export function QrScannerModal({
                 ? "Izin kamera dibutuhkan"
                 : state === "nocamera"
                   ? "Kamera tidak ditemukan"
-                  : "Pakai kamera bawaan HP"}
+                  : kind === "cashier" ? "Gunakan nomor pesanan" : "Pakai kamera bawaan HP"}
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-offwhite-muted">
               {state === "denied"
                 ? "Izinkan kamera untuk browser ini di pengaturan HP, lalu coba lagi. Atau pakai kamera bawaan HP dan arahkan ke QR di meja."
                 : state === "nocamera"
                   ? "Buka halaman ini dari HP atau tablet, lalu scan QR di meja."
-                  : "Browser ini belum bisa memindai dari halaman. Buka kamera bawaan HP, arahkan ke QR di meja, lalu ketuk tautan yang muncul."}
+                  : kind === "cashier" ? "Browser ini belum dapat memindai QR pelanggan. Tutup pemindai lalu cari nomor pesanan di daftar." : "Browser ini belum bisa memindai dari halaman. Buka kamera bawaan HP, arahkan ke QR di meja, lalu ketuk tautan yang muncul."}
             </p>
             <button
               type="button"
@@ -208,8 +248,9 @@ export function QrScannerModal({
               />
             </div>
             <p className="mt-5 text-sm text-offwhite-muted">
-              Arahkan kamera ke QR di mejamu. Halaman pesan terbuka otomatis.
+              {kind === "cashier" ? "Arahkan kamera ke QR bukti pesanan pelanggan. Pembayaran tetap perlu dikonfirmasi." : "Arahkan kamera ke QR di meja atau QR Bawa pulang."}
             </p>
+            {notice && <p role="status" className="mt-3 text-sm leading-relaxed text-offwhite">{notice}</p>}
           </>
         )}
       </div>

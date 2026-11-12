@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { contentFields, contentOptionLabels } from "@/lib/admin-content-fields";
 import type { OpeningHour } from "@/types";
 import { ParkingIcon, SignpostIcon, TransitIcon } from "@/components/ui/icons";
 import { adminRequest, adminError, adminInputClass, adminButtonClass, adminSecondaryClass } from "./admin-api";
 import DashboardDialog from "./DashboardDialog";
+import ModuleSkeleton from "./ui/ModuleSkeleton";
+import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
 
 type Entry = Record<string, string | number>;
 
@@ -26,6 +28,9 @@ export default function ContentEditor({ resource }: { resource: string }): React
   const [message, setMessage] = useState("");
   const [dirty, setDirty] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [deletingRow, setDeletingRow] = useState<Entry | null>(null);
+  /** Penjaga klik ganda seketika: hanya satu penyimpanan dokumen yang boleh berjalan. */
+  const writing = useRef(false);
   const cafe = resource === "cafe";
 
   useEffect(() => {
@@ -70,21 +75,40 @@ export default function ContentEditor({ resource }: { resource: string }): React
     };
   }, [dirty]);
 
-  async function persist(data: unknown): Promise<boolean> {
+  /** Tulis seluruh dokumen. Melempar error bila gagal; hanya satu penulisan pada satu waktu. */
+  async function writeDocument(data: unknown): Promise<void> {
+    if (writing.current) throw new Error("Masih menyimpan perubahan sebelumnya. Tunggu sebentar.");
+    writing.current = true;
     setBusy(true);
+    try {
+      await adminRequest(`manage?resource=${resource}`, { method: "PUT", body: JSON.stringify({ data }) });
+      setDirty(false);
+    } finally {
+      writing.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function persist(data: unknown): Promise<boolean> {
+    if (writing.current) return false; // klik ganda: abaikan, permintaan pertama masih berjalan
     setError("");
     setMessage("");
     try {
-      await adminRequest(`manage?resource=${resource}`, { method: "PUT", body: JSON.stringify({ data }) });
+      await writeDocument(data);
       setMessage("Perubahan tersimpan dan tampil di website.");
-      setDirty(false);
       return true;
     } catch (e) {
       setError(adminError(e));
       return false;
-    } finally {
-      setBusy(false);
     }
+  }
+
+  /** Dipanggil dialog konfirmasi hapus: item baru hilang dari daftar setelah server menyimpan. */
+  async function performDeleteRow(row: Entry): Promise<void> {
+    const next = rows.filter((r) => r.id !== row.id);
+    await writeDocument(next);
+    setRows(next);
+    setMessage("Konten sudah dihapus dari website.");
   }
 
   function close(): void {
@@ -300,7 +324,7 @@ export default function ContentEditor({ resource }: { resource: string }): React
     </form>
   );
 
-  if (loading) return <p role="status" className="p-6 text-sm text-offwhite-muted">Memuat konten…</p>;
+  if (loading) return <ModuleSkeleton />;
 
   return (
     <div className="grid gap-5">
@@ -410,10 +434,9 @@ export default function ContentEditor({ resource }: { resource: string }): React
                       type="button"
                       disabled={busy}
                       className={adminSecondaryClass}
-                      onClick={async () => {
-                        if (!window.confirm("Hapus konten ini dari website?")) return;
-                        const next = rows.filter((r) => r.id !== row.id);
-                        if (await persist(next)) setRows(next);
+                      onClick={() => {
+                        setError("");
+                        setDeletingRow(row);
                       }}
                     >
                       Hapus
@@ -427,6 +450,15 @@ export default function ContentEditor({ resource }: { resource: string }): React
             <DashboardDialog title="Kelola konten" onClose={close}>
               {form}
             </DashboardDialog>
+          )}
+          {deletingRow && (
+            <ConfirmDeleteDialog
+              title="Hapus konten"
+              message="Hapus konten ini dari website? Tindakan ini tidak bisa dibatalkan."
+              confirmLabel="Hapus konten"
+              onConfirm={() => performDeleteRow(deletingRow)}
+              onClose={() => setDeletingRow(null)}
+            />
           )}
         </>
       )}

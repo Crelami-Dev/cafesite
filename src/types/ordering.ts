@@ -12,8 +12,19 @@ export interface CartContextValue {
 }
 export interface CartProviderProps { children: ReactNode }
 /** Meja hasil scan QR (key kosong di mode Supabase). */
-export interface OrderTable { id: string; label: string; status: "available" | "occupied" | "dirty"; key: string }
-export interface OrderMenuProps { initialMenu: MenuItem[]; table: OrderTable | null }
+export interface OrderTable { id: string; label: string; status: "available" | "occupied" | "dirty"; key?: string; order_mode?: "dine_in" | "takeaway" }
+export interface ScanGrant { ticket: string; expiresAt: string; source: OrderTable }
+export interface OrderStartProps { menu: MenuItem[]; meja: string; k: string }
+export interface CustomerOrderCardProps { order: Order }
+export interface CashierQrProps { payload: string }
+export interface EditCustomerOrderProps { id: string }
+export interface CashierOrderScannerProps { onFound: (id: string) => void }
+export interface CustomerOrdersLinkProps { className?: string; onClick?: () => void; compact?: boolean }
+export interface CustomerOrdersState {
+  orders: Order[]; hasOrders: boolean; loading: boolean; error: string; unavailable: string[];
+  refresh: () => Promise<void>; enabled: boolean; enable: () => Promise<void>;
+}
+export interface OrderMenuProps { initialMenu: MenuItem[]; table: OrderTable | null; scanGrant?: ScanGrant }
 export interface OrderMenuCardProps { item: MenuItem; quantity: number; onAdd: () => void; onDecrease: () => void }
 export interface CartDrawerProps {
   open: boolean;

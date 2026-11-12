@@ -72,11 +72,11 @@ export function createCafeOrder(db: Db, input: CreateOrderInput): OrderDocument 
 
     let tableId: string | null = null;
     if (input.fulfillment === "dine_in") {
-      const configured = Number(db.prepare("SELECT COUNT(*) AS n FROM cafe_tables").get()?.n ?? 0);
+      const configured = Number(db.prepare("SELECT COUNT(*) AS n FROM cafe_tables WHERE order_mode='dine_in'").get()?.n ?? 0);
       // Kafe yang belum mengatur meja di dashboard: makan di tempat tanpa nomor meja (kasir yang mengarahkan).
       if (configured > 0 || input.tableCode) {
-        const table = db.prepare("SELECT id, status FROM cafe_tables WHERE id = ?").get(input.tableCode ?? "");
-        if (!table || table.status !== "available") throw new OrderError("Meja tidak tersedia. Hubungi kasir atau pilih meja lain.");
+        const table = db.prepare("SELECT id, status, order_mode FROM cafe_tables WHERE id = ?").get(input.tableCode ?? "");
+        if (!table || table.status === "dirty" || table.order_mode === "takeaway") throw new OrderError("Meja tidak tersedia. Hubungi kasir atau pilih meja lain.");
         tableId = String(table.id);
       }
     }

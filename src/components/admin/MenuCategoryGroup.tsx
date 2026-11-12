@@ -13,6 +13,10 @@ interface MenuCategoryGroupProps {
   onRemove: (record: AdminMenuRecord) => void;
   onToggleAvailable: (record: AdminMenuRecord, available: boolean) => void;
   onReorder: (records: AdminMenuRecord[]) => void;
+  /** Id menu yang sedang disimpan; barisnya dikunci sampai selesai. */
+  pendingIds?: ReadonlySet<string>;
+  /** Urutan sedang disimpan: panah dan seret dinonaktifkan agar tidak saling menimpa. */
+  locked?: boolean;
 }
 
 export default function MenuCategoryGroup({
@@ -23,12 +27,14 @@ export default function MenuCategoryGroup({
   onRemove,
   onToggleAvailable,
   onReorder,
+  pendingIds,
+  locked = false,
 }: MenuCategoryGroupProps): React.JSX.Element {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   function handleMove(fromIndex: number, toIndex: number) {
-    if (toIndex < 0 || toIndex >= records.length || fromIndex === toIndex) return;
+    if (locked || toIndex < 0 || toIndex >= records.length || fromIndex === toIndex) return;
     const next = [...records];
     const [moved] = next.splice(fromIndex, 1);
     next.splice(toIndex, 0, moved);
@@ -67,6 +73,7 @@ export default function MenuCategoryGroup({
             record={record}
             index={index}
             total={records.length}
+            pending={locked || Boolean(pendingIds?.has(record.id))}
             isDragging={draggedId === record.id}
             isDragOver={dragOverId === record.id}
             onEdit={() => onEdit(record)}

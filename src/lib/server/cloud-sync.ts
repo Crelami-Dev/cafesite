@@ -17,7 +17,7 @@ export function mirrorOrderToSupabase(_id:string):void {markPending();}
  * juga bisa masuk di situs publik. Hanya akun; data kafe lain tetap lewat backup terisolasi.
  * Mengembalikan "off" bila Supabase tidak dipakai, "pending" bila gagal (backup ditandai tertunda).
  */
-export async function mirrorStaffToSupabase(id:string,revokeSessions=false):Promise<"saved"|"pending"|"off"> {
+async function mirrorStaffRow(id:string,revokeSessions=false):Promise<"saved"|"pending"|"off"> {
  if(isCloudPrimaryEnv()||process.env.NODE_ENV==="test")return "off";
  const cloud=getServiceSupabase();if(!cloud)return "off";
  try{
@@ -41,7 +41,43 @@ export async function mirrorStaffToSupabase(id:string,revokeSessions=false):Prom
   markPending();return "pending";
  }
 }
-export function mirrorDeleteStaffToSupabase(_id:string):void {markPending();}
+export interface StaffSyncResult {cloud:"saved"|"pending"|"off";auth:"saved"|"pending"|"off"}
+/**
+ * Salin akun ke Supabase: tabel staff_accounts (dipakai login) DAN Supabase Authentication (Authentication → Users).
+ * `plainPassword` hanya ada saat akun dibuat/di-reset/diganti kata sandinya.
+ */
+export async function mirrorStaffToSupabase(id:string,revokeSessions=false,plainPassword?:string):Promise<StaffSyncResult> {
+ const cloudState=await mirrorStaffRow(id,revokeSessions);
+ const cloud=getServiceSupabase();
+ if(cloudState==="off"||!cloud)return {cloud:cloudState,auth:"off"};
+ const row=getLocalDb().prepare("SELECT name,email,role,enabled FROM staff_accounts WHERE id=?").get(id);
+ if(!row)return {cloud:cloudState,auth:"off"};
+ const {upsertAuthUser}=await import("./supabase-auth-users");
+ const auth=await upsertAuthUser(cloud,{email:String(row.email).toLowerCase(),name:String(row.name),role:row.role==="admin"?"admin":"staff",enabled:Number(row.enabled)===1,password:plainPassword});
+ return {cloud:cloudState,auth};
+}
+/** Hapus akun di Supabase: tabel staff_accounts (+ izin & sesi) dan Authentication. */
+export async function mirrorDeleteStaffToSupabase(id:string,email:string):Promise<StaffSyncResult> {
+ const cloudState=await mirrorDeleteStaffRow(id);
+ const cloud=getServiceSupabase();
+ if(cloudState==="off"||!cloud)return {cloud:cloudState,auth:"off"};
+ const {deleteAuthUser}=await import("./supabase-auth-users");
+ return {cloud:cloudState,auth:await deleteAuthUser(cloud,email)};
+}
+/** Hapus satu akun staf di Supabase (izin ikut terhapus lewat ON DELETE CASCADE) beserta sesinya. */
+async function mirrorDeleteStaffRow(id:string):Promise<"saved"|"pending"|"off"> {
+ if(isCloudPrimaryEnv()||process.env.NODE_ENV==="test")return "off";
+ const cloud=getServiceSupabase();if(!cloud)return "off";
+ try{
+  await cloud.from("admin_sessions").delete().eq("account_id",id).abortSignal(AbortSignal.timeout(6000));
+  const {error}=await cloud.from("staff_accounts").delete().eq("id",id).abortSignal(AbortSignal.timeout(6000));
+  if(error){console.warn("[staff-sync] Akun belum terhapus di Supabase:",error.code,error.message);markPending();return "pending";}
+  return "saved";
+ }catch(error){
+  console.warn("[staff-sync] Akun belum terhapus di Supabase:",error instanceof Error?error.name:"error");
+  markPending();return "pending";
+ }
+}
 export interface BackupStatus {state:"cloud"|"unconfigured"|"pending"|"saved";savedAt?:string}
 const state=globalThis as typeof globalThis & {__cafeBackupPromise?:Promise<BackupStatus>};
 export function backupStatus():BackupStatus {

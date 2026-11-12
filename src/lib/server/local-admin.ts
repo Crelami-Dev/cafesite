@@ -65,7 +65,8 @@ export function updateLocalOrder(input: Row): { order: Row } {
     const db = getLocalDb();
     const current = db.prepare("SELECT * FROM orders WHERE id = ?").get(id);
     if (!current) throw new HttpError(404, "Pesanan tidak ditemukan.");
-    if (input.expectedUpdatedAt !== undefined && input.expectedUpdatedAt !== current.updated_at) throw new HttpError(409, "Pesanan telah diperbarui staf lain. Muat ulang sebelum melanjutkan.");
+    if (typeof input.expectedUpdatedAt !== "string") throw new HttpError(400, "Muat ulang halaman pesanan, lalu coba lagi.");
+    if (input.expectedUpdatedAt !== current.updated_at) throw new HttpError(409, "Pesanan telah diperbarui staf lain. Muat ulang sebelum melanjutkan.");
     if (markPaid && ["completed", "cancelled"].includes(String(current.status))) throw new HttpError(409, "Pesanan sudah ditutup.");
     if (markPaid && nextStatus === "cancelled") throw new HttpError(409, "Pembayaran dan pembatalan tidak dapat dilakukan bersamaan.");
     if (nextStatus !== null && nextStatus !== current.status) {
@@ -73,10 +74,12 @@ export function updateLocalOrder(input: Row): { order: Row } {
       if (nextStatus === "cancelled" && current.payment_status === "paid") throw new HttpError(409, "Pesanan sudah dibayar; hubungi admin untuk penanganan pengembalian.");
       if (nextStatus === "completed" && current.payment_status !== "paid" && !markPaid) throw new HttpError(409, "Konfirmasi pembayaran kasir sebelum menyelesaikan pesanan.");
     }
+    if (nextStatus && ["preparing","ready","completed"].includes(nextStatus) && current.payment_status !== "paid" && !markPaid) throw new HttpError(409,"Konfirmasi pembayaran kasir sebelum memproses pesanan.");
+    if (markPaid && current.payment_status === "paid") throw new HttpError(409,"Pembayaran sudah dikonfirmasi. Muat ulang pesanan.");
     const now = new Date(Math.max(Date.now(), Date.parse(String(current.updated_at))+1)).toISOString();
     db.prepare("UPDATE orders SET status = COALESCE(?, status), payment_status = CASE WHEN ? THEN 'paid' ELSE payment_status END, paid_amount = CASE WHEN ? THEN total ELSE paid_amount END, updated_at = ? WHERE id = ?")
       .run(nextStatus, markPaid ? 1 : 0, markPaid ? 1 : 0, now, id);
-    if ((nextStatus === "completed" || nextStatus === "cancelled") && current.table_id) db.prepare("UPDATE cafe_tables SET status = 'dirty' WHERE id = ?").run(String(current.table_id));
+    if ((nextStatus === "completed" || nextStatus === "cancelled") && current.table_id) db.prepare("UPDATE cafe_tables SET status = 'dirty' WHERE id = ? AND NOT EXISTS(SELECT 1 FROM orders WHERE table_id=cafe_tables.id AND status IN ('waiting','preparing','ready'))").run(String(current.table_id));
     const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as Row;
     const items = db.prepare("SELECT id, order_id, menu_item_id, name, unit_price, quantity, notes FROM order_items WHERE order_id = ? ORDER BY rowid").all(id);
     mirrorOrderToSupabase(id);
@@ -110,14 +113,15 @@ export function readLocalManage(resource: ManageResource): unknown {
   }
   if (resource === "tables") {
     const floors = db.prepare("SELECT id, name, sort_order FROM floors ORDER BY sort_order, name").all();
-    const activeOrderStmt = db.prepare("SELECT id, queue_number, customer_name, status, total FROM orders WHERE table_id = ? AND status IN ('waiting','preparing','ready') ORDER BY created_at DESC LIMIT 1");
-    const tables = db.prepare("SELECT id, floor_id, label, status FROM cafe_tables ORDER BY id").all().map((table) => {
+    const activeOrderStmt = db.prepare("SELECT id, queue_number, customer_name, status, total FROM orders WHERE table_id = ? AND status IN ('waiting','preparing','ready') ORDER BY created_at DESC");
+    const tables = db.prepare("SELECT id, floor_id, label, status, order_mode FROM cafe_tables ORDER BY id").all().map((table) => {
       const order = activeOrderStmt.get(String(table.id));
       return {
         ...table,
         x: 10,
         y: 10,
         qr_key: tableKey(String(table.id)),
+        active_orders: activeOrderStmt.all(String(table.id)),
         active_order: order
           ? {
               id: String(order.id),
@@ -160,8 +164,15 @@ export function writeLocalManage(resource: ManageResource, body: Row, revalidate
     const price = numberValue(item.price, "Harga", 0, 10_000_000);
     textValue(item.name, "Nama menu", 120);
     const sortOrder = typeof body.sortOrder === "number" ? body.sortOrder : 0;
-    db.prepare("INSERT INTO menu_items (id, data, is_available, sort_order) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, is_available = excluded.is_available, sort_order = excluded.sort_order")
-      .run(id, JSON.stringify({ ...item, id, price }), item.isAvailable === false ? 0 : 1, sortOrder);
+    if (body.create === true) {
+      // Menu BARU: tolak bila ID sudah dipakai, jangan diam-diam menimpa menu yang ada.
+      if (db.prepare("SELECT 1 FROM menu_items WHERE id = ?").get(id)) throw new HttpError(409, `Menu dengan ID "${id}" sudah ada. Ubah nama atau ID menu baru.`);
+      db.prepare("INSERT INTO menu_items (id, data, is_available, sort_order) VALUES (?, ?, ?, ?)")
+        .run(id, JSON.stringify({ ...item, id, price }), item.isAvailable === false ? 0 : 1, sortOrder);
+    } else {
+      db.prepare("INSERT INTO menu_items (id, data, is_available, sort_order) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, is_available = excluded.is_available, sort_order = excluded.sort_order")
+        .run(id, JSON.stringify({ ...item, id, price }), item.isAvailable === false ? 0 : 1, sortOrder);
+    }
     mirrorWriteToSupabase("menu", { item: { ...item, id, price }, sortOrder });
     revalidate();
     return { ok: true };
@@ -171,7 +182,10 @@ export function writeLocalManage(resource: ManageResource, body: Row, revalidate
     const name = textValue(floor.name, "Nama lantai", 80);
     const sortOrder = numberValue(floor.sortOrder, "Urutan lantai", 0, 10000);
     const id = floor.id !== undefined ? uuidValue(floor.id) : randomUUID();
-    if (floor.id !== undefined) db.prepare("UPDATE floors SET name = ?, sort_order = ? WHERE id = ?").run(name, sortOrder, id);
+    if (floor.id !== undefined) {
+      const done = db.prepare("UPDATE floors SET name = ?, sort_order = ? WHERE id = ?").run(name, sortOrder, id);
+      if (Number(done.changes) === 0) throw new HttpError(404, "Lantai sudah dihapus. Muat ulang halaman.");
+    }
     else db.prepare("INSERT INTO floors (id, name, sort_order) VALUES (?, ?, ?)").run(id, name, sortOrder);
     mirrorWriteToSupabase("floors", { floor: { id, name, sortOrder } });
     return { ok: true };
@@ -184,6 +198,9 @@ export function writeLocalManage(resource: ManageResource, body: Row, revalidate
     const status = String(table.status);
     if (!["available", "occupied", "dirty"].includes(status)) throw new HttpError(400, "Status meja tidak valid.");
     if (!db.prepare("SELECT 1 FROM floors WHERE id = ?").get(floorId)) throw new HttpError(400, "Lantai tidak ditemukan.");
+    if (status !== "occupied" && db.prepare("SELECT 1 FROM orders WHERE table_id = ? AND status IN ('waiting','preparing','ready')").get(id)) {
+      throw new HttpError(409, "Meja masih memiliki pesanan aktif. Selesaikan pesanannya dulu.");
+    }
     db.prepare("INSERT INTO cafe_tables (id, floor_id, label, status) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET floor_id = excluded.floor_id, label = excluded.label, status = excluded.status")
       .run(id, floorId, label, status);
     mirrorWriteToSupabase("tables", { table: { id, floorId, label, status } });

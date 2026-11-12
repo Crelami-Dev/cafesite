@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "./CartProvider";
 import { OrderMenuCard } from "./OrderMenuCard";
@@ -10,35 +10,40 @@ import {
   rememberOrderToken,
   requestKey,
 } from "@/lib/order-client";
-import { rememberScan } from "@/lib/order-scan";
+import { parseScan } from "@/lib/order-scan";
 import { formatPrice } from "@/lib/utils";
 import { menuCategories } from "@/data/menu";
 import { usePublicContent } from "@/components/layout/PublicContentProvider";
 import { Container } from "@/components/ui/Container";
 import { CloseIcon, QrCodeIcon } from "@/components/ui/icons";
-import type { OrderMenuProps } from "@/types";
+import type { ScanGrant, OrderMenuProps } from "@/types";
 
 /**
  * Halaman pesan setelah scan QR meja: kategori menempel di atas saat discroll, daftar menu dari database,
  * ringkasan pesanan di samping (desktop) atau bar bawah (HP), lalu formulir singkat: nama, nomor WhatsApp,
  * makan di meja ini atau bawa pulang. Meja diambil dari QR, jadi tamu tidak perlu memilih meja lagi.
  */
-export function OrderMenu({ initialMenu, table }: OrderMenuProps): React.JSX.Element {
+export function OrderMenu({ initialMenu, table: initialTable, scanGrant }: OrderMenuProps): React.JSX.Element {
   const cart = useCart();
   const router = useRouter();
-  const tableBusy = table?.status !== undefined && table.status !== "available";
+  const [grant, setGrant] = useState(scanGrant);
+  const table = grant?.source ?? initialTable;
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [scanner, setScanner] = useState(false);
-  const [fulfillment, setFulfillment] = useState<"dine_in" | "takeaway">(table && !tableBusy ? "dine_in" : "takeaway");
+  const fulfillment = table?.order_mode ?? "dine_in";
   const dialog = useRef<HTMLFormElement>(null);
   const checkoutButton = useRef<HTMLButtonElement>(null);
+  /** Penjaga klik ganda seketika: satu pengiriman pada satu waktu (state React baru berlaku setelah render ulang). */
+  const sending = useRef(false);
 
-  // Simpan hasil scan supaya kembali ke /order dari halaman lain tidak perlu scan ulang.
-  useEffect(() => {
-    if (table?.key) rememberScan(table.id, table.key);
-  }, [table]);
+  const acceptScan = useCallback(async (raw: string): Promise<void> => {
+    const value = parseScan(raw);
+    if (!value) throw new Error("QR pemesanan tidak valid.");
+    const next = await orderRequest<ScanGrant>("/api/order-scan", { method: "POST", body: JSON.stringify(value) });
+    setGrant(next); setError("");
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -90,15 +95,17 @@ export function OrderMenu({ initialMenu, table }: OrderMenuProps): React.JSX.Ele
   const quantityOf = (id: string): number => cart.items.find((line) => line.menuItemId === id)?.quantity ?? 0;
 
   async function checkout(form: FormData): Promise<void> {
+    if (sending.current) return;
+    sending.current = true;
     setBusy(true);
     setError("");
+    let sent = false;
     try {
       const payload = {
         customerName: String(form.get("name")),
         phone: String(form.get("phone")),
         fulfillment,
-        tableCode: table?.id,
-        tableKey: table?.key,
+        scanTicket: grant?.ticket,
         paymentMethod: "cod" as const,
         items: cart.items,
       };
@@ -110,12 +117,17 @@ export function OrderMenu({ initialMenu, table }: OrderMenuProps): React.JSX.Ele
       );
       if (result.accessToken) rememberOrderToken(result.order.id, result.accessToken);
       finishOrderRequest("checkout", result.order.id);
+      sent = true;
       cart.clear();
       router.push(`/order/${result.order.id}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Pesanan belum terkirim.");
     } finally {
-      setBusy(false);
+      // Setelah sukses, biarkan tombol tetap terkunci sampai pindah ke halaman status (hindari pesanan ganda).
+      if (!sent) {
+        sending.current = false;
+        setBusy(false);
+      }
     }
   }
 
@@ -126,11 +138,11 @@ export function OrderMenu({ initialMenu, table }: OrderMenuProps): React.JSX.Ele
           {table && (
             <p className="order-table-pill">
               <QrCodeIcon className="h-4 w-4" />
-              Meja {table.label}
+              {fulfillment === "takeaway" ? "Bawa pulang" : `Makan di tempat · ${table.label}`}
             </p>
           )}
           <h1 className="public-h1 mt-4">Pilih menu, kami siapkan</h1>
-          <p className="mt-3 text-base text-offwhite-muted">Tambah menu ke pesanan, lalu kirim. Bayar di kasir saat pesanan siap.</p>
+          <p className="mt-3 text-base text-offwhite-muted">Pilih menu dan kirim pesanan. Bayar dahulu di kasir agar pesanan mulai disiapkan.</p>
         </div>
         {table && (
           <button type="button" className="link inline-flex min-h-11 items-center text-sm" onClick={() => setScanner(true)}>
@@ -269,33 +281,8 @@ export function OrderMenu({ initialMenu, table }: OrderMenuProps): React.JSX.Ele
               {cart.count} item · {formatPrice(total)} · bayar di kasir
             </p>
 
-            <fieldset className="mt-6">
-              <legend className="text-sm">Pesanan untuk</legend>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  className="choice"
-                  aria-pressed={fulfillment === "dine_in"}
-                  disabled={!table || tableBusy}
-                  onClick={() => setFulfillment("dine_in")}
-                >
-                  Makan di meja{table ? ` ${table.label}` : ""}
-                </button>
-                <button
-                  type="button"
-                  className="choice"
-                  aria-pressed={fulfillment === "takeaway"}
-                  onClick={() => setFulfillment("takeaway")}
-                >
-                  Bawa pulang
-                </button>
-              </div>
-              {tableBusy && (
-                <p className="mt-2 text-sm text-offwhite-muted">
-                  Meja {table?.label} masih punya pesanan aktif. Untuk tambah pesanan ke meja ini, sampaikan ke kasir.
-                </p>
-              )}
-            </fieldset>
+            <p className="mt-6 rounded-lg border border-offwhite/20 p-4 text-sm">{fulfillment === "takeaway" ? "Bawa pulang" : `Makan di tempat · ${table?.label}`} · Bayar dahulu di kasir. Pesanan diproses setelah lunas.</p>
+
 
             <label className="mt-5 block text-sm">
               Nama
@@ -313,12 +300,13 @@ export function OrderMenu({ initialMenu, table }: OrderMenuProps): React.JSX.Ele
                 className="order-field"
                 placeholder="08xxxxxxxxxx"
               />
-              <span className="mt-1 block text-xs text-offwhite-muted">Kami kabari di sini saat pesanan siap.</span>
+              <span className="mt-1 block text-xs text-offwhite-muted">Untuk membantu kasir mengenali pesananmu.</span>
             </label>
 
             {error && (
               <p role="alert" className="mt-4 text-sm text-terracotta-light">
                 {error}
+                {/scan|tiket/i.test(error) && <button type="button" className="mt-2 block min-h-11 text-offwhite underline underline-offset-4" onClick={() => { setOpen(false); setScanner(true); }}>Scan QR lagi · keranjang tetap tersimpan</button>}
               </p>
             )}
             <button disabled={busy || !cart.count || invalid} className="btn btn--primary mt-6 w-full disabled:opacity-40">
@@ -327,7 +315,7 @@ export function OrderMenu({ initialMenu, table }: OrderMenuProps): React.JSX.Ele
           </form>
         </div>
       )}
-      {scanner && <QrScannerModal onClose={() => setScanner(false)} />}
+      {scanner && <QrScannerModal onClose={() => setScanner(false)} onDecode={acceptScan} />}
     </Container>
   );
 }

@@ -8,6 +8,7 @@ import {
   adminButtonClass,
   adminError,
   adminInputClass,
+  adminPeek,
   adminRequest,
   adminSecondaryClass,
 } from "./admin-api";
@@ -20,6 +21,8 @@ import Skeleton from "./ui/Skeleton";
 import MenuFormModal from "./MenuFormModal";
 import MenuCategoryGroup from "./MenuCategoryGroup";
 import CategoryManagerModal from "./CategoryManagerModal";
+import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
+import { useKeyedFlight, useSingleFlight } from "./useSingleFlight";
 
 const blank: MenuItem = {
   id: "",
@@ -42,14 +45,20 @@ export default function MenuManager(): React.JSX.Element {
   const categoryFilter = params.get("category") || "";
   const availability = params.get("availability") || "";
 
-  const [rows, setRows] = useState<AdminMenuRecord[]>([]);
+  const [rows, setRows] = useState<AdminMenuRecord[]>(() => adminPeek<{ data: AdminMenuRecord[] }>("manage?resource=menu")?.data ?? []);
   const [categories, setCategories] = useState<MenuCategoryMeta[]>(defaultCategories);
   const [modal, setModal] = useState<Modal>(null);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(() => !adminPeek("manage?resource=menu"));
+  const [deleting, setDeleting] = useState<AdminMenuRecord | null>(null);
+  // Penjaga klik ganda yang berlaku seketika (ref): simpan menu, simpan kategori, urutan, dan tiap baris.
+  const saveFlight = useSingleFlight();
+  const categoryFlight = useSingleFlight();
+  const reorderFlight = useSingleFlight();
+  const rowFlight = useKeyedFlight();
+  const busy = saveFlight.pending || categoryFlight.pending;
 
   const load = useCallback(async (): Promise<void> => {
     try {
@@ -105,56 +114,56 @@ export default function MenuManager(): React.JSX.Element {
   }, [load]);
 
   async function save(item: MenuItem, sortOrder: number): Promise<void> {
-    setBusy(true);
-    setError("");
-    try {
-      await adminRequest("manage?resource=menu", {
-        method: "PUT",
-        body: JSON.stringify({ item, sortOrder }),
-      });
-      setMessage(
-        modal?.editing
-          ? "Perubahan menu sudah tersimpan."
-          : "Menu baru sudah tersimpan dan langsung dipublikasikan.",
-      );
-      setModal(null);
-      await load();
-    } catch (cause: unknown) {
-      setError(adminError(cause));
-    } finally {
-      setBusy(false);
-    }
+    await saveFlight.run(async () => {
+      setError("");
+      const creating = !modal?.editing;
+      try {
+        // create=true: server menolak bila ID sudah dipakai (tidak menimpa menu lain).
+        await adminRequest("manage?resource=menu", {
+          method: "PUT",
+          body: JSON.stringify({ item, sortOrder, create: creating }),
+        });
+        setMessage(creating ? "Menu baru sudah tersimpan dan langsung dipublikasikan." : "Perubahan menu sudah tersimpan.");
+        setModal(null);
+        await load();
+      } catch (cause: unknown) {
+        setError(adminError(cause));
+      }
+    });
   }
 
-  async function remove(record: AdminMenuRecord): Promise<void> {
-    if (!window.confirm(`Hapus ${record.data.name}?`)) return;
+  /** Dipanggil dialog konfirmasi: melempar error bila gagal, sehingga baris baru hilang setelah benar-benar terhapus. */
+  async function performDelete(record: AdminMenuRecord): Promise<void> {
+    await adminRequest("manage?resource=menu", {
+      method: "DELETE",
+      body: JSON.stringify({ id: record.id }),
+    });
+    setRows((current) => current.filter((row) => row.id !== record.id));
+    setMessage(`${record.data.name} sudah dihapus.`);
+  }
+
+  function remove(record: AdminMenuRecord): void {
     setError("");
-    try {
-      await adminRequest("manage?resource=menu", {
-        method: "DELETE",
-        body: JSON.stringify({ id: record.id }),
-      });
-      setRows((current) => current.filter((row) => row.id !== record.id));
-      setMessage(`${record.data.name} sudah dihapus.`);
-    } catch (cause: unknown) {
-      setError(adminError(cause));
-    }
+    setDeleting(record);
   }
 
   async function toggleAvailable(record: AdminMenuRecord, available: boolean): Promise<void> {
-    setError("");
-    const previous = rows;
-    setRows((current) => current.map((r) => (r.id === record.id ? { ...r, is_available: available } : r)));
-    try {
-      await adminRequest("manage?resource=menu", {
-        method: "PUT",
-        body: JSON.stringify({ item: { ...record.data, isAvailable: available }, sortOrder: record.sort_order }),
-      });
-      setMessage(`${record.data.name} ${available ? "tersedia lagi" : "ditandai habis"}.`);
-    } catch (cause: unknown) {
-      setRows(previous);
-      setError(adminError(cause));
-    }
+    await rowFlight.run(record.id, async () => {
+      setError("");
+      const patchRow = (value: boolean): void =>
+        setRows((current) => current.map((r) => (r.id === record.id ? { ...r, is_available: value } : r)));
+      patchRow(available);
+      try {
+        await adminRequest("manage?resource=menu", {
+          method: "PUT",
+          body: JSON.stringify({ item: { ...record.data, isAvailable: available }, sortOrder: record.sort_order }),
+        });
+        setMessage(`${record.data.name} ${available ? "tersedia lagi" : "ditandai habis"}.`);
+      } catch (cause: unknown) {
+        patchRow(!available); // hanya baris ini yang dikembalikan; perubahan baris lain tidak ikut terhapus
+        setError(adminError(cause));
+      }
+    });
   }
 
   function setFilter(values: Record<string, string>): void {
@@ -168,6 +177,13 @@ export default function MenuManager(): React.JSX.Element {
   }
 
   async function handleReorder(
+    category: MenuCategory,
+    updatedCategoryRecords: AdminMenuRecord[],
+  ): Promise<void> {
+    await reorderFlight.run(() => applyReorder(category, updatedCategoryRecords));
+  }
+
+  async function applyReorder(
     category: MenuCategory,
     updatedCategoryRecords: AdminMenuRecord[],
   ): Promise<void> {
@@ -201,21 +217,24 @@ export default function MenuManager(): React.JSX.Element {
   }
 
   async function handleSaveCategories(updatedCategories: MenuCategoryMeta[]): Promise<void> {
-    setBusy(true);
-    setError("");
-    try {
-      await adminRequest("manage?resource=categories", {
-        method: "PUT",
-        body: JSON.stringify({ data: updatedCategories }),
-      });
-      setCategories(updatedCategories);
-      setMessage("Daftar kategori berhasil disimpan.");
-    } catch (cause: unknown) {
-      setError(adminError(cause));
-      throw cause;
-    } finally {
-      setBusy(false);
-    }
+    let failure: unknown;
+    const ok = await categoryFlight.run(async () => {
+      setError("");
+      try {
+        await adminRequest("manage?resource=categories", {
+          method: "PUT",
+          body: JSON.stringify({ data: updatedCategories }),
+        });
+        setCategories(updatedCategories);
+        setMessage("Daftar kategori berhasil disimpan.");
+        return true;
+      } catch (cause: unknown) {
+        setError(adminError(cause));
+        failure = cause;
+        return false;
+      }
+    });
+    if (ok === false) throw failure;
   }
 
   if (loading && rows.length === 0 && !error) {
@@ -371,7 +390,9 @@ export default function MenuManager(): React.JSX.Element {
                   editing: true,
                 })
               }
-              onRemove={(record) => void remove(record)}
+              onRemove={(record) => remove(record)}
+              pendingIds={rowFlight.pendingKeys}
+              locked={reorderFlight.pending}
               onToggleAvailable={(record, value) => void toggleAvailable(record, value)}
               onReorder={(reordered) => void handleReorder(category.id, reordered)}
             />
@@ -392,6 +413,16 @@ export default function MenuManager(): React.JSX.Element {
           onManageCategories={() => {
             setCategoryModalOpen(true);
           }}
+        />
+      )}
+
+      {deleting && (
+        <ConfirmDeleteDialog
+          title="Hapus menu"
+          message={`Hapus "${deleting.data.name}" dari menu? Menu hilang dari halaman pemesanan dan tidak bisa dikembalikan.`}
+          confirmLabel="Hapus menu"
+          onConfirm={() => performDelete(deleting)}
+          onClose={() => setDeleting(null)}
         />
       )}
 

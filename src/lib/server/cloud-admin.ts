@@ -21,7 +21,9 @@ export async function cloudReadManage(resource: string): Promise<unknown> {
   if (resource === "tables") {
     const [floors, tables, orders] = await Promise.all([db.from("floors").select("*").order("sort_order"), db.from("cafe_tables").select("*").order("id"), db.from("orders").select("id,table_id,queue_number,customer_name,status,total").in("status", ["waiting", "preparing", "ready"])]);
     [floors, tables, orders].forEach(r => checkCloud(r.error));
-    return { floors: floors.data, tables: (tables.data ?? []).map(t => ({ ...t, qr_key: tableKey(t.id), active_order: orders.data?.find(o => o.table_id === t.id) ?? null })) };
+    // Tanpa ORDER_ACCESS_SECRET kunci QR tidak bisa dibuat; halaman Meja tetap dibuka, hanya QR yang belum aktif.
+    const qrKey = (id: string): string | undefined => { try { return tableKey(id); } catch { return undefined; } };
+    return { floors: floors.data, qrReady: qrKey("probe") !== undefined, tables: (tables.data ?? []).map(t => ({ ...t, qr_key: qrKey(t.id), active_order: orders.data?.find(o => o.table_id === t.id) ?? null, active_orders: (orders.data ?? []).filter(o => o.table_id === t.id) })) };
   }
   throw new HttpError(400, "Modul tidak tersedia pada endpoint ini.");
 }
@@ -35,7 +37,13 @@ export async function cloudWriteManage(resource: string, body: Record<string, un
     } else {
       const item = objectValue(body.item); const id = textValue(item.id, "ID menu", 80); const price = numberValue(item.price, "Harga", 0, 10000000);
       textValue(item.name, "Nama", 120); textValue(item.category, "Kategori", 80);
-      checkCloud((await db.from("menu_items").upsert({ id, data: { ...item, id, price }, is_available: item.isAvailable !== false, sort_order: numberValue(body.sortOrder ?? 0, "Urutan", 0, 100000) })).error);
+      const row = { id, data: { ...item, id, price }, is_available: item.isAvailable !== false, sort_order: numberValue(body.sortOrder ?? 0, "Urutan", 0, 100000) };
+      if (body.create === true) {
+        // Menu BARU: INSERT biasa; ID kembar ditolak database (23505) alih-alih menimpa menu lama.
+        const r = await db.from("menu_items").insert(row);
+        if (r.error?.code === "23505") throw new HttpError(409, `Menu dengan ID "${id}" sudah ada. Ubah nama atau ID menu baru.`);
+        checkCloud(r.error);
+      } else checkCloud((await db.from("menu_items").upsert(row)).error);
     }
   } else if (resource === "floors") {
     const f = objectValue(body.floor); await cloudRpc("cafesite_manage", { resource, input: { id: f.id ? uuidValue(f.id) : randomUUID(), name: textValue(f.name, "Nama lantai", 80), sort_order: numberValue(f.sortOrder, "Urutan", 0, 10000) } });

@@ -67,11 +67,16 @@ export default function WaConnectionPanel(): React.JSX.Element {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     async function loop(): Promise<void> {
+      // Tab tersembunyi: jangan memanggil server, cek lagi nanti.
+      if (document.hidden) {
+        timer = setTimeout(() => void loop(), 5000);
+        return;
+      }
       const next = await refresh();
       if (cancelled) return;
       const isOffline = !next || Boolean(next.serviceOffline);
       const fast = !isOffline && ["connecting", "awaiting_qr", "reconnecting"].includes(next.state);
-      timer = setTimeout(() => void loop(), fast ? 1500 : isOffline ? 15000 : 5000);
+      timer = setTimeout(() => void loop(), fast ? 1500 : isOffline ? 30000 : 10000);
     }
     void loop();
     return () => {
@@ -80,8 +85,11 @@ export default function WaConnectionPanel(): React.JSX.Element {
     };
   }, [refresh]);
 
+  const acting = useRef(false);
   async function run(action: BotAction): Promise<void> {
+    if (acting.current) return;
     if (action === "logout" && !window.confirm("Keluar dari WhatsApp ini? Sesi dihapus dan nomor harus dipasangkan ulang lewat QR.")) return;
+    acting.current = true;
     setBusy(true);
     setActionError("");
     try {
@@ -90,6 +98,7 @@ export default function WaConnectionPanel(): React.JSX.Element {
     } catch (cause: unknown) {
       setActionError(adminError(cause));
     } finally {
+      acting.current = false;
       setBusy(false);
     }
   }

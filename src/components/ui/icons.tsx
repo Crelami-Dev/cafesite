@@ -944,3 +944,23 @@ export function GalleryIcon({ className = "w-5 h-5" }: IconProps) {
     </Glyph>
   );
 }
+
+export function EyeOffIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.2" />
+      <path d="M6.6 6.6A16.6 16.6 0 0 0 2 12s3.6 7 10 7c1.7 0 3.2-.4 4.4-1" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+      <path d="m3 3 18 18" />
+    </Glyph>
+  );
+}
+
+export function LockIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </Glyph>
+  );
+}

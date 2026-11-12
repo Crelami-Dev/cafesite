@@ -1,11 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { getLocalDb } from "@/lib/db/dev-sqlite";
 import { localError, localJson } from "@/lib/server/local-api";
+import { isCloudPrimaryEnv } from "@/lib/server/storage-mode";
 import { requireLocalAdmin } from "@/lib/server/local-session";
 import { sourceFromFilename } from "@/lib/server/rag-source";
 import { HttpError, objectValue, textValue, uuidValue } from "@/lib/server/validation";
 
 const MAX_BYTES = 10 * 1024 * 1024;
+
+/** Dokumen bot disimpan di SQLite komputer kedai; situs publik (cloud) tidak punya akses ke sana. */
+function assertBotHost(): void {
+  if (isCloudPrimaryEnv()) throw new HttpError(409, "Pengetahuan bot hanya bisa dikelola dari komputer kedai tempat bot WhatsApp berjalan.");
+}
 
 async function readBody(request: Request): Promise<Record<string, unknown>> {
   return objectValue(await request.json().catch(() => null));
@@ -14,6 +20,7 @@ async function readBody(request: Request): Promise<Record<string, unknown>> {
 export async function GET(request: Request): Promise<Response> {
   try {
     await requireLocalAdmin(request);
+    if (isCloudPrimaryEnv()) return localJson({ data: [], localOnly: true });
     const rows = getLocalDb()
       .prepare(
         `SELECT j.id, j.source, j.status, j.error, j.note, j.size, j.created_at, j.updated_at,
@@ -28,6 +35,7 @@ export async function GET(request: Request): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   try {
     await requireLocalAdmin(request);
+    assertBotHost();
     const form = await request.formData().catch(() => null);
     const file = form?.get("file");
     if (!(file instanceof File)) throw new HttpError(400, "Pilih file PDF (.pdf) atau Markdown (.md).");
@@ -56,6 +64,7 @@ export async function POST(request: Request): Promise<Response> {
 export async function PATCH(request: Request): Promise<Response> {
   try {
     await requireLocalAdmin(request);
+    assertBotHost();
     const body = await readBody(request);
     const now = new Date().toISOString();
     const result = getLocalDb()
@@ -69,6 +78,7 @@ export async function PATCH(request: Request): Promise<Response> {
 export async function DELETE(request: Request): Promise<Response> {
   try {
     await requireLocalAdmin(request);
+    assertBotHost();
     const body = await readBody(request);
     const source = sourceFromFilename(textValue(body.source, "Nama Dokumen", 80));
     const db = getLocalDb();

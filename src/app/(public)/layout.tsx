@@ -1,3 +1,4 @@
+import { CustomerOrdersProvider } from "@/components/order/CustomerOrdersProvider";
 import type { ReactNode } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -19,7 +20,7 @@ export default async function PublicLayout({
 }): Promise<React.JSX.Element> {
   const content = await getPublicContent();
   return (
-    <PublicContentProvider data={content}>
+    <PublicContentProvider data={content}><CustomerOrdersProvider>
       {content.cafeConfirmed && (
         <JsonLd data={buildLocalBusinessJsonLd(content.cafe)} />
       )}
@@ -42,6 +43,6 @@ export default async function PublicLayout({
         <PublicEffects />
         <PublicMotion />
       </div>
-    </PublicContentProvider>
+    </CustomerOrdersProvider></PublicContentProvider>
   );
 }

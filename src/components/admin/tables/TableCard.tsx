@@ -8,6 +8,7 @@ interface TableCardProps {
   onEdit: () => void;
   onClean: () => void;
   onDelete: () => void;
+  pending?: boolean;
 }
 
 const statusText: Record<AdminTable["status"], string> = {
@@ -21,7 +22,7 @@ const statusClass: Record<AdminTable["status"], string> = {
   dirty: "border-terracotta/60 bg-terracotta/20 text-terracotta-light",
 };
 
-export default function TableCard({ table, onQr, onEdit, onClean, onDelete }: TableCardProps): React.JSX.Element {
+export default function TableCard({ table, onQr, onEdit, onClean, onDelete, pending = false }: TableCardProps): React.JSX.Element {
   return (
     <article className="flex flex-col rounded-xl border border-charcoal-border bg-charcoal p-4 transition hover:border-charcoal-muted">
       <div className="flex items-start justify-between gap-2">
@@ -34,20 +35,22 @@ export default function TableCard({ table, onQr, onEdit, onClean, onDelete }: Ta
         </span>
       </div>
 
-      {table.active_order && (
+      {(table.active_orders ?? (table.active_order ? [table.active_order] : [])).length > 0 && <p className="mt-3 text-xs text-offwhite-muted">{(table.active_orders ?? [table.active_order]).length} pesanan aktif · tagihan terpisah</p>}
+      {(table.active_orders ?? (table.active_order ? [table.active_order] : [])).map(order => (
         <Link
-          href={`/dashboard/orders?order=${encodeURIComponent(table.active_order.id)}`}
+          key={order.id}
+          href={`/dashboard/orders?order=${encodeURIComponent(order.id)}`}
           className="mt-3 block rounded-lg border border-offwhite/15 bg-charcoal-light/50 p-2.5 text-xs transition hover:border-offwhite"
         >
           <p className="truncate font-semibold text-offwhite">
-            #{table.active_order.queue_number} · {table.active_order.customer_name}
+            #{order.queue_number} · {order.customer_name}
           </p>
           <p className="mt-0.5 flex items-center justify-between gap-2 text-[11px] text-offwhite-muted tabular-nums">
-            <span>{formatRupiah(table.active_order.total)}</span>
+            <span>{formatRupiah(order.total)}</span>
             <span className="text-terracotta-light">Lihat pesanan →</span>
           </p>
         </Link>
-      )}
+      ))}
 
       <button type="button" className="mt-4 min-h-11 rounded-xl bg-terracotta px-3 text-xs font-semibold transition hover:bg-terracotta-hover" onClick={onQr}>
         Lihat QR
@@ -58,8 +61,8 @@ export default function TableCard({ table, onQr, onEdit, onClean, onDelete }: Ta
           Edit
         </button>
         {table.status === "dirty" ? (
-          <button type="button" className="min-h-11 rounded-xl border border-offwhite/40 px-2 text-xs text-offwhite transition hover:bg-charcoal-light" onClick={onClean}>
-            Bersihkan
+          <button type="button" disabled={pending} aria-busy={pending} className="min-h-11 rounded-xl border border-offwhite/40 px-2 text-xs text-offwhite transition hover:bg-charcoal-light disabled:opacity-50" onClick={onClean}>
+            {pending ? "Memproses…" : "Bersihkan"}
           </button>
         ) : (
           <button type="button" className="min-h-11 rounded-xl px-2 text-xs text-terracotta-light transition hover:bg-terracotta/10" onClick={onDelete}>

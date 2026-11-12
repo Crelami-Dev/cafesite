@@ -8,7 +8,7 @@ import { testDb } from "./helpers";
 function makeOrder(db: ReturnType<typeof testDb>, phone: string, key: string): { id: string } {
   return createCafeOrder(db, { idempotencyKey: key, customerName: "Budi", phone, fulfillment: "takeaway", tableCode: null, cart: [{ menuItemId: "americano", name: "Americano", price: 22000, quantity: 2, notes: "" }] });
 }
-const setStatus = (db: ReturnType<typeof testDb>, id: string, status: string): void => { db.prepare("UPDATE orders SET status = ?, updated_at = ? WHERE id = ?").run(status, nowIso(), id); };
+const setStatus = (db: ReturnType<typeof testDb>, id: string, status: string): void => { db.prepare("UPDATE orders SET status = ?, payment_status='paid',paid_amount=total, updated_at = ? WHERE id = ?").run(status, nowIso(), id); };
 
 test("pesanan siap: pelanggan dikabari ke nomor HP yang diisi, sekali saja", async () => {
   const db = testDb();
@@ -38,7 +38,7 @@ test("nomor 08xx dinormalkan; kirim gagal dicoba lagi lalu berhenti; pesanan lam
 
   const old = testDb();
   const o = makeOrder(old, "6281200000333", "n3");
-  old.prepare("UPDATE orders SET status = 'ready', updated_at = ? WHERE id = ?").run(new Date(Date.now() - 7 * 3_600_000).toISOString(), o.id);
+  old.prepare("UPDATE orders SET status = 'ready', payment_status='paid',paid_amount=total, updated_at = ? WHERE id = ?").run(new Date(Date.now() - 7 * 3_600_000).toISOString(), o.id);
   assert.equal(await notifyReadyOrders(old, async () => { throw new Error("tidak boleh dikirim"); }), 0);
 });
 

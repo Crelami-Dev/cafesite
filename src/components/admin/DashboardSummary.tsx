@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { DashboardSummary as Summary } from "@/types";
 import { ChevronRightIcon } from "@/components/ui/icons";
 import { useDashboard } from "./DashboardShell";
-import { adminRequest, adminError } from "./admin-api";
+import { adminRequest, adminError, adminPeek } from "./admin-api";
 import { formatRupiah, queueLabel, fulfillmentLabel, waitingLabel } from "./orders/order-format";
 import OrderStatusBadge from "./orders/OrderStatusBadge";
 import WaStatusRow from "./WaStatusRow";
@@ -25,7 +25,7 @@ const QUICK_LINKS: { id: string; label: string; href: string }[] = [
 
 export default function DashboardSummary(): React.JSX.Element {
   const { account, orders } = useDashboard();
-  const [data, setData] = useState<Summary | null>(null);
+  const [data, setData] = useState<Summary | null>(() => adminPeek<Summary>("summary") ?? null);
   const [error, setError] = useState("");
   const [now, setNow] = useState(() => Date.now());
 
@@ -46,7 +46,7 @@ export default function DashboardSummary(): React.JSX.Element {
         });
     };
     load();
-    const timer = setInterval(load, 5000);
+    const timer = setInterval(load, 15000);
     document.addEventListener("visibilitychange", load);
     return () => {
       live = false;

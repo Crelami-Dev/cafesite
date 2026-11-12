@@ -29,7 +29,7 @@ cp .env.example .env.local && nano .env.local
 
 Isi minimal: `BOT_CONTROL_TOKEN` (acak, ≥16 karakter), `PUPPETEER_EXECUTABLE_PATH`, dan `DB_PATH` bila bukan `../.data/cafesite.dev.db`. Opsional: `NVIDIA_*`, `EMBEDDING_*`.
 
-Di `.env.local` **root** (Next.js): `CONTENT_SOURCE=sqlite`, `LOCAL_ADMIN_EMAIL`, `LOCAL_ADMIN_PASSWORD`, `WA_BOT_CONTROL_URL=http://127.0.0.1:8787`, dan `WA_BOT_CONTROL_TOKEN` yang **sama persis** dengan `BOT_CONTROL_TOKEN`.
+Di `.env.local` **root** (Next.js): `CONTENT_SOURCE=sqlite`, `WA_BOT_CONTROL_URL=http://127.0.0.1:8787`, dan `WA_BOT_CONTROL_TOKEN` yang **sama persis** dengan `BOT_CONTROL_TOKEN`.
 
 Jangan commit kedua file `.env.local`.
 

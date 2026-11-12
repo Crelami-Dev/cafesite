@@ -34,15 +34,19 @@ test("nomor antrian naik, menu habis ditolak, rollback tidak meninggalkan pesana
   assert.equal(createCafeOrder(db, { ...base, idempotencyKey: randomUUID(), cart: [line("latte", 1)] }).queue_number, 2);
 });
 
-test("dine-in: meja harus available, lalu berubah occupied", () => {
+test("dine-in: beberapa pesanan terpisah boleh memakai meja terisi; meja kotor ditolak", () => {
   const db = testDb();
   const dine = { ...base, fulfillment: "dine_in" as const };
-  assert.throws(() => createCafeOrder(db, { ...dine, tableCode: "A2", idempotencyKey: randomUUID(), cart: [line("latte", 1)] }), /Meja tidak tersedia/);
+  const secondTable = createCafeOrder(db, { ...dine, tableCode: "A2", idempotencyKey: randomUUID(), cart: [line("latte", 1)] });
+  assert.equal(secondTable.table_id, "A2");
   assert.throws(() => createCafeOrder(db, { ...dine, tableCode: "XX", idempotencyKey: randomUUID(), cart: [line("latte", 1)] }), /Meja tidak tersedia/);
   const order = createCafeOrder(db, { ...dine, tableCode: "A1", idempotencyKey: randomUUID(), cart: [line("latte", 1)] });
   assert.equal(order.table_id, "A1");
   assert.equal(db.prepare("SELECT status FROM cafe_tables WHERE id='A1'").get()?.status, "occupied");
-  assert.throws(() => createCafeOrder(db, { ...dine, tableCode: "A1", idempotencyKey: randomUUID(), cart: [line("latte", 1)] }), /Meja tidak tersedia/);
+  const separate = createCafeOrder(db, { ...dine, tableCode: "A1", idempotencyKey: randomUUID(), cart: [line("latte", 1)] });
+  assert.notEqual(separate.id, order.id);
+  db.exec("UPDATE cafe_tables SET status='dirty' WHERE id='A2'");
+  assert.throws(() => createCafeOrder(db, { ...dine, tableCode: "A2", idempotencyKey: randomUUID(), cart: [line("latte", 1)] }), /Meja tidak tersedia/);
 });
 
 test("validasi input dan batas 5 pesanan per 10 menit per nomor", () => {

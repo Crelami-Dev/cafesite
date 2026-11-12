@@ -11,7 +11,7 @@ const ORDER_STEPS: OrderStep[] = [
   {
     number: "01",
     title: "Buka halaman pesan",
-    description: "Scan QR di meja, buka halaman pesan di website ini, atau chat WhatsApp kami.",
+    description: "Scan QR di meja atau QR Bawa pulang. Setiap pesanan baru perlu scan baru.",
   },
   {
     number: "02",
@@ -20,8 +20,8 @@ const ORDER_STEPS: OrderStep[] = [
   },
   {
     number: "03",
-    title: "Tunggu nomor antrean",
-    description: "Kami kabari lewat layar dan WhatsApp saat pesanan siap. Bayar di kasir.",
+    title: "Bayar lalu tunggu kabar",
+    description: "Bayar dahulu di kasir. Biarkan website aktif agar pengingat muncul saat pesanan siap diambil.",
   },
 ];
 
@@ -38,7 +38,7 @@ export function OrderGuideSection(): React.JSX.Element {
         <div className="ticket-split">
           <div>
             <h2 id="order-guide-heading" className="public-h2" data-reveal>
-              Pesan dari meja, tanpa antre
+              Pesan dari meja, bayar di kasir
             </h2>
             <ol className="mt-10 space-y-7" data-reveal-group>
               {ORDER_STEPS.map((step) => (
@@ -76,7 +76,7 @@ export function OrderGuideSection(): React.JSX.Element {
             <dl className="ticket__lines">
               <div><dt>1 × Caramel Macchiato</dt><dd>Rp 28.000</dd></div>
               <div><dt>1 × Butter Croissant</dt><dd>Rp 24.000</dd></div>
-              <div className="ticket__total"><dt>Total · bayar di kasir</dt><dd>Rp 52.000</dd></div>
+              <div className="ticket__total"><dt>Total · sudah dibayar</dt><dd>Rp 52.000</dd></div>
             </dl>
           </figure>
         </div>

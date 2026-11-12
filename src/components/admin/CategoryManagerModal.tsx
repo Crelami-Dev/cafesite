@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useDialogFocus } from "./useDialogFocus";
 import type { AdminMenuRecord, MenuCategoryMeta } from "@/types";
 import { adminButtonClass, adminInputClass, adminSecondaryClass } from "./admin-api";
+import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
 
 interface CategoryManagerModalProps {
   categories: MenuCategoryMeta[];
@@ -27,6 +28,7 @@ export default function CategoryManagerModal({
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<MenuCategoryMeta | null>(null);
 
   const formDirty = Boolean(name.trim() || description.trim());
 
@@ -137,33 +139,21 @@ export default function CategoryManagerModal({
     }
   }
 
-  async function handleDelete(category: MenuCategoryMeta): Promise<void> {
-    const menuCount = records.filter((r) => r.data.category === category.id).length;
-    let confirmMsg = `Hapus kategori "${category.name}"?`;
-    if (menuCount > 0) {
-      confirmMsg += `\n\nPerhatian: Ada ${menuCount} menu yang saat ini menggunakan kategori ini!`;
-    }
-
-    if (!window.confirm(confirmMsg)) return;
-
+  /** Buka dialog konfirmasi (yang menunggu sampai kategori benar-benar terhapus). */
+  function handleDelete(category: MenuCategoryMeta): void {
     if (list.length <= 1) {
       setError("Minimal harus ada 1 kategori.");
       return;
     }
+    setError("");
+    setDeleting(category);
+  }
 
+  async function performDelete(category: MenuCategoryMeta): Promise<void> {
     const nextList = list.filter((item) => item.id !== category.id);
-    setSaving(true);
-    try {
-      await onSaveCategories(nextList);
-      setList(nextList);
-      if (editingId === category.id) {
-        handleCancelForm();
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Gagal menghapus kategori.");
-    } finally {
-      setSaving(false);
-    }
+    await onSaveCategories(nextList); // melempar error bila gagal: kategori tetap ada
+    setList(nextList);
+    if (editingId === category.id) handleCancelForm();
   }
 
   return (
@@ -336,6 +326,7 @@ export default function CategoryManagerModal({
                       </button>
                       <button
                         type="button"
+                        disabled={saving}
                         onClick={() => handleStartEdit(category)}
                         className="min-h-11 rounded-xl border border-charcoal-border px-3 text-xs text-offwhite-muted transition hover:border-offwhite/40 hover:text-offwhite"
                       >
@@ -343,7 +334,8 @@ export default function CategoryManagerModal({
                       </button>
                       <button
                         type="button"
-                        onClick={() => void handleDelete(category)}
+                        disabled={saving}
+                        onClick={() => handleDelete(category)}
                         className="min-h-11 rounded-xl border border-charcoal-border px-3 text-xs text-terracotta-light transition hover:border-terracotta/60 hover:bg-terracotta/10"
                       >
                         Hapus
@@ -369,6 +361,16 @@ export default function CategoryManagerModal({
           </button>
         </div>
       </section>
+
+      {deleting && (
+        <ConfirmDeleteDialog
+          title="Hapus kategori"
+          message={`Hapus kategori "${deleting.name}"?${records.some((r) => r.data.category === deleting.id) ? ` Perhatian: ${records.filter((r) => r.data.category === deleting.id).length} menu masih memakai kategori ini.` : ""}`}
+          confirmLabel="Hapus kategori"
+          onConfirm={() => performDelete(deleting)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
     </div>
   );
 }

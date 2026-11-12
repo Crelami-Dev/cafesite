@@ -1,19 +1,18 @@
 import "server-only";
 import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { cloudDb, cloudRpc, checkCloud } from "./cloud-db";
 import { HttpError, textValue } from "./validation";
 import { MODULE_IDS } from "./dashboard-auth";
-import type { DashboardAccount, StaffAccount, StaffRole } from "@/types";
+import type { DashboardAccount, StaffAccount, StaffCloudState, StaffRole } from "@/types";
 const digest = (v: string): string => createHash("sha256").update(v).digest("hex");
 const hash = (v: string, salt: string): string => scryptSync(v, salt, 64).toString("hex");
 const equal = (a: string, b: string): boolean => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
-const ownerVersion = (): string => digest(`${process.env.LOCAL_ADMIN_EMAIL}:${process.env.LOCAL_ADMIN_PASSWORD}`);
 const roleOf = (value: unknown): StaffRole => (value === "admin" ? "admin" : "staff");
 const allModules = (): { id: string; enabled: boolean }[] => MODULE_IDS.map(id => ({ id, enabled: true }));
 
 /** Cache singkat agar tiap request tidak menambah query hanya untuk memeriksa skema/peran. */
-const memo = globalThis as typeof globalThis & { __cafeRoleCol?: { ok: boolean; at: number }; __cafeOwnerOk?: { ok: boolean; at: number } };
+const memo = globalThis as typeof globalThis & { __cafeRoleCol?: { ok: boolean; at: number } };
 
 /** Apakah migrasi 09_staff_roles.sql sudah dijalankan (kolom role ada)? Bila belum, semua akun = staf. */
 async function hasRoleColumn(db: SupabaseClient): Promise<boolean> {
@@ -26,39 +25,53 @@ async function hasRoleColumn(db: SupabaseClient): Promise<boolean> {
 }
 const staffColumns = async (db: SupabaseClient, base: string): Promise<string> => ((await hasRoleColumn(db)) ? `${base},role` : base);
 
-/**
- * Di produksi (Supabase) akun pemilik dari .env hanya boleh masuk selama BELUM ada admin di Supabase
- * (tahap awal/bootstrap). Begitu ada satu admin aktif, hanya akun Supabase yang bisa masuk.
- * Bila status tidak bisa dipastikan, pemilik tidak dikunci.
- */
-async function ownerLoginAllowed(db: SupabaseClient): Promise<boolean> {
-  const cached = memo.__cafeOwnerOk;
-  if (cached && Date.now() - cached.at < 30_000) return cached.ok;
-  let ok = true;
-  if (await hasRoleColumn(db)) {
-    const r = await db.from("staff_accounts").select("id", { count: "exact", head: true }).eq("role", "admin").eq("enabled", 1);
-    ok = r.error ? true : (r.count ?? 0) === 0;
+/** Cek email+kata sandi ke Supabase Authentication (klien anon, tanpa menyimpan sesi). */
+async function verifyWithSupabaseAuth(email: string, password: string): Promise<boolean> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) throw new HttpError(503, "NEXT_PUBLIC_SUPABASE_ANON_KEY belum diatur di server, login lewat Supabase Authentication tidak bisa dipakai.");
+  const client = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+  const { data, error } = await client.auth.signInWithPassword({ email, password });
+  if (error || !data.user) {
+    if (error && error.status && error.status >= 500) console.error("[cloudAuthenticate] Supabase Auth bermasalah:", error.message);
+    return false;
   }
-  memo.__cafeOwnerOk = { ok, at: Date.now() };
-  return ok;
+  await client.auth.signOut().catch(() => undefined);
+  return true;
 }
-function forgetStaffCaches(): void { memo.__cafeOwnerOk = undefined; }
 
 interface CloudStaffRow { id: string; name: string; email: string; must_change_password: number; role?: string }
 
+/**
+ * Cache sesi singkat per instance server: polling dashboard memanggil API tiap beberapa detik, dan tanpa ini
+ * setiap panggilan mengulang 2-3 query hanya untuk memeriksa sesi. Perubahan izin/penonaktifan akun berlaku
+ * paling lambat setelah SESSION_CACHE_MS; logout menghapus entri saat itu juga.
+ */
+const SESSION_CACHE_MS = 20_000;
+const sessionCache = (globalThis as typeof globalThis & { __cafeSessionCache?: Map<string, { account: DashboardAccount; at: number }> });
+const sessions = (): Map<string, { account: DashboardAccount; at: number }> => (sessionCache.__cafeSessionCache ??= new Map());
+
 export async function cloudAccount(token: string): Promise<DashboardAccount | null> {
+  const key = digest(token);
+  const hit = sessions().get(key);
+  if (hit && Date.now() - hit.at < SESSION_CACHE_MS) return hit.account;
+  const account = await loadCloudAccount(token);
+  if (account) {
+    if (sessions().size > 500) sessions().clear();
+    sessions().set(key, { account, at: Date.now() });
+  } else sessions().delete(key);
+  return account;
+}
+
+async function loadCloudAccount(token: string): Promise<DashboardAccount | null> {
   try {
     const db = cloudDb();
-    const session = await db.from("admin_sessions").select("account_id,owner_version").eq("token_hash", digest(token)).gt("expires_at", Date.now()).maybeSingle();
+    const session = await db.from("admin_sessions").select("account_id").eq("token_hash", digest(token)).gt("expires_at", Date.now()).maybeSingle();
     if (session.error) {
       console.warn("[cloudAccount] Gagal membaca sesi admin:", session.error.code, session.error.message);
       return null;
     }
     if (!session.data) return null;
-    if (session.data.account_id === "owner") {
-      if (!process.env.LOCAL_ADMIN_PASSWORD || session.data.owner_version !== ownerVersion() || !(await ownerLoginAllowed(db))) return null;
-      return { profile: { id: "owner", role: "admin", name: "Pemilik kedai", email: process.env.LOCAL_ADMIN_EMAIL ?? "" }, modules: allModules(), mustChangePassword: false };
-    }
     const found = await db.from("staff_accounts").select(await staffColumns(db, "id,name,email,must_change_password")).eq("id", session.data.account_id).eq("enabled", 1).maybeSingle();
     if (found.error || !found.data) {
       if (found.error) console.warn("[cloudAccount] Gagal membaca staff:", found.error.code, found.error.message);
@@ -67,12 +80,14 @@ export async function cloudAccount(token: string): Promise<DashboardAccount | nu
     const row = found.data as unknown as CloudStaffRow | null;
     if (!row) return null;
     const role = roleOf(row.role);
+    // Admin selalu punya semua modul: tidak perlu query izin.
+    if (role === "admin") return { profile: { id: row.id, name: row.name, email: row.email, role }, modules: allModules(), mustChangePassword: Boolean(row.must_change_password) };
     const permissions = await db.from("staff_permissions").select("module").eq("account_id", row.id);
     if (permissions.error) {
       console.warn("[cloudAccount] Gagal membaca izin modul:", permissions.error.code, permissions.error.message);
       return null;
     }
-    return { profile: { id: row.id, name: row.name, email: row.email, role }, modules: role === "admin" ? allModules() : (permissions.data ?? []).map(p => ({ id: p.module, enabled: true })), mustChangePassword: Boolean(row.must_change_password) };
+    return { profile: { id: row.id, name: row.name, email: row.email, role }, modules: (permissions.data ?? []).map(p => ({ id: p.module, enabled: true })), mustChangePassword: Boolean(row.must_change_password) };
   } catch (err) {
     console.error("[cloudAccount] Kesalahan sesi cloud:", err);
     return null;
@@ -97,16 +112,15 @@ export async function cloudAuthenticate(email: string, password: string): Promis
   }
 
   let id = "";
-  const ownerMatches = process.env.LOCAL_ADMIN_EMAIL?.trim().toLowerCase() === normalized && process.env.LOCAL_ADMIN_PASSWORD && equal(digest(password), digest(process.env.LOCAL_ADMIN_PASSWORD));
-  if (ownerMatches && await ownerLoginAllowed(db)) id = "owner";
-  else {
-    const row = await db.from("staff_accounts").select("id,password_hash,salt").eq("email", normalized).eq("enabled", 1).maybeSingle();
+  // Situs publik: kata sandi diverifikasi oleh Supabase Authentication; tabel staff_accounts
+  // hanya dipakai untuk peran, izin modul, dan status aktif akun.
+  if (await verifyWithSupabaseAuth(normalized, password)) {
+    const row = await db.from("staff_accounts").select("id").eq("email", normalized).eq("enabled", 1).maybeSingle();
     if (row.error) {
       console.error("[cloudAuthenticate] Gagal membaca akun staff:", row.error.code, row.error.message);
       throw new HttpError(503, "Database cloud belum siap. Pastikan tabel staff_accounts sudah dibuat di Supabase.");
     }
-    const actual = hash(password, row.data?.salt ?? "cafesite-invalid-login");
-    if (row.data && equal(actual, row.data.password_hash)) id = row.data.id;
+    if (row.data) id = row.data.id;
   }
 
   if (!id) {
@@ -134,8 +148,7 @@ export async function cloudAuthenticate(email: string, password: string): Promis
   const insertRes = await db.from("admin_sessions").insert({
     token_hash: digest(token),
     account_id: id,
-    expires_at: Date.now() + 8 * 3600000,
-    owner_version: id === "owner" ? ownerVersion() : null
+    expires_at: Date.now() + 8 * 3600000
   });
 
   if (insertRes.error) {
@@ -177,6 +190,7 @@ export async function cloudEmailTakenByOther(email: string, id: string): Promise
   }
 }
 export async function cloudRevoke(token: string): Promise<void> {
+  sessions().delete(digest(token));
   try {
     await cloudDb().from("admin_sessions").delete().eq("token_hash", digest(token));
   } catch (err) {
@@ -189,13 +203,13 @@ export async function cloudStaffList(): Promise<StaffAccount[]> {
   type Row = CloudStaffRow & { enabled: number; staff_permissions: { module: string }[] };
   return ((rows.data ?? []) as unknown as Row[]).map(r => ({ id: r.id, name: r.name, email: r.email, role: roleOf(r.role), enabled: Boolean(r.enabled), mustChangePassword: Boolean(r.must_change_password), modules: r.staff_permissions.map(p => p.module) }));
 }
-export async function cloudSaveStaff(body: Record<string, unknown>, actorId?: string): Promise<{ temporaryPassword?: string }> {
+export async function cloudSaveStaff(body: Record<string, unknown>, actorId?: string): Promise<{ temporaryPassword?: string; auth: StaffCloudState }> {
   const id = body.id ? textValue(body.id, "Akun", 80) : randomUUID(); const db = cloudDb();
   const result = await db.from("staff_accounts").select("*").eq("id", id).maybeSingle(); checkCloud(result.error);
   const existing = result.data;
   if (body.id && !existing) throw new HttpError(404, "Akun tidak ditemukan.");
   const name = textValue(body.name, "Nama", 80); const email = textValue(body.email, "Email", 160).toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email === process.env.LOCAL_ADMIN_EMAIL?.trim().toLowerCase()) throw new HttpError(400, "Email tidak valid atau sudah digunakan pemilik.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, "Email tidak valid.");
   const role: StaffRole = body.role === "admin" ? "admin" : "staff";
   if (actorId && id === actorId && (role !== "admin" || body.enabled === false)) throw new HttpError(400, "Anda tidak bisa menurunkan atau menonaktifkan akun Anda sendiri.");
   if (role === "staff" && (!Array.isArray(body.modules) || body.modules.some(m => !(MODULE_IDS as readonly unknown[]).includes(m)))) throw new HttpError(400, "Izin modul tidak valid.");
@@ -207,8 +221,23 @@ export async function cloudSaveStaff(body: Record<string, unknown>, actorId?: st
   const temporaryPassword = !existing || body.resetPassword === true ? randomBytes(12).toString("base64url") : undefined;
   const salt = temporaryPassword ? randomBytes(16).toString("hex") : existing.salt;
   await cloudRpc("cafesite_save_staff", { input: { id, name, email, role, salt, password_hash: temporaryPassword ? hash(temporaryPassword, salt) : existing.password_hash, enabled: body.enabled === false ? 0 : 1, must_change_password: temporaryPassword ? 1 : existing.must_change_password, created_at: existing?.created_at ?? new Date().toISOString() }, permissions: modules, revoke_sessions: Boolean(temporaryPassword) || body.enabled === false });
-  forgetStaffCaches();
-  return temporaryPassword ? { temporaryPassword } : {};
+  const { upsertAuthUser } = await import("./supabase-auth-users");
+  const auth = await upsertAuthUser(db, { email, name, role, enabled: body.enabled !== false, password: temporaryPassword });
+  return { ...(temporaryPassword ? { temporaryPassword } : {}), auth };
+}
+export async function cloudDeleteStaff(id: string, actorId?: string): Promise<{ cloud: StaffCloudState; auth: StaffCloudState }> {
+  const db = cloudDb();
+  if (actorId && id === actorId) throw new HttpError(400, "Anda tidak bisa menghapus akun Anda sendiri.");
+  const found = await db.from("staff_accounts").select("id,email").eq("id", id).maybeSingle(); checkCloud(found.error);
+  if (!found.data) throw new HttpError(404, "Akun tidak ditemukan.");
+  if (await hasRoleColumn(db)) {
+    const admins = await db.from("staff_accounts").select("id", { count: "exact", head: true }).eq("role", "admin").eq("enabled", 1).neq("id", id); checkCloud(admins.error);
+    if ((admins.count ?? 0) < 1) throw new HttpError(400, "Tidak bisa menghapus: harus tersisa minimal satu admin aktif.");
+  }
+  checkCloud((await db.from("admin_sessions").delete().eq("account_id", id)).error);
+  checkCloud((await db.from("staff_accounts").delete().eq("id", id)).error);
+  const { deleteAuthUser } = await import("./supabase-auth-users");
+  return { cloud: "saved", auth: await deleteAuthUser(db, String(found.data.email)) };
 }
 export async function cloudChangePassword(id: string, current: string, password: string): Promise<void> {
   const row = await cloudDb().from("staff_accounts").select("password_hash,salt").eq("id", id).eq("enabled", 1).maybeSingle(); checkCloud(row.error);
@@ -216,4 +245,13 @@ export async function cloudChangePassword(id: string, current: string, password:
   if (password.length < 12 || password.length > 128) throw new HttpError(400, "Gunakan kata sandi 12–128 karakter.");
   const salt = randomBytes(16).toString("hex");
   await cloudRpc("cafesite_change_password", { account: id, expected_hash: row.data.password_hash, new_hash: hash(password, salt), new_salt: salt });
+  // Kata sandi baru juga harus berlaku di Supabase Authentication (dipakai login di situs publik).
+  const db = cloudDb();
+  const who = await db.from("staff_accounts").select(await staffColumns(db, "name,email,enabled")).eq("id", id).maybeSingle();
+  const acct = who.data as unknown as { name: string; email: string; enabled: number; role?: string } | null;
+  if (acct) {
+    const { upsertAuthUser } = await import("./supabase-auth-users");
+    const state = await upsertAuthUser(db, { email: acct.email.toLowerCase(), name: acct.name, role: roleOf(acct.role), enabled: Boolean(acct.enabled), password });
+    if (state !== "saved") throw new HttpError(503, "Kata sandi tersimpan, tetapi belum tersalin ke Supabase Authentication. Hubungi admin untuk reset.");
+  }
 }

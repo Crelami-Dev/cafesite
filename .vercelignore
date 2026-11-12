@@ -3,3 +3,12 @@
 /server
 /node_modules
 *.log
+/.git
+/.data
+/.taste-skill
+/.agents
+/.claude
+/design
+/.env*
+/.vercel
+*.tsbuildinfo

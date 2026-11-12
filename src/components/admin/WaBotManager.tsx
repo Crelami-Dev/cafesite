@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { RagIngestJob } from "@/types";
 import { adminButtonClass, adminError, adminRequest, adminSecondaryClass } from "./admin-api";
 import WaConnectionPanel from "./WaConnectionPanel";
+import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const statuses: Record<RagIngestJob["status"], string> = { pending: "◷ Menunggu", processing: "↻ Diproses", done: "✓ Selesai", failed: "! Gagal" };
@@ -21,6 +22,8 @@ export default function WaBotManager(): React.JSX.Element {
   const [listError, setListError] = useState("");
   const [dragging, setDragging] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const flying = useRef(false);
+  const [deleting, setDeleting] = useState<RagIngestJob | null>(null);
 
   const loadJobs = useCallback(async (): Promise<void> => {
     try {
@@ -34,14 +37,17 @@ export default function WaBotManager(): React.JSX.Element {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     async function poll(): Promise<void> {
-      await loadJobs();
-      if (!cancelled) timer = setTimeout(() => void poll(), 4000);
+      // Tab tersembunyi: lewati permintaan, cukup jadwalkan ulang.
+      if (!document.hidden) await loadJobs();
+      if (!cancelled) timer = setTimeout(() => void poll(), 8000);
     }
     void poll();
     return () => { cancelled = true; clearTimeout(timer); };
   }, [loadJobs]);
 
   async function upload(file: File): Promise<void> {
+    if (flying.current) return;
+    flying.current = true;
     setBusy(true); setError(""); setMessage("");
     try {
       const name = file.name.toLowerCase();
@@ -54,18 +60,26 @@ export default function WaBotManager(): React.JSX.Element {
       setMessage(`${file.name} diterima dan sedang dipelajari asisten…`);
       await loadJobs();
     } catch (cause: unknown) { setError(adminError(cause)); }
-    finally { setBusy(false); }
+    finally { flying.current = false; setBusy(false); }
   }
 
-  async function act(method: "PATCH" | "DELETE", job: RagIngestJob): Promise<void> {
-    if (method === "DELETE" && !window.confirm(`Hapus ${job.source} beserta seluruh pengetahuan dari dokumen ini?`)) return;
+  async function reprocess(job: RagIngestJob): Promise<void> {
+    if (flying.current) return;
+    flying.current = true;
     setBusy(true); setError(""); setMessage("");
     try {
-      await adminRequest("wabot", { method, body: JSON.stringify({ id: job.id, source: job.source }) });
-      setMessage(method === "DELETE" ? "Dokumen dan pengetahuannya sudah dihapus." : "Dokumen masuk antrean untuk diproses ulang.");
+      await adminRequest("wabot", { method: "PATCH", body: JSON.stringify({ id: job.id, source: job.source }) });
+      setMessage("Dokumen masuk antrean untuk diproses ulang.");
       await loadJobs();
     } catch (cause: unknown) { setError(adminError(cause)); }
-    finally { setBusy(false); }
+    finally { flying.current = false; setBusy(false); }
+  }
+
+  /** Dipanggil dialog konfirmasi hapus; melempar error bila gagal agar dokumen tetap tampil. */
+  async function performDelete(job: RagIngestJob): Promise<void> {
+    await adminRequest("wabot", { method: "DELETE", body: JSON.stringify({ id: job.id, source: job.source }) });
+    setMessage("Dokumen dan pengetahuannya sudah dihapus.");
+    await loadJobs();
   }
 
   return (
@@ -111,8 +125,8 @@ export default function WaBotManager(): React.JSX.Element {
                 </td>
                 <td className="p-4">
                   <div className="flex flex-wrap gap-2">
-                    {(job.status === "done" || job.status === "failed") && <button disabled={busy} className={adminSecondaryClass} onClick={() => void act("PATCH", job)}>Proses ulang</button>}
-                    <button disabled={busy} className={adminSecondaryClass} onClick={() => void act("DELETE", job)}>Hapus</button>
+                    {(job.status === "done" || job.status === "failed") && <button disabled={busy} className={adminSecondaryClass} onClick={() => void reprocess(job)}>Proses ulang</button>}
+                    <button disabled={busy} className={adminSecondaryClass} onClick={() => { setError(""); setDeleting(job); }}>Hapus</button>
                   </div>
                 </td>
               </tr>
@@ -121,6 +135,16 @@ export default function WaBotManager(): React.JSX.Element {
         </table>
         {!jobs.length && <p className="p-4 text-sm text-offwhite-muted">{loading ? "Memuat dokumen…" : "Belum ada dokumen. Menu tetap bisa dijawab bot tanpa dokumen."}</p>}
       </section>
+
+      {deleting && (
+        <ConfirmDeleteDialog
+          title="Hapus dokumen"
+          message={`Hapus ${deleting.source} beserta seluruh pengetahuan dari dokumen ini? Bot tidak bisa lagi menjawab berdasarkan dokumen ini.`}
+          confirmLabel="Hapus dokumen"
+          onConfirm={() => performDelete(deleting)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
     </div>
   );
 }

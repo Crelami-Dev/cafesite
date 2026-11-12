@@ -16,9 +16,12 @@ export function isLocalOnlyUrl(url: string): boolean {
 
 /** Alamat yang dibuka saat QR meja dipindai: /order?meja=<id>&k=<kunci QR meja>. */
 export function tableOrderUrl(origin: string, tableId: string, key?: string): string {
+  if (!key?.trim()) {
+    throw new Error("Kunci QR meja belum tersedia. Pastikan ORDER_ACCESS_SECRET sudah dikonfigurasi di server, lalu muat ulang dashboard dan buat QR lagi.");
+  }
   const url = new URL("/order", origin);
   url.searchParams.set("meja", tableId);
-  if (key) url.searchParams.set("k", key);
+  url.searchParams.set("k", key);
   return url.toString();
 }
 

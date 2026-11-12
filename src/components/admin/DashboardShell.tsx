@@ -49,8 +49,6 @@ export default function DashboardShell({
   const known = useRef<Set<string> | null>(null);
   const inFlight = useRef(false);
 
-  /** Pemilik dari .env: kata sandinya dikelola lewat konfigurasi server, bukan dashboard. */
-  const isOwner = account.profile.id === "owner";
   const canOrders =
     !account.mustChangePassword &&
     (account.profile.role === "admin" ||
@@ -140,8 +138,8 @@ export default function DashboardShell({
             items={available}
             waiting={waiting}
             name={account.profile.name}
-            roleLabel={isOwner ? "Pemilik" : account.profile.role === "admin" ? "Admin" : "Staf kedai"}
-            canChangePassword={!isOwner}
+            roleLabel={account.profile.role === "admin" ? "Admin" : "Staf kedai"}
+            canChangePassword
             logoutBusy={logoutBusy}
             onSignOut={() => void signOut()}
           />
@@ -194,7 +192,7 @@ export default function DashboardShell({
               items={available}
               name={account.profile.name}
               email={account.profile.email}
-              canChangePassword={!isOwner}
+              canChangePassword
               logoutBusy={logoutBusy}
               onNavigate={() => setOpen(false)}
               onSignOut={() => void signOut()}

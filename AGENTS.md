@@ -90,6 +90,13 @@ Kalau ada request yang mengarah ke fitur-fitur di atas, tanyakan dulu ke user ap
 | Spesifikasi & brief foto dari client | `PHOTO_BRIEF.md` |
 | Aturan kerja & konvensi kode | `AGENTS.md` (dokumen ini) |
 
+## 8. Preferensi Deployment User (2026-11-12)
+
+- Setelah perubahan website yang diminta user selesai dan pemeriksaan yang relevan lolos, deploy ke Vercel Production tanpa menunggu instruksi deployment terpisah.
+- Sinkronkan konfigurasi aplikasi yang relevan dari `.env.local` ke environment Vercel; nilai khusus development, placeholder, dan token otomatis Vercel tidak disalin ke Production.
+- Jangan commit atau menyertakan berkas `.env` dan database lokal dalam paket deployment. Pertahankan secret yang sudah valid; jangan merotasinya sebagai bagian deployment rutin.
+- Verifikasi situs live setelah deploy, termasuk alur yang diperbaiki, lalu laporkan hasilnya kepada user.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

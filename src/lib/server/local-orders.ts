@@ -1,8 +1,11 @@
 import "server-only";
-import { isCloudPrimaryEnv } from "./storage-mode";
-import { createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import path from "node:path";
+
+import { randomUUID } from "node:crypto";
+import { orderAccessToken, tableKey, sameText, digestValue } from "./order-security";
+import { checkoutTicket, qrSource, type CheckoutTicket } from "./order-tickets";
+export { orderAccessToken, tableKey } from "./order-security";
+
+
 import { getLocalDb } from "@/lib/db/dev-sqlite";
 import { HttpError, itemInputs, objectValue, textValue, uuidValue } from "./validation";
 import type { CatalogResponse, MenuItem } from "@/types";
@@ -18,56 +21,19 @@ type Row = Record<string, unknown>;
 
 const RATE_LIMIT_ORDERS = 5;
 const RATE_LIMIT_WINDOW_MS = 10 * 60_000;
-const SECRET_FILE = path.join(process.cwd(), ".data", "order-access.secret");
-
-let secret: string | null = null;
-function accessSecret(): string {
-  if (secret) return secret;
-  if (process.env.ORDER_ACCESS_SECRET && process.env.ORDER_ACCESS_SECRET.length >= 16) return (secret = process.env.ORDER_ACCESS_SECRET);
-  if (isCloudPrimaryEnv()) throw new HttpError(503, "Kunci QR dan pesanan cloud belum dikonfigurasi.");
-  // Kunci acak yang dibuat sekali dan disimpan di folder data (tidak ikut git), supaya token tidak bisa ditebak.
-  if (existsSync(SECRET_FILE)) secret = readFileSync(SECRET_FILE, "utf8").trim();
-  if (!secret || secret.length < 32) {
-    mkdirSync(path.dirname(SECRET_FILE), { recursive: true });
-    secret = randomBytes(32).toString("base64url");
-    writeFileSync(SECRET_FILE, secret, { mode: 0o600 });
-  }
-  return secret;
-}
-
-export function orderAccessToken(orderId: string): string {
-  return createHmac("sha256", accessSecret()).update(`order:${orderId}`).digest("base64url");
-}
-
-/**
- * Kunci QR meja: QR yang dicetak dari dashboard berisi /order?meja=<id>&k=<kunci>. Tanpa kunci yang benar
- * (mis. alamat diketik sendiri dari rumah), halaman pesan tidak terbuka dan server menolak pesanan.
- */
-export function tableKey(tableId: string): string {
-  return createHmac("sha256", accessSecret()).update(`table:${tableId}`).digest("base64url").slice(0, 16);
-}
-
-function sameText(a: string, b: string): boolean {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-  return left.length === right.length && timingSafeEqual(left, right);
-}
-
-export interface ScannedTable { id: string; label: string; status: CafeTable["status"]; key: string }
+export interface ScannedTable { id: string; label: string; status: CafeTable["status"]; key: string; order_mode?: "dine_in" | "takeaway" }
 
 /** Meja dari hasil scan QR, atau null bila kode meja/kuncinya tidak cocok. */
 export function resolveScannedTable(tableId: unknown, key: unknown): ScannedTable | null {
   if (typeof tableId !== "string" || typeof key !== "string" || !tableId || tableId.length > 40 || key.length > 64) return null;
   if (!sameText(key, tableKey(tableId))) return null;
-  const row = getLocalDb().prepare("SELECT id, label, status FROM cafe_tables WHERE id = ?").get(tableId);
-  return row ? { id: String(row.id), label: String(row.label), status: row.status as CafeTable["status"], key } : null;
+  const row = getLocalDb().prepare("SELECT id, label, status, order_mode FROM cafe_tables WHERE id = ?").get(tableId);
+  return row ? { id: String(row.id), label: String(row.label), status: row.status as CafeTable["status"], key, order_mode: row.order_mode as "dine_in" | "takeaway" } : null;
 }
 
 function validToken(orderId: string, token: string | null): boolean {
   if (!token) return false;
-  const given = Buffer.from(token);
-  const wanted = Buffer.from(orderAccessToken(orderId));
-  return given.length === wanted.length && timingSafeEqual(given, wanted);
+  return sameText(token, orderAccessToken(orderId));
 }
 
 function parseData(value: unknown): Row {
@@ -92,8 +58,13 @@ function orderDocument(id: string): Order {
   return { ...(order as Row), user_id: "local", payment_method: "cod", items } as unknown as Order;
 }
 
-export function createLocalOrder(body: unknown): { order: Order; accessToken: string } {
+export async function createLocalOrder(body: unknown, browserHash: string): Promise<{ order: Order; accessToken: string }> {
   const raw = objectValue(body);
+  const ticket = await checkoutTicket(raw.scanTicket, browserHash);
+  const source = await qrSource(ticket.source_id, tableKey(ticket.source_id), true);
+  raw.fulfillment = source.order_mode ?? "dine_in";
+  raw.tableCode = source.id;
+  raw.tableKey = tableKey(source.id);
   const idempotencyKey = uuidValue(raw.idempotencyKey);
   const customerName = textValue(raw.customerName, "Nama", 80, 2);
   const phone = textValue(raw.phone, "Nomor HP", 20, 8).replace(/[\s()+-]/g, "");
@@ -107,12 +78,14 @@ export function createLocalOrder(body: unknown): { order: Order; accessToken: st
   const scanned = resolveScannedTable(raw.tableCode, raw.tableKey);
   if (!scanned) throw new HttpError(403, "Scan QR di meja dulu untuk memesan dari website.");
 
-  accessSecret(); // siapkan kunci token sebelum transaksi; kegagalan di sini tidak boleh terjadi setelah pesanan tersimpan
-  const id = insertOrder({ idempotencyKey, customerName, phone, fulfillment, tableCode: fulfillment === "dine_in" ? scanned.id : null, items });
+  orderAccessToken("probe"); // siapkan kunci token sebelum transaksi; kegagalan di sini tidak boleh terjadi setelah pesanan tersimpan
+  const id = insertOrder({ idempotencyKey, customerName, phone, fulfillment, tableCode: fulfillment === "dine_in" ? scanned.id : null, items, ticket, payloadHash: digestValue(JSON.stringify({ idempotencyKey, customerName, phone, fulfillment, items, source: source.id })) });
   return { order: orderDocument(id), accessToken: orderAccessToken(id) };
 }
 
 interface OrderInput {
+  ticket: CheckoutTicket;
+  payloadHash: string;
   idempotencyKey: string;
   customerName: string;
   phone: string;
@@ -122,12 +95,15 @@ interface OrderInput {
 }
 
 /** Simpan pesanan secara atomik; mengembalikan id (pesanan lama bila idempotency key sudah dipakai). */
-function insertOrder({ idempotencyKey, customerName, phone, fulfillment, tableCode, items }: OrderInput): string {
+function insertOrder({ idempotencyKey, customerName, phone, fulfillment, tableCode, items, ticket, payloadHash }: OrderInput): string {
   const db = getLocalDb();
   db.exec("BEGIN IMMEDIATE");
   let committed = false;
   try {
-    const existing = db.prepare("SELECT id FROM orders WHERE idempotency_key = ?").get(idempotencyKey);
+    const liveTicket = db.prepare("SELECT * FROM order_scan_tickets WHERE token_hash=?").get(ticket.token_hash)!;
+    if (liveTicket.used_order_id && (liveTicket.request_key !== idempotencyKey || liveTicket.payload_hash !== payloadHash)) throw new HttpError(409, "Scan QR baru untuk pesanan baru.");
+    if (!liveTicket.used_order_id && Date.parse(String(liveTicket.expires_at)) <= Date.now()) throw new HttpError(409, "Tiket scan kedaluwarsa. Scan QR lagi; keranjang tetap tersimpan.");
+    const existing = liveTicket.used_order_id ? { id: liveTicket.used_order_id } : undefined;
     if (existing) {
       db.exec("COMMIT");
       committed = true;
@@ -142,8 +118,8 @@ function insertOrder({ idempotencyKey, customerName, phone, fulfillment, tableCo
     if (fulfillment === "dine_in" && tableCode) {
       const table = db.prepare("SELECT id, status FROM cafe_tables WHERE id = ?").get(tableCode);
       if (!table) throw new HttpError(400, "Meja tidak ditemukan. Scan ulang QR di meja.");
-      // Satu pesanan aktif per meja (indeks one_active_order_per_table, sama dengan pesanan WhatsApp dan dashboard).
-      if (table.status !== "available") throw new HttpError(409, "Meja ini masih punya pesanan aktif. Untuk tambah pesanan, sampaikan ke kasir, atau pilih bawa pulang.");
+      // Beberapa pelanggan boleh memiliki pesanan terpisah di meja yang sama.
+      if (table.status === "dirty") throw new HttpError(409, "Meja perlu disiapkan dahulu. Hubungi staf.");
       tableId = String(table.id);
     }
 
@@ -166,6 +142,7 @@ function insertOrder({ idempotencyKey, customerName, phone, fulfillment, tableCo
     ).run(id, idempotencyKey, queue, customerName, phone, fulfillment, tableId, total, now, now);
     const insertItem = db.prepare("INSERT INTO order_items (id, order_id, menu_item_id, name, unit_price, quantity, notes) VALUES (?, ?, ?, ?, ?, ?, ?)");
     for (const line of lines) insertItem.run(randomUUID(), id, line.id, line.name, line.price, line.quantity, line.notes);
+    db.prepare("UPDATE order_scan_tickets SET used_order_id=?,request_key=?,payload_hash=? WHERE token_hash=?").run(id,idempotencyKey,payloadHash,ticket.token_hash);
     if (tableId) db.prepare("UPDATE cafe_tables SET status = 'occupied' WHERE id = ?").run(tableId);
     db.exec("COMMIT");
     committed = true;

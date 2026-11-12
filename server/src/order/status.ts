@@ -100,7 +100,7 @@ export function cancelSavedOrder(db: Db, chatId: string): string {
     const current = db.prepare("SELECT status, payment_status, table_id FROM orders WHERE id = ?").get(order.id);
     if (!current || current.status !== "waiting" || current.payment_status !== "unpaid") return false;
     db.prepare("UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ?").run(nowIso(), order.id);
-    if (current.table_id) db.prepare("UPDATE cafe_tables SET status = 'dirty' WHERE id = ?").run(String(current.table_id));
+    if (current.table_id) db.prepare("UPDATE cafe_tables SET status = 'dirty' WHERE id = ? AND NOT EXISTS(SELECT 1 FROM orders WHERE table_id=cafe_tables.id AND status IN ('waiting','preparing','ready'))").run(String(current.table_id));
     return true;
   });
   return result

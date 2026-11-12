@@ -19,7 +19,7 @@ export default function QrPrintAll({ floors, tables, activeFloorId }: QrPrintAll
   const [preparing, setPreparing] = useState(false);
   const [error, setError] = useState("");
 
-  const floorTables = activeFloorId ? tables.filter((table) => table.floor_id === activeFloorId) : [];
+  const floorTables = activeFloorId ? tables.filter((table) => table.floor_id === activeFloorId && table.order_mode !== "takeaway") : [];
   const activeFloor = floors.find((floor) => floor.id === activeFloorId);
 
   async function prepare(subset: AdminTable[]): Promise<void> {

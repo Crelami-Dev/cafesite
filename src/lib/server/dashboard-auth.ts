@@ -1,6 +1,7 @@
 import "server-only";
 import {isCloudPrimaryEnv} from "./storage-mode";
 import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import type { DatabaseSync } from "node:sqlite";
 import { getLocalDb } from "@/lib/db/dev-sqlite";
@@ -16,11 +17,13 @@ const equal = (a: string, b: string): boolean => {
   return x.length === y.length && timingSafeEqual(x, y);
 };
 export function passwordHash(password: string, salt: string): string { return scryptSync(password, salt, 64).toString("hex"); }
-const ownerVersion = (): string => digest(`${process.env.LOCAL_ADMIN_EMAIL}:${process.env.LOCAL_ADMIN_PASSWORD}`);
 const roleOf = (value: unknown): StaffRole => (value === "admin" ? "admin" : "staff");
 const allModules = (): { id: string; enabled: boolean }[] => MODULE_IDS.map(id => ({ id, enabled: true }));
 
-export async function dashboardAccount(): Promise<DashboardAccount | null> {
+/** Dimemo per request: layout dan halaman sama-sama memanggilnya, cukup satu kali pemeriksaan sesi. */
+export const dashboardAccount = cache(loadDashboardAccount);
+
+async function loadDashboardAccount(): Promise<DashboardAccount | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   if (isCloudPrimaryEnv()) {
@@ -34,10 +37,6 @@ export async function dashboardAccount(): Promise<DashboardAccount | null> {
   const db = getLocalDb();
   const session = db.prepare("SELECT * FROM admin_sessions WHERE token_hash=? AND expires_at>?").get(digest(token), Date.now());
   if (!session) return null;
-  if (session.account_id === "owner") {
-    if (!process.env.LOCAL_ADMIN_PASSWORD || session.owner_version !== ownerVersion()) return null;
-    return { profile: { id: "owner", role: "admin", name: "Pemilik kedai", email: process.env.LOCAL_ADMIN_EMAIL ?? "" }, modules: allModules(), mustChangePassword: false };
-  }
   const row = db.prepare("SELECT id,name,email,must_change_password,role FROM staff_accounts WHERE id=? AND enabled=1").get(String(session.account_id));
   if (!row) return null;
   const role = roleOf(row.role);
@@ -69,9 +68,7 @@ export async function authenticate(email: string, password: string): Promise<str
   const attempt = db.prepare("SELECT attempts,expires_at FROM login_attempts WHERE key=?").get(key);
   if (attempt && Number(attempt.expires_at) > Date.now() && Number(attempt.attempts) >= 8) throw new HttpError(429, "Terlalu banyak percobaan. Coba lagi dalam 15 menit.");
   let id = "";
-  const owner = process.env.LOCAL_ADMIN_EMAIL?.trim().toLowerCase();
-  if (owner && process.env.LOCAL_ADMIN_PASSWORD && equal(normalized, owner) && equal(password, process.env.LOCAL_ADMIN_PASSWORD)) id = "owner";
-  else {
+  {
     const row = db.prepare("SELECT * FROM staff_accounts WHERE email=? COLLATE NOCASE AND enabled=1").get(normalized);
     const hash = passwordHash(password, row ? String(row.salt) : "cafesite-invalid-login");
     if (row && equal(hash, String(row.password_hash))) id = String(row.id);
@@ -88,7 +85,7 @@ export async function authenticate(email: string, password: string): Promise<str
   db.prepare("DELETE FROM login_attempts WHERE key=?").run(key);
   db.prepare("DELETE FROM admin_sessions WHERE expires_at<=?").run(Date.now());
   const token = randomBytes(32).toString("base64url");
-  db.prepare("INSERT OR REPLACE INTO admin_sessions VALUES(?,?,?,?)").run(digest(token), id, Date.now()+8*3600000, id === "owner" ? ownerVersion() : null);
+  db.prepare("INSERT OR REPLACE INTO admin_sessions VALUES(?,?,?,?)").run(digest(token), id, Date.now()+8*3600000, null);
   return token;
 }
 export async function revokeCurrentSession(): Promise<void> {
@@ -105,13 +102,13 @@ export async function staffList(): Promise<StaffAccount[]> {
  * Simpan akun staf/admin. Mode lokal: tulis ke SQLite lalu langsung salin ke Supabase (bila terhubung);
  * `cloud` memberi tahu hasil salinannya. Mode cloud: langsung ke Supabase.
  */
-export async function saveStaff(body: Record<string, unknown>, actorId?: string): Promise<{ temporaryPassword?: string; cloud: StaffCloudState }> {
+export async function saveStaff(body: Record<string, unknown>, actorId?: string): Promise<{ temporaryPassword?: string; cloud: StaffCloudState; auth: StaffCloudState }> {
   if (isCloudPrimaryEnv()) return { ...(await (await import("./cloud-auth")).cloudSaveStaff(body, actorId)), cloud: "saved" };
   const db = getLocalDb(); const id = body.id ? textValue(body.id, "Akun", 80) : randomUUID();
   const existing = db.prepare("SELECT * FROM staff_accounts WHERE id=?").get(id);
   if (body.id && !existing) throw new HttpError(404, "Akun tidak ditemukan.");
   const name = textValue(body.name, "Nama", 80); const email = textValue(body.email, "Email", 160).toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email === process.env.LOCAL_ADMIN_EMAIL?.toLowerCase()) throw new HttpError(400, "Email tidak valid atau sudah digunakan pemilik.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, "Email tidak valid.");
   if (db.prepare("SELECT id FROM staff_accounts WHERE email=? COLLATE NOCASE AND id<>?").get(email,id)) throw new HttpError(409,"Email sudah digunakan.");
   const role: StaffRole = body.role === "admin" ? "admin" : "staff";
   if (actorId && id === actorId && (role !== "admin" || body.enabled === false)) throw new HttpError(400, "Anda tidak bisa menurunkan atau menonaktifkan akun Anda sendiri.");
@@ -131,8 +128,30 @@ export async function saveStaff(body: Record<string, unknown>, actorId?: string)
     db.exec("COMMIT");
   } catch(error) { db.exec("ROLLBACK"); throw error; }
   const { mirrorStaffToSupabase } = await import("./cloud-sync");
-  const cloud = await mirrorStaffToSupabase(id, revoke);
-  return { ...(temporaryPassword ? { temporaryPassword } : {}), cloud };
+  const sync = await mirrorStaffToSupabase(id, revoke, temporaryPassword);
+  return { ...(temporaryPassword ? { temporaryPassword } : {}), ...sync };
+}
+/**
+ * Hapus akun. Pengaman: tidak boleh menghapus akun sendiri, dan harus tersisa minimal satu admin aktif.
+ * Mode lokal: hapus di SQLite lalu di Supabase; `cloud` melaporkan hasil penghapusan di Supabase.
+ */
+export async function deleteStaff(id: string, actorId?: string): Promise<{ cloud: StaffCloudState; auth: StaffCloudState }> {
+  if (isCloudPrimaryEnv()) return (await import("./cloud-auth")).cloudDeleteStaff(id, actorId);
+  const db = getLocalDb();
+  if (actorId && id === actorId) throw new HttpError(400, "Anda tidak bisa menghapus akun Anda sendiri.");
+  const target = db.prepare("SELECT id,email FROM staff_accounts WHERE id=?").get(id);
+  if (!target) throw new HttpError(404, "Akun tidak ditemukan.");
+  const admins = Number(db.prepare("SELECT COUNT(*) AS n FROM staff_accounts WHERE role='admin' AND enabled=1 AND id<>?").get(id)?.n ?? 0);
+  if (admins < 1) throw new HttpError(400, "Tidak bisa menghapus: harus tersisa minimal satu admin aktif.");
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    db.prepare("DELETE FROM admin_sessions WHERE account_id=?").run(id);
+    db.prepare("DELETE FROM staff_permissions WHERE account_id=?").run(id);
+    db.prepare("DELETE FROM staff_accounts WHERE id=?").run(id);
+    db.exec("COMMIT");
+  } catch (error) { db.exec("ROLLBACK"); throw error; }
+  const { mirrorDeleteStaffToSupabase } = await import("./cloud-sync");
+  return mirrorDeleteStaffToSupabase(id, String(target.email));
 }
 export async function changeStaffPassword(id: string, current: string, password: string): Promise<void> {
   if (isCloudPrimaryEnv()) return (await import("./cloud-auth")).cloudChangePassword(id,current,password);
@@ -144,5 +163,5 @@ export async function changeStaffPassword(id: string, current: string, password:
   try { db.prepare("UPDATE staff_accounts SET salt=?,password_hash=?,must_change_password=0 WHERE id=?").run(salt,passwordHash(password,salt),id); db.prepare("DELETE FROM admin_sessions WHERE account_id=?").run(id); db.exec("COMMIT"); }
   catch(error) { db.exec("ROLLBACK"); throw error; }
   const { mirrorStaffToSupabase } = await import("./cloud-sync");
-  await mirrorStaffToSupabase(id, true);
+  await mirrorStaffToSupabase(id, true, password);
 }

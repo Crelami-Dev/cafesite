@@ -266,7 +266,20 @@ a:hover > .m-zoom img, .m-zoom:hover img { transform: scale(1.03); }
 .board-row__name { font-size: 17px; font-weight: 500; line-height: 1.35; }
 .board-row__dots { flex: 1; min-width: 24px; border-bottom: 2px dotted color-mix(in srgb, var(--color-offwhite) 28%, transparent); transform: translateY(-4px); }
 .board-row__price { font-variant-numeric: tabular-nums; font-weight: 500; white-space: nowrap; }
+/* Mobile: papan menu ringkas, tanpa titik-titik; nama di kiri, harga di kanan. */
+@media(max-width:639px) {
+  .board-section { padding-block: 56px; }
+  .board-grid { gap: 28px; margin-top: 24px; }
+  .board-row { gap: 12px; padding-block: 10px; min-height: 0; }
+  .board-row__line { flex-direction: column; align-items: flex-start; gap: 3px; }
+  .board-row__dots { display: none; }
+  .board-row__name { font-size: 16px; min-width: 0; }
+  .board-row__price { font-size: 15px; flex-shrink: 0; }
+}
 .board-row__desc { display: block; margin-top: 2px; font-size: 15px; line-height: 1.5; color: var(--color-offwhite-muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+@media(max-width:639px) {
+  .board-row__desc { margin-top: 4px; font-size: 13px; }
+}
 .board-row:hover .board-row__name { color: var(--color-terracotta-light); }
 @media(min-width:1024px) {
  .board-section { padding-block: 104px; }
@@ -304,6 +317,13 @@ a:hover > .m-zoom img, .m-zoom:hover img { transform: scale(1.03); }
 @media(min-width:640px) {
   .collage-bento__row { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); align-items: stretch; }
   .collage-bento__sub { aspect-ratio: auto; min-height: 220px; }
+}
+/* Mobile (< 640px): kolase = dua foto berdampingan di baris 1, kartu teks selebar penuh di baris 2. */
+@media(max-width:639px) {
+  .collage-bento { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; height: auto; }
+  .collage-bento__row { display: contents; }
+  .collage-bento__main, .collage-bento__sub { aspect-ratio: 4 / 5; min-height: 0; flex: none; }
+  .collage-bento__card { grid-column: 1 / -1; }
 }
 @media(prefers-reduced-motion:reduce) { .ticket, .ticket:hover { transform: none; transition: none; } }
 

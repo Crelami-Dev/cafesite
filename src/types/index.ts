@@ -134,6 +134,11 @@ export interface SiteShellProps {
   floatingContact: React.ReactNode;
 }
 
+export interface ErrorPageProps {
+  error: Error & { digest?: string };
+  retry: () => void;
+}
+
 export * from "./operations";
 export * from "./admin";
 export * from "./ordering";

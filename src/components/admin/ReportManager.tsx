@@ -5,6 +5,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import type { DashboardReport } from "@/types";
 import { adminRequest, adminError, adminInputClass, adminSecondaryClass } from "./admin-api";
 import { formatRupiah } from "./orders/order-format";
+import Skeleton from "./ui/Skeleton";
 
 export default function ReportManager(): React.JSX.Element {
   const params = useSearchParams();
@@ -94,9 +95,12 @@ export default function ReportManager(): React.JSX.Element {
           {error}
         </p>
       ) : loading ? (
-        <p role="status" className="text-sm text-offwhite-muted">
-          Memuat laporan…
-        </p>
+        <div className="grid gap-3 sm:grid-cols-3" aria-busy="true">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-48 sm:col-span-3" />
+        </div>
       ) : (
         data && (
           <>

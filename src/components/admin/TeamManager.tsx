@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import type { StaffAccount, StaffCloudState } from "@/types";
 import { dashboardNavigation } from "@/lib/admin-navigation";
-import { CheckIcon, PlusIcon, ShieldIcon, UserIcon, WarningIcon } from "@/components/ui/icons";
+import { CheckIcon, PlusIcon, ShieldIcon, TrashIcon, UserIcon, WarningIcon } from "@/components/ui/icons";
 import { useDashboard } from "./DashboardShell";
-import { adminRequest, adminError, adminButtonClass, adminInputClass, adminSecondaryClass } from "./admin-api";
+import { adminRequest, adminError, adminPeek, adminButtonClass, adminDangerClass, adminInputClass, adminSecondaryClass } from "./admin-api";
 import DashboardDialog from "./DashboardDialog";
 import EmptyState from "./ui/EmptyState";
 import PageHeader from "./ui/PageHeader";
@@ -13,6 +13,8 @@ import SegmentedTabs from "./ui/SegmentedTabs";
 import Skeleton from "./ui/Skeleton";
 import StatusBadge from "./ui/StatusBadge";
 import Switch from "./ui/Switch";
+import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
+import { useSingleFlight } from "./useSingleFlight";
 
 const MODULES = dashboardNavigation.filter((n) => !["summary", "modules"].includes(n.id));
 
@@ -21,23 +23,30 @@ const BLANK: StaffAccount = { id: "", name: "", email: "", role: "staff", enable
 interface SavedInfo {
   temporaryPassword?: string;
   cloud: StaffCloudState;
+  auth: StaffCloudState;
   name: string;
 }
 
-function cloudNote(state: StaffCloudState): { text: string; ok: boolean } | null {
-  if (state === "saved") return { text: "Tersimpan juga di Supabase, jadi akun ini bisa dipakai di situs publik.", ok: true };
-  if (state === "pending") return { text: "Tersimpan di komputer ini, tetapi salinan ke Supabase belum berhasil. Coba simpan ulang saat koneksi pulih.", ok: false };
-  return null;
+function cloudNotes(cloud: StaffCloudState, auth: StaffCloudState): { text: string; ok: boolean }[] {
+  const notes: { text: string; ok: boolean }[] = [];
+  if (cloud === "saved") notes.push({ text: "Tersimpan di Supabase: akun ini bisa dipakai login di situs publik.", ok: true });
+  if (cloud === "pending") notes.push({ text: "Tersimpan di komputer ini, tetapi belum masuk tabel akun Supabase. Simpan ulang saat koneksi pulih.", ok: false });
+  if (auth === "saved") notes.push({ text: "Terdaftar juga di Supabase Authentication → Users.", ok: true });
+  if (auth === "pending") notes.push({ text: "Belum masuk Supabase Authentication. Login tetap bisa; coba simpan ulang untuk mengirim ulang.", ok: false });
+  return notes;
 }
 
 export default function TeamManager(): React.JSX.Element {
   const { account } = useDashboard();
-  const [rows, setRows] = useState<StaffAccount[]>([]);
+  const [rows, setRows] = useState<StaffAccount[]>(() => adminPeek<{ data: StaffAccount[] }>("team")?.data ?? []);
   const [edit, setEdit] = useState<StaffAccount | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(() => !adminPeek("team"));
+  const saveFlight = useSingleFlight();
+  const busy = saveFlight.pending;
+  const [deleting, setDeleting] = useState<StaffAccount | null>(null);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState<SavedInfo | null>(null);
+  const [removed, setRemoved] = useState<{ name: string; cloud: StaffCloudState; auth: StaffCloudState } | null>(null);
   const [reset, setReset] = useState(false);
   const [dirty, setDirty] = useState(false);
 
@@ -82,26 +91,43 @@ export default function TeamManager(): React.JSX.Element {
 
   async function save(): Promise<void> {
     if (!edit) return;
-    setBusy(true);
+    await saveFlight.run(async () => {
+      setError("");
+      try {
+        const r = await adminRequest<{ temporaryPassword?: string; cloud: StaffCloudState; auth: StaffCloudState }>("team", {
+          method: "PUT",
+          body: JSON.stringify({ ...edit, id: edit.id || undefined, resetPassword: reset }),
+        });
+        setSaved({ temporaryPassword: r.temporaryPassword, cloud: r.cloud, auth: r.auth ?? "off", name: edit.name });
+        setEdit(null);
+        setDirty(false);
+        await load();
+      } catch (e) {
+        setError(adminError(e));
+      }
+    });
+  }
+
+  /** Buka dialog konfirmasi hapus (dialog yang menunggu server sampai akun benar-benar terhapus). */
+  function remove(): void {
+    if (!edit?.id) return;
     setError("");
-    try {
-      const r = await adminRequest<{ temporaryPassword?: string; cloud: StaffCloudState }>("team", {
-        method: "PUT",
-        body: JSON.stringify({ ...edit, id: edit.id || undefined, resetPassword: reset }),
-      });
-      setSaved({ temporaryPassword: r.temporaryPassword, cloud: r.cloud, name: edit.name });
-      setEdit(null);
-      setDirty(false);
-      await load();
-    } catch (e) {
-      setError(adminError(e));
-    } finally {
-      setBusy(false);
-    }
+    setDeleting(edit);
+  }
+
+  async function performDelete(target: StaffAccount): Promise<void> {
+    const r = await adminRequest<{ cloud: StaffCloudState; auth: StaffCloudState }>("team", {
+      method: "DELETE",
+      body: JSON.stringify({ id: target.id }),
+    });
+    setRemoved({ name: target.name, cloud: r.cloud, auth: r.auth ?? "off" });
+    setEdit(null);
+    setDirty(false);
+    await load();
   }
 
   const isSelf = edit?.id !== "" && edit?.id === account.profile.id;
-  const note = saved ? cloudNote(saved.cloud) : null;
+  const notes = saved ? cloudNotes(saved.cloud, saved.auth) : [];
 
   return (
     <div className="grid gap-4 md:gap-5">
@@ -297,7 +323,56 @@ export default function TeamManager(): React.JSX.Element {
                 Batal
               </button>
             </div>
+
+            {edit.id && !isSelf && (
+              <div className="grid gap-2 border-t border-offwhite/10 pt-5">
+                <p className="text-xs text-offwhite-muted">
+                  Menghapus akun bersifat permanen di komputer ini dan di Supabase.
+                </p>
+                <button type="button" disabled={busy} onClick={() => remove()} className={adminDangerClass}>
+                  <TrashIcon className="size-4" /> Hapus akun
+                </button>
+              </div>
+            )}
           </form>
+        </DashboardDialog>
+      )}
+
+      {deleting && (
+        <ConfirmDeleteDialog
+          title="Hapus akun"
+          message={`Hapus akun ${deleting.name} (${deleting.email}) secara permanen? Akun ini tidak bisa masuk lagi dan tidak bisa dikembalikan.`}
+          confirmLabel="Hapus akun"
+          onConfirm={() => performDelete(deleting)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
+
+      {removed && (
+        <DashboardDialog title="Akun dihapus" onClose={() => setRemoved(null)}>
+          <div className="grid gap-4">
+            <p className="text-sm text-offwhite-muted">Akun {removed.name} sudah dihapus dan tidak bisa masuk lagi.</p>
+            {removed.cloud === "saved" && (
+              <p className="flex items-start gap-2 rounded-lg border border-offwhite/20 p-3 text-sm">
+                <CheckIcon className="mt-0.5 size-4 shrink-0" /> Akun juga sudah dihapus di Supabase
+                {removed.auth === "saved" ? " (termasuk Authentication)." : "."}
+              </p>
+            )}
+            {removed.cloud === "saved" && removed.auth === "pending" && (
+              <p className="flex items-start gap-2 rounded-lg border border-terracotta-light/40 bg-terracotta/10 p-3 text-sm text-terracotta-light">
+                <WarningIcon className="mt-0.5 size-4 shrink-0" /> Belum terhapus di Supabase Authentication. Hapus manual di Authentication → Users.
+              </p>
+            )}
+            {removed.cloud === "pending" && (
+              <p className="flex items-start gap-2 rounded-lg border border-terracotta-light/40 bg-terracotta/10 p-3 text-sm text-terracotta-light">
+                <WarningIcon className="mt-0.5 size-4 shrink-0" />
+                Terhapus di komputer ini, tetapi belum di Supabase. Akun itu masih bisa masuk di situs publik sampai dihapus di sana.
+              </p>
+            )}
+            <button type="button" className={adminButtonClass} onClick={() => setRemoved(null)}>
+              Mengerti
+            </button>
+          </div>
         </DashboardDialog>
       )}
 
@@ -314,8 +389,9 @@ export default function TeamManager(): React.JSX.Element {
             ) : (
               <p className="text-sm text-offwhite-muted">Perubahan untuk {saved.name} sudah disimpan.</p>
             )}
-            {note && (
+            {notes.map((note) => (
               <p
+                key={note.text}
                 className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${
                   note.ok ? "border-offwhite/20 text-offwhite" : "border-terracotta-light/40 bg-terracotta/10 text-terracotta-light"
                 }`}
@@ -323,7 +399,7 @@ export default function TeamManager(): React.JSX.Element {
                 {note.ok ? <CheckIcon className="mt-0.5 size-4 shrink-0" /> : <WarningIcon className="mt-0.5 size-4 shrink-0" />}
                 {note.text}
               </p>
-            )}
+            ))}
             <button type="button" className={adminButtonClass} onClick={() => setSaved(null)}>
               Sudah disimpan
             </button>
