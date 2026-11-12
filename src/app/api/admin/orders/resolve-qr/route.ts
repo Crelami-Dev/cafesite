@@ -12,6 +12,7 @@ export async function POST(request: Request): Promise<Response> {
     const body = await bodyJson(request);
     const payload = textValue(body.payload, "QR atau nomor pesanan", 256).trim();
     const number = /^(?:#?A-)?([0-9]{1,10})$/i.exec(payload);
+    const uuidMatch = /(?:\/order\/|^)([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i.exec(payload);
     let id: string;
     if (number) {
       const queue = Number(number[1]);
@@ -26,7 +27,11 @@ export async function POST(request: Request): Promise<Response> {
       }
       if (rows.length !== 1) throw new HttpError(404, "Nomor pesanan tidak ditemukan atau tidak unik. Gunakan QR pelanggan.");
       id = rows[0].id;
-    } else id = cashierOrderId(payload);
+    } else if (uuidMatch) {
+      id = uuidMatch[1];
+    } else {
+      id = cashierOrderId(payload);
+    }
     const order = isCloudPrimaryEnv()
       ? await cloudRpc("cafesite_order_document", { order_uuid: id })
       : readLocalOrder(id, orderAccessToken(id));
