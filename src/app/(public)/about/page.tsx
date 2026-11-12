@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { PageIntro } from "@/components/public/PageIntro";
 import { AboutContent } from "@/components/public/AboutContent";
 import { getPublicContent } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
@@ -16,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const { cafe } = await getPublicContent();
   return createPageMetadata({
     title: `Tentang ${cafe.name}`,
-    description: `Kenali kedai ${cafe.name}, lihat suasananya, dan cek informasi sebelum datang.`,
+    description: `Kenali kedai ${cafe.name}, prinsip seduhan, dan suasana ruang sebelum datang.`,
     path: "/about",
   });
 }
@@ -25,17 +24,11 @@ export default async function AboutPage(): Promise<React.JSX.Element> {
   const { cafe, cafeConfirmed, gallery } = await getPublicContent();
   const area = extractArea(cafe.address, cafe.city);
   return (
-    <>
-      <PageIntro
-        label={`Tentang ${cafe.name}`}
-        title={`Kedai kopi ${cafe.name}.`}
-        description={
-          cafeConfirmed && cafe.tagline
-            ? `${cafe.tagline} — berlokasi di ${area}.`
-            : `Kedai kopi di ${area} untuk duduk lama: kopi single origin, makanan hangat, dan ruang yang tenang.`
-        }
-      />
-      <AboutContent cafe={cafe} photos={gallery} />
-    </>
+    <AboutContent
+      cafe={cafe}
+      area={area}
+      configured={cafeConfirmed}
+      photos={gallery}
+    />
   );
 }

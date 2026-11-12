@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { PageIntro } from "@/components/public/PageIntro";
 import { LocationContent } from "@/components/public/LocationContent";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getPublicContent } from "@/lib/content";
@@ -11,20 +10,19 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `Lokasi, Jam Buka & Petunjuk Arah ${cafe.name}`,
     description: `Temukan alamat, jam operasional, akses transportasi, dan kontak WhatsApp ${cafe.name}. Buka petunjuk arah Google Maps atau hubungi kami.`,
     path: "/location",
-    keywords: ["lokasi cafe cipete", "jam buka cafe jakarta selatan", "rute cafe cilandak"],
+    keywords: [
+      "lokasi cafe cipete",
+      "jam buka cafe jakarta selatan",
+      "rute cafe cilandak",
+    ],
   });
 }
 
 export default async function LocationPage(): Promise<React.JSX.Element> {
-  const { cafe, faq } = await getPublicContent();
+  const { faq } = await getPublicContent();
   return (
     <>
       {faq.length > 0 && <JsonLd data={buildFaqJsonLd(faq)} />}
-      <PageIntro
-        label={`Lokasi ${cafe.name}`}
-        title="Alamat & jam operasional."
-        description="Cek jam operasional dan petunjuk arah sebelum berangkat."
-      />
       <LocationContent />
     </>
   );

@@ -11,23 +11,19 @@ interface GallerySectionProps {
   initialPhotos?: GalleryPhoto[];
 }
 
-/**
- * GallerySection — Client Component Orkestrator Filter & Grid
- * Menyimpan state kategori aktif murni dengan useState tanpa library eksternal.
- */
 export function GallerySection({
   initialPhotos = galleryPhotos,
-}: GallerySectionProps) {
+}: GallerySectionProps): React.JSX.Element {
   const [activeCategory, setActiveCategory] = useState<"all" | GalleryCategory>(
     "all",
   );
   const [hasFiltered, setHasFiltered] = useState(false);
+
   const selectCategory = (category: "all" | GalleryCategory): void => {
     setHasFiltered(true);
     setActiveCategory(category);
   };
 
-  // Hitung jumlah item per kategori untuk badge filter
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {
       all: initialPhotos.length,
@@ -38,7 +34,6 @@ export function GallerySection({
     return counts;
   }, [initialPhotos]);
 
-  // Filter foto berdasarkan kategori yang dipilih
   const filteredPhotos = useMemo(() => {
     if (activeCategory === "all") return initialPhotos;
     return initialPhotos.filter((photo) => photo.category === activeCategory);
@@ -56,11 +51,14 @@ export function GallerySection({
       <section
         id="gallery-grid"
         aria-label="Koleksi Foto Galeri"
-        className="py-12 md:py-16"
+        className="py-8 sm:py-10 lg:py-12"
       >
         <Container size="default">
-          {/* key agar caption reset ke hidden saat ganti kategori */}
-          <GalleryGrid key={activeCategory} photos={filteredPhotos} animateIn={hasFiltered} />
+          <GalleryGrid
+            key={activeCategory}
+            photos={filteredPhotos}
+            animateIn={hasFiltered}
+          />
         </Container>
       </section>
     </>

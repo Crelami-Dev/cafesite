@@ -2,112 +2,108 @@ import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { CafePhoto } from "./CafePhoto";
+import { AboutCraftShowcase } from "./AboutCraftShowcase";
 import type { CafeInfo, GalleryPhoto } from "@/types";
 
-// TODO: konfirmasi cerita dan tiga nilai kedai dengan client (copy contoh mengikuti BRAND_VOICE.md).
-const VALUES = [
-  {
-    id: "biji",
-    title: "Biji dari sumbernya",
-    text: "Kami beli dari petani yang kami kenal dan menyangrai rutin. Soal rasa, kami nggak mau ngarang.",
-    src: "/Image/Menu/V60.png",
-    alt: "Kopi manual brew V60 dituang dari server kaca ke gelas",
-  },
-  {
-    id: "seduh",
-    title: "Seduh yang nggak buru-buru",
-    text: "V60 atau kopi susu, takarannya dihitung. Sisanya menunggu sampai rasanya pas.",
-    src: "/Image/Gallery/gal-02-morning-brew.jpg",
-    alt: "Barista CafeSite menuang kopi hasil seduhan manual ke cangkir putih",
-  },
-  {
-    id: "ruang",
-    title: "Ruang buat duduk lama",
-    text: "Colokan dekat, cahaya teduh, kursi enak. Kerja atau ngobrol, dua-duanya kerasan.",
-    src: "/Image/Gallery/gal-06-lampu-bar.jpg",
-    alt: "Ruang dalam CafeSite yang terang dengan tamu membaca di dekat jendela",
-  },
-] as const;
+const PILLARS = ["Single Origin Mingguan", "Seduhan Terukur", "3 Zona Duduk"] as const;
 
-/** Halaman Tentang: cerita kedai (teks kiri, foto kanan), tiga hal yang dijaga, lalu ajakan memesan. */
+/** Halaman Tentang: Pembuka editorial ringkas (tanpa duplikasi hero) + Showcase slider prinsip kedai. */
 export function AboutContent({
   cafe,
+  area,
+  configured,
   photos,
 }: {
-  cafe?: CafeInfo;
+  cafe: CafeInfo;
+  area: string;
+  configured: boolean;
   photos?: GalleryPhoto[];
 }): React.JSX.Element {
-  const storyPhoto = photos?.[0] ?? {
+  const leadPhoto = photos?.[0] ?? {
     src: "/Image/Gallery/gal-01-window-table.jpg",
-    alt: `Meja kayu di samping jendela ${cafe?.name ?? "CafeSite"} dengan cangkir kopi dan cahaya siang`,
+    alt: `Meja kayu di samping jendela ${cafe.name} dengan cangkir kopi dan cahaya siang`,
   };
+  const insetPhoto = photos?.[2] ?? {
+    src: "/Image/Gallery/gal-03-calm-corner.jpg",
+    alt: `Sudut tenang ${cafe.name} dengan cangkir kopi di atas meja kayu`,
+  };
+
   return (
     <>
-      <section className="home-section" aria-labelledby="about-story-heading">
+      <section
+        className="hero border-b border-offwhite/10 py-10 sm:py-14 lg:py-16"
+        data-enter
+        aria-labelledby="about-heading"
+      >
         <Container>
-          <div className="story-split">
-            <div data-reveal-group>
-              <h2 id="about-story-heading" className="public-h2">
-                Cerita kedai: kopi yang nggak diburu
-              </h2>
-              <div className="mt-6 max-w-xl space-y-4 text-lg leading-relaxed text-offwhite-muted">
-                <p>
-                  Banyak kafe ingin mejanya cepat kosong. Kami nggak. Kopinya diracik santai, kursinya sengaja dibuat
-                  nyaman, dan kamu boleh duduk sampai sore tanpa ditanya-tanya.
-                </p>
-                <p>
-                  Dari biji sampai lampunya, semua kami pilih dengan satu pertanyaan: enak nggak buat duduk lama? Kalau
-                  enak, kami simpan. Kalau nggak, kami ganti.
-                </p>
-              </div>
-              <div className="mt-8 flex flex-wrap items-center gap-6">
-                <Button href="/menu" variant="outline" size="lg">
+          <div className="grid items-center gap-10 lg:grid-cols-12 lg:gap-10">
+            {/* Kolom kiri: Judul langsung + narasi ringkas + fakta padat */}
+            <div className="lg:col-span-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-terracotta-light">
+                Tentang {cafe.name} · {area}
+              </p>
+              <h1 id="about-heading" className="public-h1 mt-3">
+                Kopi yang nggak diburu.
+              </h1>
+              <p className="mt-5 max-w-xl text-base leading-relaxed text-offwhite-muted sm:text-lg">
+                {configured && cafe.tagline
+                  ? `${cafe.tagline}. `
+                  : ""}
+                Banyak kafe ingin mejanya cepat kosong. Kami meracik kopi perlahan, memilih kursi yang
+                nyaman, dan membiarkanmu duduk sampai sore tanpa tergesa.
+              </p>
+
+              <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-offwhite-muted sm:text-sm">
+                {PILLARS.map((pillar) => (
+                  <li key={pillar} className="inline-flex items-center gap-2">
+                    <span className="size-1.5 rounded-full bg-terracotta-light" aria-hidden="true" />
+                    <span>{pillar}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-8 flex flex-wrap items-center gap-4">
+                <Button href="/menu" size="lg">
                   Lihat menu & harga
                 </Button>
-                <Link className="link inline-flex min-h-11 items-center text-base" href="/gallery">
-                  Lihat galeri <span className="ml-2" aria-hidden="true">↗</span>
+                <Link
+                  className="inline-flex min-h-12 items-center rounded-md border border-offwhite/20 px-5 text-sm font-medium text-offwhite transition hover:border-offwhite/45 hover:bg-charcoal-light"
+                  href="/gallery"
+                >
+                  Lihat galeri suasana
                 </Link>
               </div>
             </div>
-            <CafePhoto
-              src={storyPhoto.src || "/Image/Gallery/gal-01-window-table.jpg"}
-              alt={storyPhoto.alt || `Suasana ${cafe?.name ?? "CafeSite"}`}
-              className="aspect-[4/5] w-full"
-              sizes="(min-width: 1024px) 588px, 100vw"
-              moment
-            />
+
+            {/* Kolom kanan: Kolase asimetris bersih 2 foto (ringkas di mobile, bertumpuk artistik di desktop/tablet) */}
+            <div className="lg:col-span-6">
+              <div className="grid grid-cols-12 items-end gap-3 sm:gap-4">
+                <div className="col-span-8">
+                  <CafePhoto
+                    src={leadPhoto.src || "/Image/Gallery/gal-01-window-table.jpg"}
+                    alt={leadPhoto.alt || `Suasana ${cafe.name}`}
+                    className="aspect-[4/3] w-full rounded-lg lg:aspect-[4/5]"
+                    sizes="(min-width: 1024px) 380px, 65vw"
+                    priority
+                    moment
+                  />
+                </div>
+                <div className="col-span-4 pb-3 lg:pb-8">
+                  <CafePhoto
+                    src={insetPhoto.src || "/Image/Gallery/gal-03-calm-corner.jpg"}
+                    alt={insetPhoto.alt || `Sudut meja tenang ${cafe.name}`}
+                    className="aspect-[3/4] w-full rounded-lg"
+                    sizes="(min-width: 1024px) 200px, 32vw"
+                    reveal
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </Container>
       </section>
 
-      <section className="home-section" aria-labelledby="about-values-heading">
-        <Container>
-          <div className="flex flex-wrap items-end justify-between gap-4" data-reveal>
-            <h2 id="about-values-heading" className="public-h2">
-              Tiga hal yang kami jaga
-            </h2>
-            <Link className="link inline-flex min-h-11 items-center text-base" href="/location">
-              Lokasi dan jam buka <span className="ml-2" aria-hidden="true">↗</span>
-            </Link>
-          </div>
-          <ul className="mt-12 grid gap-10 md:grid-cols-3 md:gap-6">
-            {VALUES.map((value) => (
-              <li key={value.id}>
-                <CafePhoto src={value.src} alt={value.alt} className="aspect-[4/3] w-full" sizes="(min-width: 1024px) 384px, 100vw" reveal />
-                <div data-reveal>
-                  <h3 className="mt-5 text-xl font-medium">{value.title}</h3>
-                  <p className="mt-2 text-base leading-relaxed text-offwhite-muted">{value.text}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-12" data-reveal>
-            <Button href="/order" size="lg">
-              Pesan menu <span aria-hidden="true">↗</span>
-            </Button>
-          </div>
-        </Container>
-      </section>
+      <AboutCraftShowcase />
     </>
   );
 }
