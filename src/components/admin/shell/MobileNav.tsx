@@ -21,7 +21,7 @@ export default function MobileNav({
     <nav
       aria-label="Navigasi utama"
       style={{ gridTemplateColumns: `repeat(${slots.length + 1}, minmax(0, 1fr))` }}
-      className="fixed inset-x-0 bottom-0 z-30 grid border-t border-offwhite/10 bg-charcoal-darkest pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 grid border-t border-offwhite/10 bg-charcoal-darkest pb-[env(safe-area-inset-bottom)] dashboard-wide:hidden"
     >
       {slots.map((n) => {
         const active = isActive(pathname, n);

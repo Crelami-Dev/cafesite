@@ -18,7 +18,7 @@ export interface OrderStartProps { menu: MenuItem[]; meja: string; k: string }
 export interface CustomerOrderCardProps { order: Order }
 export interface CashierQrProps { payload: string }
 export interface EditCustomerOrderProps { id: string }
-export interface CashierOrderScannerProps { onFound: (id: string) => void }
+export interface CashierOrderScannerProps { onFound: (order: Order) => void }
 export interface CustomerOrdersLinkProps { className?: string; onClick?: () => void; compact?: boolean }
 export interface CustomerOrdersState {
   orders: Order[]; hasOrders: boolean; loading: boolean; error: string; unavailable: string[];

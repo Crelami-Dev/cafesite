@@ -53,9 +53,23 @@ export function OrderGuideSection(): React.JSX.Element {
                 </li>
               ))}
             </ol>
-            <Link href="/order" className="link mt-10 inline-flex min-h-11 items-center text-base">
-              Buka halaman pesan <span className="ml-2" aria-hidden="true">↗</span>
-            </Link>
+            <div className="mt-10 flex flex-col sm:flex-row sm:items-center gap-4">
+              <Link href="/order" className="link inline-flex min-h-11 items-center text-base">
+                Buka halaman pesan <span className="ml-2" aria-hidden="true">↗</span>
+              </Link>
+            </div>
+
+            <div className="mt-8 rounded-lg border border-offwhite/15 bg-charcoal-light/40 p-4" data-reveal>
+              <div className="flex items-center gap-2.5">
+                <span className="rounded bg-terracotta/20 px-2 py-0.5 text-xs font-medium text-terracotta-light">
+                  Segera Hadir
+                </span>
+                <p className="text-sm font-medium text-offwhite">Pesan via WhatsApp</p>
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-offwhite-muted">
+                Layanan pemesanan otomatis lewat asisten WhatsApp sedang disiapkan. Untuk saat ini, silakan pesan langsung melalui website (scan QR di meja) atau memesan di kasir.
+              </p>
+            </div>
           </div>
 
           <figure className="ticket" data-reveal="ticket" role="img" aria-label="Gambaran tiket nomor antrean di HP: nomor A-012, pesanan sedang diproses">

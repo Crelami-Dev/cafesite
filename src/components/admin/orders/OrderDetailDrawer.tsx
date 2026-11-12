@@ -1,5 +1,5 @@
 "use client";
-import { useDialogFocus } from "../useDialogFocus";
+import OrderPanel from "./OrderPanel";
 import type { AdminMenuRecord, Order, OrderStatus } from "@/types";
 import { CheckIcon, CloseIcon, ExternalLinkIcon } from "@/components/ui/icons";
 import AdminNotice from "../AdminNotice";
@@ -38,26 +38,13 @@ export default function OrderDetailDrawer({
   onUpdateStatus,
   onToggleMenu,
 }: OrderDetailDrawerProps): React.JSX.Element {
-  useDialogFocus(onClose);
   const canToggleMenu = order.status === "waiting" || order.status === "preparing";
   const nextAction = nextOrderAction(order);
   const source = order.source === "whatsapp" ? "WhatsApp" : order.source === "web" ? "Website" : "";
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end bg-charcoal-darkest/80 md:items-stretch"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <aside
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="order-detail-title"
-        className="flex max-h-[92dvh] w-full flex-col overflow-y-auto rounded-t-2xl border border-offwhite/10 bg-charcoal shadow-floating md:ml-auto md:max-h-none md:h-full md:max-w-xl md:rounded-none md:border-y-0 md:border-r-0"
-      >
-        <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-offwhite/10 bg-charcoal px-5 py-4 md:px-7">
+    <OrderPanel titleId="order-detail-title" onClose={onClose}>
+        <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-offwhite/10 bg-charcoal px-5 py-4 dashboard-wide:px-7">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 id="order-detail-title" className="text-3xl font-semibold tabular-nums">
@@ -80,7 +67,7 @@ export default function OrderDetailDrawer({
           </button>
         </header>
 
-        <div className="grid gap-5 px-5 py-5 md:px-7">
+        <div className="grid gap-5 px-5 py-5 dashboard-wide:px-7">
           <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 text-sm">
             <dt className="text-offwhite-darker">Total</dt>
             <dd className="text-right text-xl font-semibold tabular-nums">{formatRupiah(order.total)}</dd>
@@ -160,7 +147,7 @@ export default function OrderDetailDrawer({
           </section>
         </div>
 
-        <div className="sticky bottom-0 mt-auto grid gap-2.5 border-t border-offwhite/10 bg-charcoal px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 md:px-7">
+        <div className="sticky bottom-0 mt-auto grid gap-2.5 border-t border-offwhite/10 bg-charcoal px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 dashboard-wide:px-7">
           <AdminNotice message={error} error />
           {nextAction && (
             <button
@@ -199,7 +186,6 @@ export default function OrderDetailDrawer({
             </button>
           )}
         </div>
-      </aside>
-    </div>
+    </OrderPanel>
   );
 }

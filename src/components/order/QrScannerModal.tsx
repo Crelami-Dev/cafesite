@@ -196,7 +196,7 @@ export function QrScannerModal({
       className="fixed inset-0 z-[110] grid place-items-center bg-charcoal-darkest/95 p-5"
       role="dialog"
       aria-modal="true"
-      aria-label="Pindai kode QR meja"
+      aria-label={kind === "cashier" ? "Pindai QR pelanggan" : "Pindai kode QR meja"}
     >
       <button
         type="button"
@@ -219,9 +219,9 @@ export function QrScannerModal({
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-offwhite-muted">
               {state === "denied"
-                ? "Izinkan kamera untuk browser ini di pengaturan HP, lalu coba lagi. Atau pakai kamera bawaan HP dan arahkan ke QR di meja."
+                ? kind === "cashier" ? "Izinkan kamera untuk browser ini di pengaturan perangkat, lalu coba lagi. Anda juga bisa kembali ke input scanner atau nomor pesanan." : "Izinkan kamera untuk browser ini di pengaturan HP, lalu coba lagi. Atau pakai kamera bawaan HP dan arahkan ke QR di meja."
                 : state === "nocamera"
-                  ? "Buka halaman ini dari HP atau tablet, lalu scan QR di meja."
+                  ? kind === "cashier" ? "Gunakan alat scanner di kolom input atau masukkan nomor pesanan pelanggan." : "Buka halaman ini dari HP atau tablet, lalu scan QR di meja."
                   : kind === "cashier" ? "Browser ini belum dapat memindai QR pelanggan. Tutup pemindai lalu cari nomor pesanan di daftar." : "Browser ini belum bisa memindai dari halaman. Buka kamera bawaan HP, arahkan ke QR di meja, lalu ketuk tautan yang muncul."}
             </p>
             <button

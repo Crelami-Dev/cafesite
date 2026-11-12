@@ -69,4 +69,10 @@ export const locationFaqs: LocationFaqItem[] = [
     answer:
       "Mohon maaf, makanan dan minuman dari luar tidak diperkenankan ya. Pengecualian tentu buat makanan bayi atau obat-obatan pribadi.",
   },
+  {
+    id: "faq-wa-order",
+    question: "Bisa pesan makanan/minuman lewat WhatsApp?",
+    answer:
+      "Fitur pemesanan otomatis lewat WhatsApp asisten sedang disiapkan (Segera Hadir). Saat ini silakan pesan langsung dari website dengan scan QR di meja atau pesan ke kasir.",
+  },
 ];

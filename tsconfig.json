@@ -34,7 +34,9 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "**/*.mts",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    ".vercel/order-flow-next/types/**/*.ts",
+    ".vercel/order-flow-next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

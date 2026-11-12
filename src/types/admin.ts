@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import type { MenuItem } from "./index";
 import type { StaffRole } from "./operations";
 
+export interface OrderPanelProps { titleId: string; onClose: () => void; children: ReactNode }
+
 export type AdminModule = "orders" | "menu" | "tables" | "cafe" | "gallery" | "testimonials" | "faq" | "location" | "reports" | "modules" | "wa_bot";
 export interface RagIngestJob { id: string; source: string; status: "pending" | "processing" | "done" | "failed"; error: string | null; note: string | null; size: number; chunks: number; created_at: string; updated_at: string; }
 export type WaState = "stopped" | "connecting" | "awaiting_qr" | "connected" | "reconnecting" | "error";

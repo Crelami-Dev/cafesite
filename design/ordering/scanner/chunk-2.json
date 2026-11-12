@@ -1,0 +1,167 @@
+[
+  {
+    "command": "node.create",
+    "params": {
+      "type": "text",
+      "parent": 3,
+      "text": "CafeSite · Ruang kelola",
+      "props": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": 14,
+        "fill": "#F1EEE8",
+        "sizingH": "fill",
+        "textAutoResize": "height"
+      }
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "text",
+      "parent": 3,
+      "text": "Pesanan",
+      "props": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": 30,
+        "fill": "#F1EEE8",
+        "sizingH": "fill",
+        "textAutoResize": "height"
+      }
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "text",
+      "parent": 3,
+      "text": "Konfirmasi pembayaran sebelum pesanan diproses.",
+      "props": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": 14,
+        "fill": "#F1EEE8",
+        "sizingH": "fill",
+        "textAutoResize": "height"
+      }
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "text",
+      "parent": 4,
+      "text": "Scan QR pelanggan",
+      "props": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": 24,
+        "fill": "#F1EEE8",
+        "sizingH": "fill",
+        "textAutoResize": "height"
+      }
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "text",
+      "parent": 4,
+      "text": "Scan dengan alat kasir atau masukkan nomor pesanan.",
+      "props": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": 14,
+        "fill": "#F1EEE8",
+        "sizingH": "fill",
+        "textAutoResize": "height"
+      }
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "text",
+      "parent": 4,
+      "text": "QR pelanggan / nomor pesanan",
+      "props": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": 14,
+        "fill": "#F1EEE8",
+        "sizingH": "fill",
+        "textAutoResize": "height"
+      }
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "text",
+      "parent": 4,
+      "text": "cafesite:cashier:… atau A-024",
+      "props": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": 14,
+        "fill": "#F1EEE8",
+        "sizingH": "fill",
+        "textAutoResize": "height"
+      }
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "text",
+      "parent": 4,
+      "text": "Buka pesanan",
+      "props": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": 14,
+        "fill": "#F1EEE8",
+        "sizingH": "fill",
+        "textAutoResize": "height"
+      }
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "text",
+      "parent": 4,
+      "text": "Akhiri hasil scan dengan Enter.",
+      "props": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": 14,
+        "fill": "#F1EEE8",
+        "sizingH": "fill",
+        "textAutoResize": "height"
+      }
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "text",
+      "parent": 4,
+      "text": "Gunakan kamera",
+      "props": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": 14,
+        "fill": "#F1EEE8",
+        "sizingH": "fill",
+        "textAutoResize": "height"
+      }
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "text",
+      "parent": 4,
+      "text": "Scan hanya membuka rincian. Pembayaran dikonfirmasi setelah uang diterima.",
+      "props": {
+        "fontFamily": "Plus Jakarta Sans",
+        "fontSize": 14,
+        "fill": "#F1EEE8",
+        "sizingH": "fill",
+        "textAutoResize": "height"
+      }
+    }
+  }
+]

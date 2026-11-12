@@ -1,0 +1,35 @@
+[
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "parent": 30,
+      "name": "Antrean dashboard",
+      "width": 880,
+      "height": 900,
+      "props": {
+        "layout": "vertical",
+        "padding": 32,
+        "gap": 12,
+        "fill": "#20201E"
+      }
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "parent": 30,
+      "name": "Aside kanan",
+      "width": 560,
+      "height": 900,
+      "props": {
+        "layout": "vertical",
+        "padding": 28,
+        "gap": 20,
+        "fill": "#20201E",
+        "cornerRadius": 0
+      }
+    }
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "name": "Input scanner 1440",
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "fill": "#141413",
+        "layout": "horizontal",
+        "mainAlign": "max"
+      }
+    }
+  }
+]

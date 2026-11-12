@@ -1,0 +1,40 @@
+[
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "parent": 16,
+      "name": "Antrean dashboard",
+      "width": 390,
+      "height": 180,
+      "props": {
+        "layout": "vertical",
+        "padding": 20,
+        "gap": 12,
+        "fill": "#20201E"
+      }
+    }
+  },
+  {
+    "command": "node.create",
+    "params": {
+      "type": "frame",
+      "parent": 16,
+      "name": "Bottom sheet",
+      "width": 390,
+      "height": 664,
+      "props": {
+        "layout": "vertical",
+        "padding": 20,
+        "gap": 20,
+        "fill": "#20201E",
+        "cornerRadius": [
+          16,
+          16,
+          0,
+          0
+        ]
+      }
+    }
+  }
+]

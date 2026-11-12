@@ -38,14 +38,19 @@ export function VisitPanel({ cafe, configured }: VisitPanelProps): React.JSX.Ele
                     Petunjuk arah <span aria-hidden="true">↗</span>
                   </Button>
                   {cafe.whatsapp && (
-                    <a
-                      className="link inline-flex min-h-11 items-center text-base"
-                      href={buildWhatsAppUrl(cafe.whatsapp, "general")}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Tanya lewat WhatsApp <span className="ml-2" aria-hidden="true">↗</span>
-                    </a>
+                    <div className="flex flex-col items-start gap-1">
+                      <a
+                        className="link inline-flex min-h-11 items-center text-base"
+                        href={buildWhatsAppUrl(cafe.whatsapp, "general")}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Tanya info via WhatsApp <span className="ml-2" aria-hidden="true">↗</span>
+                      </a>
+                      <span className="text-xs text-offwhite-muted">
+                        *Pertanyaan umum & lokasi (pesan menu via WhatsApp segera hadir)
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>

@@ -206,17 +206,17 @@ export default function OrderManager({ canManageMenu }: Props): React.JSX.Elemen
     />
   );
 
-  const selected =
-    orders.find((o) => o.id === selectedId) ??
-    archive.orders.find((o) => o.id === selectedId) ??
-    (detail?.id === selectedId ? detail : null);
+  // A QR lookup can be newer than the background list (e.g. the customer just edited).
+  const selected = [orders.find((o) => o.id === selectedId), archive.orders.find((o) => o.id === selectedId), detail?.id === selectedId ? detail : null]
+    .filter((order): order is Order => Boolean(order))
+    .sort((left, right) => Date.parse(right.updated_at) - Date.parse(left.updated_at))[0] ?? null;
 
   const hasFilter = Boolean(search || fromDate || toDate);
   const historyStatus = params.get("status") || "all";
 
   return (
     <div className="grid gap-4 md:gap-5">
-      <PageHeader title="Pesanan" description="Konfirmasi pembayaran sebelum pesanan diproses." actions={<CashierOrderScanner onFound={id => update({ order: id })} />} />
+      <PageHeader title="Pesanan" description="Konfirmasi pembayaran sebelum pesanan diproses." actions={<CashierOrderScanner onFound={order => { setDetail(order); update({ order: order.id }); }} />} />
 
       <SegmentedTabs
         label="Tampilan pesanan"

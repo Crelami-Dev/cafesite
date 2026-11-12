@@ -26,7 +26,7 @@ export default function Sidebar({
   onSignOut: () => void;
 }): React.JSX.Element {
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-24 flex-col border-r border-offwhite/10 bg-charcoal-darkest py-5 md:flex xl:w-60">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-24 flex-col border-r border-offwhite/10 bg-charcoal-darkest py-5 dashboard-wide:flex xl:w-60">
       <Link
         href="/dashboard"
         className="mb-5 flex min-h-11 items-center justify-center font-serif text-lg xl:justify-start xl:px-5 xl:text-2xl"

@@ -131,7 +131,7 @@ export default function DashboardShell({
 
   return (
     <Context.Provider value={{ account, orders, error, loading, refresh, muted, toggleMuted }}>
-      <div className="min-h-dvh bg-charcoal text-offwhite md:pl-24 xl:pl-60">
+      <div className="min-h-dvh bg-charcoal text-offwhite dashboard-wide:pl-24 xl:pl-60">
         {!account.mustChangePassword && (
           <Sidebar
             pathname={pathname}
@@ -153,7 +153,7 @@ export default function DashboardShell({
           onToggleMuted={toggleMuted}
         />
 
-        <div className="mx-auto max-w-[1280px] px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-5 md:px-6 md:pb-12 md:pt-6 xl:px-10 xl:pt-8">
+        <div className="mx-auto max-w-[1280px] px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-5 dashboard-wide:px-6 dashboard-wide:pb-12 dashboard-wide:pt-6 xl:px-10 xl:pt-8">
           {error && (
             <div
               role="alert"

@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import "../../public/assets/motion/motion.css";
 
+/* Portrait tablets use mobile navigation and sheets; landscape tablets use panels. */
+@custom-variant dashboard-wide {
+  @media (min-width: 80rem), (min-width: 48rem) and (orientation: landscape) {
+    @slot;
+  }
+}
+
 @theme {
   /* ========================================================================= */
   /* TRIPARTITE 3-COLOR SYSTEM (THE 60 - 30 - 10 RULE)                        */

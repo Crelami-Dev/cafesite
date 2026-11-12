@@ -36,4 +36,11 @@ export const faqItems: FaqItem[] = [
       "Area outdoor kami menyambut hewan peliharaan kecil selama menggunakan tali kekang dan tetap kondusif.",
     category: "general",
   },
+  {
+    id: "faq-06",
+    question: "Apakah bisa pesan menu langsung lewat WhatsApp?",
+    answer:
+      "Pemesanan otomatis via asisten WhatsApp sedang kami siapkan dan akan segera hadir (Coming Soon). Untuk saat ini, kamu bisa langsung pesan lewat website (scan QR di meja) atau pesan di kasir.",
+    category: "menu",
+  },
 ];
