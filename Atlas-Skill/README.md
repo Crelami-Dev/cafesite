@@ -1,8 +1,6 @@
 # Atlas-Skill
 
-Suite skill frontend modular berbasis `SKILL.md` murni untuk menghasilkan website yang terasa autentik sesuai domainnya, ringan kodenya, bebas pola template "AI slop", dan selalu lolos verifikasi visual di browser nyata sebelum selesai.
-
-Berbeda dari paket template besar yang mengunci satu tampilan atau menyisipkan puluhan file kit ke repo proyek, **Atlas-Skill** hanya membawa **4 `SKILL.md` fokus + 1 script verifier ringkas (`quick-check.mjs`)** tanpa mengotori repository proyek target.
+Suite skill frontend modular berbasis `SKILL.md` murni untuk membangun halaman web yang berkarakter kuat, ringan kodenya, teranimasi halus dengan `anime.js` v4, bebas pola AI slop maupun wireframe datar, dan wajib lulus audit visual + DOM di browser nyata.
 
 ---
 
@@ -13,24 +11,23 @@ Atlas-Skill/
 ├── plugin.json
 ├── README.md
 ├── demo-landing/
-│   └── index.html                  # Proof landing page non-cafe (dibangun murni pakai Atlas-Skill)
+│   ├── vendor/anime.esm.min.js     # Bundle lokal anime.js v4 untuk demo HTML offline-ready
+│   └── index.html                  # Proof landing page non-cafe KawalHook
 └── skills/
-    ├── atlas-plan/SKILL.md         # 1. Pre-flight plan: identitas tema, 60-30-10, radius, ritme & layout 320-1440px
-    ├── atlas-anti-slop/SKILL.md    # 2. Penjaga estetika: cegah card kembar, ornament palsu, & copy generik
-    ├── atlas-lean-code/SKILL.md    # 3. Penjaga kode: CSS native dulu, 0 dependency sampah, semantic & cepat
+    ├── atlas-plan/SKILL.md         # 1. Blueprint 7 poin: domain, 60-30-10 + WCAG AA, radius, tipografi & anime.js
+    ├── atlas-anti-slop/SKILL.md    # 2. Anti-slop & anti-wireframe + standar motion anime.js v4
+    ├── atlas-lean-code/SKILL.md    # 3. CSS native dulu, server-first, pola bersih releaseStyle anime.js
     └── atlas-checker/
-        ├── SKILL.md                # 4. Verifier loop: build -> quick-check -> buka screenshot -> fix
+        ├── SKILL.md                # 4. Audit 5 lapis + inspeksi screenshot 1:1 per fold
         └── scripts/
-            └── quick-check.mjs     # Audit otomatis 5 viewport (320/360/390/820/1440) + screenshot PNG
+            └── quick-check.mjs     # Audit otomatis 5 viewport + contrast + stuck-opacity + smoke clicks
 ```
 
 ---
 
 ## Cara Pasang (Pilih Salah Satu)
 
-### Opsi 1 — Tautkan langsung via `.agents/skills.json` (Paling Rapi per Proyek)
-
-Buat atau tambahkan ke file `.agents/skills.json` di root project target:
+### Opsi 1 — Tautkan via `.agents/skills.json` (Paling Rapi per Proyek)
 
 ```json
 {
@@ -42,59 +39,36 @@ Buat atau tambahkan ke file `.agents/skills.json` di root project target:
 }
 ```
 
-> Sesuaikan path relatif dari folder `.agents/` menuju folder `Atlas-Skill/skills` (atau pakai path absolut jika `Atlas-Skill` disimpan di lokasi terpisah seperti `D:/skills/Atlas-Skill/skills`).
+### Opsi 2 — Salin ke Project Baru
 
-### Opsi 2 — Salin ke Project (Portable ke Repo Baru)
-
-Salin ke-4 folder di dalam `Atlas-Skill/skills/` langsung ke `.agents/skills/` pada project target:
-
-```text
-your-project/
-└── .agents/
-    └── skills/
-        ├── atlas-plan/
-        ├── atlas-anti-slop/
-        ├── atlas-lean-code/
-        └── atlas-checker/
-```
+Salin ke-4 folder di dalam `Atlas-Skill/skills/` langsung ke `.agents/skills/` di project target.
 
 ### Opsi 3 — Pasang Global untuk Semua Project
-
-Salin ke-4 folder dari `Atlas-Skill/skills/` ke direktori konfigurasi global agent:
 
 - **Windows:** `%USERPROFILE%\.gemini\config\skills\`
 - **macOS / Linux:** `~/.gemini/config/skills/`
 
-Atau salin seluruh folder `Atlas-Skill/` ke `%USERPROFILE%\.gemini\config\plugins\atlas-skill\` dan aktifkan lewat `.gemini/config/plugins.json` karena `plugin.json` sudah tersedia.
+Atau salin folder `Atlas-Skill/` ke `%USERPROFILE%\.gemini\config\plugins\atlas-skill\` karena `plugin.json` sudah tersedia.
 
 ---
 
-## Cara Kerja (Urutan Eksekusi 4 Langkah)
+## Cara Kerja & Standar Animasi (`anime.js` v4)
 
-Saat meminta AI mengerjakan halaman atau komponen frontend baru, pastikan keempat skill berjalan berurutan:
-
-1. **`atlas-plan` (Merancang sebelum menulis kode)**
-   Menghasilkan rencana singkat 5 poin: identitas domain/tema, sistem warna **60-30-10**, satu keluarga corner radius yang konsisten, peta ritme antar section agar tidak mengulang struktur, serta blueprint responsif dari **320px hingga 1440px** tanpa scope creep.
-2. **`atlas-anti-slop` (Menjaga keaslian desain & copy)**
-   Melarang pola AI slop yang paling sering muncul: deretan 3 card sejajar kembar berulang, barisan metrik/badge kosong, gradient ungu-biru tanpa konteks, tombol CTA sejajar yang patah canggung di HP 320–390px, serta copywriting klise (*"solusi komprehensif"*, *"era digital"*, *"game-changing"*).
-3. **`atlas-lean-code` (Menulis kode ringkas & native-first)**
-   Mengutamakan fitur native HTML/CSS (`grid`, `flexbox`, `clamp()`, `aspect-ratio`, `<details>`) sebelum membuat state JS atau menginstal library baru. Semua foto pakai format optimal (`.webp`/`.avif`) dengan ukuran proporsional & lazy-load di bawah fold.
-4. **`atlas-checker` (Audit browser + inspeksi mata langsung)**
-   Menjalankan build/preview, mengeksekusi `quick-check.mjs`, **membaca langsung file screenshot PNG hasil capture** untuk menemukan cacat visual yang tidak tertangkap oleh test unit (teks kepotong, jarak janggal, kontras lemah, tombol ter-wrap aneh), memperbaiki semuanya, lalu mengulang cek hingga bersih.
+1. **`atlas-plan`:** Mengunci identitas domain, rasio warna **60-30-10** dengan kontras minimum WCAG AA (`4.5:1`), keluarga corner radius tunggal, *centerpiece* interaktif, serta rencana gerak `anime.js` sebelum kode ditulis.
+2. **`atlas-anti-slop`:** Menolak grid 3-card kembar berulang, wireframe datar, dan copywriting klise; mewajibkan kedalaman visual nyata serta gerakan `anime.js` v4 (hero entrance stagger, scroll reveal aman tanpa stuck `opacity: 0`, SVG signal draw, & feedback state).
+3. **`atlas-lean-code`:** Layout memakai CSS `grid`/`flex`/`clamp()`, sementara timeline/stagger/SVG choreography memakai `anime.js` (`import { animate, stagger, svg } from "animejs"` di Next.js `"use client"`, atau bundle ESM lokal untuk static HTML) lengkap dengan helper `releaseStyle` dan `prefers-reduced-motion`.
+4. **`atlas-checker`:** Menjalankan build + `quick-check.mjs` across `320px–1440px`, mengecek **overflow, broken image/console errors, contrast WCAG, elemen macet `opacity: 0` pasca-scroll, overlap sibling, tap target mobile, smoke test klik tab/drawer**, lalu membaca langsung screenshot **1:1 per fold** (`top`, `mid`, `low`) sebelum mengakhiri task.
 
 ---
 
-## Menjalankan `quick-check.mjs` Secara Langsung
-
-Script checker dapat mengaudit baik server lokal (`http://localhost:3000`) maupun file/folder HTML statis (otomatis menyalakan static server internal di port acak):
+## Menjalankan `quick-check.mjs`
 
 ```bash
-# Audit file HTML statis + simpan screenshot ke folder sementara
+# Audit halaman statis + tangkap screenshot per fold ke folder sementara
 node Atlas-Skill/skills/atlas-checker/scripts/quick-check.mjs Atlas-Skill/demo-landing/index.html --shots ./tmp-shots
 
-# Audit dev/preview server Next.js / Vite
+# Audit server dev/preview Next.js atau Vite
 node Atlas-Skill/skills/atlas-checker/scripts/quick-check.mjs http://127.0.0.1:3000 --shots ./tmp-shots
 ```
 
-> **Prasyarat:** Node.js + `playwright` (terpasang di project atau global) beserta browser Chromium / Chrome / Edge. Hapus folder `./tmp-shots` setelah verifikasi visual selesai.
-
+Tambahkan `--no-click-test` bila menjalankan audit pada halaman yang tombolnya memicu navigasi keluar. Hapus folder `./tmp-shots` setelah verifikasi selesai.

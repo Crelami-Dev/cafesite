@@ -1,51 +1,56 @@
 ---
 name: atlas-plan
 description: >-
-  Architectural and visual pre-flight planner for any frontend page or component.
+  Architectural, visual, and motion pre-flight planner for any frontend page or component.
   Use before writing UI code when creating a new page, landing page, or redesign
-  to lock theme identity, 60-30-10 color balance, unified border-radius geometry,
-  varied section rhythm, responsive strategy (320px to 1440px), and strict scope boundaries.
+  to lock theme identity, 60-30-10 + WCAG contrast, surface layering, typography scale,
+  unified border-radius geometry, varied section rhythm, anime.js motion choreography,
+  and responsive strategy (320px to 1440px).
 ---
 
-# Atlas Plan — Plan First, Zero Guesswork
+# Atlas Plan — Visual, Motion & Architecture Blueprint
 
-Stop before touching HTML, CSS, or TSX. Every AI-slop mistake happens because code
-was generated before deciding how the page looks, reads, and adapts across screens.
+Stop before writing HTML, CSS, TSX, or Tailwind classes. AI slop and generic wireframes happen when code starts before locking visual character, contrast hierarchy, responsive geometry, and motion choreography.
 
-## Required Mini-Plan (Write in 5 Concise Lines Before Coding)
+## 1. The 7-Point Pre-Flight Blueprint (Write Concisely Before Coding)
 
-Do not expand into bloated multi-page documentation unless the user invoked `/plan`.
-State these 5 decisions plainly first:
+Unless the user explicitly invokes `/plan`, keep the plan tight (7 bullets, no multi-page essays), but **every single decision below must be locked explicitly**:
 
-1. **Theme & Domain Identity:** What business/product is this, who uses it, and
-   what real atmosphere fits it? Derive colors, fonts, and geometry from the domain —
-   never force a generic dark SaaS template onto a shop, cafe, clinic, or workshop.
-2. **Palette Discipline (60 / 30 / 10):**
-   - `60%` Primary canvas/ground
-   - `30%` Structural contrast (text ink, subtle surface steps, borders)
-   - `10%` Single accent catalyst (primary CTAs, active indicators, key markers)
-   Never introduce an arbitrary 4th accent color or unprompted purple/neon glow.
-3. **Unified Geometry (One Radius Family):** Choose **one** corner system fitted to
-   the theme and keep it coherent across cards, media frames, buttons, and inputs:
-   - *Technical / Precision:* sharp `0px–4px`
-   - *Editorial / Hospitality / Craft:* subtle crisp `4px–6px`
-   - *Consumer / Friendly App:* soft `8px–12px`
-   Only micro status badges/dots may use `9999px` pill geometry.
-4. **Section Rhythm Map (Anti-Repeat):** List each section in order with its
-   unique layout pattern (e.g., `Split Hero -> Interactive Selector -> Asymmetric Media -> Pricing/Schedule + Integrated Footer`).
-   Never place two consecutive sections with the same structure or twin card grids.
-5. **Responsive Blueprint:** Plan how content behaves at:
-   - **Slender Mobile (`320px–390px`):** Keep navigation usable, prevent jagged wrapped CTA pairs (use clean 2-column or uniform full-width pairs), maintain `>= 44px` tap targets.
-   - **Portrait Tablet (`768px–820px`):** Prevent giant stretched images (`aspect-[16/10]` or capped heights) and orphaned half-empty rows.
-   - **Desktop (`1280px–1440px`):** Keep hero complete on screen 1 without clipping primary CTAs; align outer container edges cleanly top-to-bottom.
+1. **Theme, Domain Identity & Signature Centerpiece:**
+   - Define the brand, audience, and physical/digital craft of the trade.
+   - Lock **at least one domain-authentic interactive centerpiece** (never an empty hero box or generic illustration): e.g., live payload inspector + animated SVG topology for dev tools, live schedule/seat picker for events, calibrated photo showcase + quick order flow for hospitality.
+2. **Palette Discipline (60 / 30 / 10) & WCAG Contrast:**
+   - `60%` Primary canvas + subtle secondary ground (`--bg`, `--bg-grid`/texture if suitable).
+   - `30%` Structural contrast: ink (`--ink`), secondary slate/stone (`--muted`), layered surfaces (`--surface`, `--surface-elevated`), hairline borders (`--line`).
+   - `10%` Single primary accent (`--accent` + hover state) reserved strictly for primary actions, active tabs, and critical markers.
+   - **Hard Contrast Gate:** Normal body text and buttons must exceed **4.5:1** contrast; large display headings (`>= 24px` or bold `>= 19px`) must exceed **3.0:1**. Never place muted gray text on a tinted medium surface without verifying contrast.
+3. **Surface Depth & Unified Geometry (One Radius Family):**
+   - Distinguish **canvas vs elevated panel vs inset terminal/media** via subtle step differences (`--bg` vs `--surface` vs `--ink` band), hairline borders (`1px`), and restraint — not generic blurred drop shadows everywhere.
+   - Lock **one** border-radius system matching the trade:
+     - *Technical / Precision:* sharp `2px–4px`
+     - *Editorial / Hospitality / Studio:* crisp `4px–8px`
+     - *Consumer App:* soft `10px–14px`
+   - Micro status pills/dots may use `9999px`; never mix square boxes right next to `24px` pill cards.
+4. **Typography Scale, Measure & Tabular Precision:**
+   - Define explicit scale contrast between `h1` (`clamp(2rem, 4.2vw, 3.4rem)`, tight `-0.03em` tracking, line-height `1.08–1.14`), `h2`, `h3`, and body (`>= 16px`, line-height `1.55–1.65`).
+   - Cap prose paragraphs at **`48ch–66ch`** max width so desktop lines never stretch uncomfortably across 1200px.
+   - Enforce `font-variant-numeric: tabular-nums` on prices, counters, latency metrics, and tables.
+5. **Section Rhythm Map (Anti-Repeat + Above-the-Fold Balance):**
+   - List each band top-to-bottom with **alternating structural patterns** (e.g., `Asymmetric Hero Split -> Animated Signal Flow Strip -> Master-Detail Interactive Tabs -> Spec & Honest Limits Split -> 2-Tier Comparison -> Dark Anchored Action Footer`).
+   - Verify **Left/Right Balance** in split heroes: neither column should hang 300px taller/shorter than its partner.
+6. **Motion Choreography Spec (`animejs` v4 Standard):**
+   - Lock exactly how `animejs` (`v4`) brings clarity without clutter:
+     - **Hero Entrance:** Fast staggered reveal (`<= 550ms`, `outQuart`) on headline, actions, and centerpiece.
+     - **Scroll Reveal:** `IntersectionObserver` + `animejs` batching once per band — content must default visible if JS/reduced-motion is disabled, hidden only once observer is armed, and inline styles released on `onComplete`.
+     - **Interactive State Feedback:** Tab swaps, active selection sliders, counter interpolation, or SVG signal packet pulses along topology paths (`svg.createDrawable` / `animate`).
+   - Always honor `@media (prefers-reduced-motion: reduce)` and `matchMedia("(prefers-reduced-motion: reduce)")`.
+7. **Responsive Blueprint (`320px–1440px`):**
+   - **`320px–390px` (Mobile):** Include working collapsible/drawer nav if >2 links exist; keep paired primary/secondary buttons evenly paired or clean full-width; keep every tap target `>= 44x44px`; keep hero headline + main CTA cleanly readable without horizontal overflow.
+   - **`768px–820px` (Tablet):** Collapse cramped 2-column inspector splits cleanly if a column drops below `340px`, preventing jagged wraps inside code bars or headers.
+   - **`1280px–1440px` (Desktop):** Align outer container bounds strictly edge-to-edge from `<header>` through `<footer>`.
 
-## Scope & Anti-Invention Guard
+## 2. Scope & Anti-Invention Boundary
 
-- Build strictly what the prompt or existing repo architecture requires.
-- Never invent extra pages, admin dashboards, fake client testimonials, unrequested stat bars (`"99% Uptime | 10K Users"`), or imaginary metrics.
-- Missing facts? Use clear factual placeholders marked or omit the empty claim gracefully.
-
-## Next Step
-
-Once this 5-point mini-plan holds together, proceed using **atlas-anti-slop** + **atlas-lean-code**, then verify visually with **atlas-checker**.
-
+- Implement strictly what the prompt or repository architecture calls for.
+- Never invent unrequested dashboards, auth gates, fake testimonials, vanity counters (`"99.99% Satisfaction | 50k Customers"`), or unverified external asset URLs.
+- Keep copy grounded in real product specs, pricing, limits, and concrete actions.

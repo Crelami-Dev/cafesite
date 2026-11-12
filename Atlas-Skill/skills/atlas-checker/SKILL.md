@@ -1,61 +1,57 @@
 ---
 name: atlas-checker
 description: >-
-  Browser audit and visual screenshot self-critique gate for finished frontend UI.
-  Run after building or modifying any page to verify zero overflow, clean tap targets,
-  consistent corner radii, anti-slop quality across 320px-1440px, and inspect real
-  browser screenshots iteratively until no visual awkwardness remains.
+  Deep multi-viewport browser audit, interactive smoke tester, and visual screenshot
+  critic gate. Run after building or modifying any frontend UI to catch overflow,
+  contrast failures, overlapping controls, stuck opacity:0 animations, broken
+  interactions, and inspect 1:1 fold screenshots iteratively until polished.
 ---
 
-# Atlas Checker — Measure, Screenshot, Critique, Polish
+# Atlas Checker — Deep Audit, Visual Inspection & Iterative Polish
 
-Never declare frontend work finished from code alone. Render it in a real headless
-browser across narrow mobile to wide desktop, read the screenshots with critical eyes,
-and iterate until every fold holds up cleanly.
+Code compiles ≠ UI looks good or works reliably. Every build/edit MUST pass both automated DOM/contrast/animation checks AND human-eye inspection across 1:1 viewport screenshots before finishing.
 
-## Step 1 — Run Build / Integrity Check
+## Step 1 — Compile / Serving Integrity Check
 
-- In framework projects (Next.js, Vite, Astro), run typecheck and production build first (`npx tsc --noEmit`, `npm run build`). Fix all compile errors before checking UI.
-- For standalone static HTML/CSS pages, validate local HTTP serving without console errors.
+- **Framework Apps (Next.js / Vite):** Run `npx tsc --noEmit` and `npm run build` first. Zero warnings/errors allowed before inspecting UI.
+- **Static Pages:** Serve via local loopback HTTP (`quick-check.mjs` starts one automatically on an ephemeral port when passed a `.html` path). Never ignore `404` favicon/asset errors in console output.
 
-## Step 2 — Run Automated Browser Audit & Capture Screenshots
+## Step 2 — Run Deep Headless Audit (`quick-check.mjs`)
 
-Use the bundled lightweight audit script on your target URL (or HTML file path):
+Execute the upgraded audit script:
 
 ```bash
-node <path-to-atlas-checker>/scripts/quick-check.mjs <url-or-file> --shots <temp-shots-dir>
+node <path-to-atlas-checker>/scripts/quick-check.mjs <url-or-html-path> --shots <temp-shots-dir>
 ```
 
-**Viewports tested automatically:**
-- `320x740` (ultra-narrow phone)
-- `360x800` (standard Android mobile)
-- `390x844` (modern iOS mobile)
-- `820x1180` (portrait tablet)
-- `1440x900` (desktop wide)
+Add `--no-click-test` only if targeting a page where clicking controls triggers destructive navigation.
 
-**Checks evaluated:**
-- `FAIL` **Horizontal Overflow:** `scrollWidth > innerWidth` at any viewport.
-- `FAIL` **Broken Images & Console Errors:** Any `<img>` with `naturalWidth === 0` or uncaught JS error.
-- `FAIL` **Placeholder Residue:** Leftover `lorem ipsum`, `[Company Name]`, or `TODO:` rendered visibly.
-- `WARN` **Small Tap Targets:** Interactive controls (`a`, `button`) smaller than `44px` height on mobile.
-- `WARN` **CTA Stagger / Mismatch:** Sibling action buttons wrapping awkwardly at mismatched widths on slender screens.
-- `WARN` **Twin-Card Slop & Radius Drift:** ≥3 identical-structure sibling cards in a row or inconsistent border-radius clusters outside circular pills.
-- `WARN` **Tiny Body Copy & AI Slop Words:** Long body text under `14px` or common AI puffery words.
+**Viewports & Multi-Fold Captures:**
+- **`320x740`** (`320.png`) — Ultra-narrow phone; tests header cramming, paired CTA wrap, and zero horizontal overflow.
+- **`360x800`** (`360.png`, `360-mid.png`, `360-low.png`, `360-full.png`) — Android standard across top, mid-scroll, and footer folds.
+- **`390x844`** (`390.png`) — Modern iOS viewport.
+- **`820x1180`** (`820.png`) — Portrait tablet; catches awkward 2-column squishing and tall whitespace voids.
+- **`1440x900`** (`1440.png`, `1440-mid.png`, `1440-low.png`, `1440-full.png`) — Wide desktop top, middle, bottom, and full-page scroll views.
 
-*(Fallback: If Node Playwright/Chromium is unavailable in the environment, use the `browser` subagent or equivalent browser automation at the same 5 widths and capture screenshots.)*
+**Automated Gates Enforced:**
+1. `FAIL` **Horizontal Overflow:** `scrollWidth > innerWidth` at any of the 5 widths.
+2. `FAIL` **Broken Media / Missing Fonts / Console & Runtime Errors:** Unloaded `<img>`, failed stylesheet/bundle/favicon `404`, uncaught page errors.
+3. `FAIL` **Stuck Scroll Animations (`opacity: 0`):** Scrolls through `45%` and `85%`, waits `650ms` for `animejs`/reveal settles, and fails if any visible section, heading, card, or `[data-reveal]` stays invisible (`opacity < 0.9`).
+4. `FAIL` **Interactive Smoke Failure:** Clicks interactive controls (`[role="tab"]`, mobile menu toggles, non-nav `<button>`, `<details>`), verifying real DOM/ARIA state changes with zero runtime errors.
+5. `FAIL` / `WARN` **WCAG Contrast Audit:** Computes effective opaque background under headings, body copy, and primary buttons; flags text under `4.5:1` (`3.0:1` for large headings `>= 24px`).
+6. `WARN` **Element Overlap & Typography Measure:** Detects unintentional overlapping bounding boxes on sibling visible controls/text, body font `< 15px`, unreadable wide prose paragraphs (`> 78ch`), small mobile tap targets (`< 40px`), uneven CTA stagger on slender widths, >3 non-pill corner radii, twin 3-card grids, and AI slop phrases.
 
-## Step 3 — Mandatory Visual Screenshot Inspection Loop
+## Step 3 — Mandatory 1:1 Visual Screenshot Critic Loop
 
-Open captured screenshots directly with `read_file` and critique honestly:
+Inspect **both full-page AND cropped per-fold 1:1 screenshots** via `read_file` (`320.png`, `360.png`, `360-mid.png`, `360-low.png`, `820.png`, `1440.png`, `1440-mid.png`, `1440-low.png`):
 
-1. **First Screen Check (`1440` & `360`):** Is the headline unmistakable, does the main visual render sharply, and is the primary CTA completely visible above the fold?
-2. **Narrow Screen Check (`320` & `360`):** Are paired buttons clean (either balanced 2-column or equal full width), readable without cramped ellipsis, with zero crowding?
-3. **Tablet Proportion Check (`820`):** Do split sections stack sensibly without stretched giant photos or hollow whitespace?
-4. **Anti-Slop Eye Test:** Does the page look authentically built for its specific trade, with varied section rhythm and consistent corner geometry?
+1. **Above-the-Fold Authority (`1440.png` & `360.png`):** Is the page visually compelling at first glance (not a sterile flat wireframe), balanced left-to-right, with hero CTA + signature centerpiece clearly visible?
+2. **Mobile Precision (`320.png`, `360-mid.png`, `360-low.png`):** Does the mobile nav button open cleanly? Are paired buttons balanced, code/terminal badges non-breaking, table/form inputs spacious, and spacing harmonious?
+3. **Tablet Split Check (`820.png`):** Do multi-column panels have generous breathing room without wrapping badges into 2 awkward lines?
+4. **Mid & Footer Folds (`1440-mid.png`, `1440-low.png`):** Are animated SVG flows sharp, section transitions distinct, contrast strong on dark/light bands, and interactive controls clearly styled?
 
-If anything looks cramped, generic, misaligned, or half-baked: **fix the root CSS/JSX cleanly, re-run `quick-check.mjs`, and re-inspect screenshots.** Never stop while a visual flaw remains obvious.
+Whenever ANY flaw appears in automated logs OR screenshot eyes: **fix the root CSS/HTML/JS/TSX cleanly, re-run `quick-check.mjs`, and re-inspect updated screenshots.**
 
-## Step 4 — Clean Up Before Finishing
+## Step 4 — Clean Up
 
-Delete temporary screenshot folders/files created during verification so the repository stays clean. Report only observed checks, metrics, and exact edits made.
-
+Remove temporary screenshot folders (`rm -rf <temp-shots-dir>`) before concluding or committing so no scratch PNGs pollute the repository.

@@ -1,45 +1,55 @@
 ---
 name: atlas-anti-slop
 description: >-
-  Anti-AI-slop visual, layout, copywriting, and motion standards adaptable to any
-  website theme. Use when designing, building, or restyling any landing page, product
-  site, shop, portfolio, or web app so output feels hand-crafted for the brand rather
-  than generic templated AI output.
+  Anti-AI-slop and anti-plain-wireframe visual, layout, copywriting, and anime.js
+  motion standards adaptable to any domain. Use when designing, building, or restyling
+  landing pages, product sites, shops, or web apps so output looks bespoke, crisp,
+  and alive rather than templated or sterile.
 ---
 
-# Atlas Anti-Slop — Taste & Craft Without Templates
+# Atlas Anti-Slop — Taste, Depth & Living Motion
 
-Good design comes from restraint, real subject matter, cohesive proportions, and
-intentional variation — never from copying one static HTML template across every brand.
+"Clean minimal" is NOT an excuse for a flat, lifeless wireframe of 1px boxes stacked vertically. Genuine craft comes from **deliberate contrast hierarchy, authentic domain artifacts, expressive typography, honest copywriting, and responsive motion choreography**.
 
-## 1. Visual & Layout Anti-Slop
+## 1. Layout & Anti-Wireframe Rules
 
-Replace default AI patterns immediately with structured alternatives:
+- **Ban the "3 Identical Twin Cards" Grid:** Never repeat `[circle icon + 3-word heading + 2-line blurb] x 3` columns.
+  - *Replace with:* Numbered `01 / 02 / 03` interactive master-detail switcher, `5/7` editorial media splits, interactive payload/state inspector, annotated architectural flow strip, or 2-tier asymmetric comparison.
+- **Ban the "Conveyor Belt" Section Pattern:** Never stack `[Centered Pill -> Centered H2 -> Centered Muted Subtitle -> Centered Boxes]` across every fold. Alternate left-aligned editorial openers, dark contrast bands, split calculators, and full-width diagrams.
+- **Ban Plain Wireframe Sterility:**
+  - Introduce intentional surface depth: pair subtle structural grid/dot backgrounds (pure CSS `radial-gradient` / `linear-gradient` micro-patterns matching the brand, NEVER neon/purple radial blurs) with distinct inset terminal/panel surfaces and crisp accent indicator rails (`box-shadow: inset 3px 0 0 var(--accent)`).
+  - Add crisp visual hierarchy inside cards/panels: window/terminal header bars, numbered indices (`01`, `02`, `03`), syntax-toned JSON/code spans strictly within the core palette + semantic HTTP status tags, and animated SVG diagrams where architecture matters.
+- **Equal Content Edges:** `<header>`, `<main>` sections, and `<footer>` share exact `--max` container width and `--gutter` padding. Never leave orphaned elements misaligned outside the page grid.
+- **Mobile Navigation & Button Pair Discipline (`320px–390px`):**
+  - Never simply hide `<nav>` links on mobile (`display: none`) without providing a working accessible menu drawer/toggle (`>= 44x44px` tap target) if the page has section anchors or subpages.
+  - Never let paired Hero buttons wrap asymmetrically on `320px–360px` (`flex-wrap` leaving one button wide and one narrow). Use balanced equal columns (`grid-cols-2` when short labels fit at 320px, otherwise stacked full-width) and keep `header` CTA labels concise (`Coba Gratis`) so header height stays compact (`64px`).
 
-- **Ban the "3 Identical Twin Cards" Grid:** Never repeat three equal boxes containing `[circle icon + 3-word title + 2 equal lines of text]`.
-  - *Instead use:* An interactive master-detail list (click row to update live preview), asymmetric `5/7` editorial splits, numbered index rows paired with one large stage visual, horizontal tabbed views, or bento layouts with deliberate size hierarchy.
-- **Ban the "Conveyor Belt" Section Pattern:** Never repeat `[Centered Pill Eyebrow -> Centered H2 -> Centered Gray Subtitle -> Centered Card Grid]` on every scroll fold. Vary alignment (flush-left editorial, split-grid, full-bleed band) and density between neighbors.
-- **Equal Content Edges:** Header, main sections, and footer share aligned left and right container bounds. Never offset random elements off-axis without grid alignment.
-- **First Screen Discipline:** Above the fold holds the core value proposition, primary action (at most 2 buttons), and the real visual/work — never a decorative fluff banner pushing CTAs below the fold.
-- **Zero Ornament Bloat:** No blurred gradient blobs floating behind cards, no default indigo/violet gradients, no nested cards-inside-cards, and no unprompted 3-number vanity stat bars.
-- **Button Pair Integrity on Narrow Devices (`320px–390px`):** When placing 2 buttons together, never leave `flex-wrap` wrapping them into staggered uneven widths. Either pair them on equal `grid-cols-2` (`white-space: nowrap` if short) or uniform `w-full` stacked rows on mobile.
+## 2. Geometry & Domain Authenticity
 
-## 2. Geometry & Theme Adaptation
-
-- Match shape language strictly to **atlas-plan**'s chosen radius family. Do not pair razor-sharp square photo frames (`rounded-none`) directly beside pill-heavy `rounded-2xl` cards unless hierarchy explicitly separates status pills from structural containers.
-- Respect the site's subject:
-  - *Physical places / Craft / Hospitality:* Real photography or authentic editorial UI leads; avoid fake futuristic 3D shaders.
-  - *Software / Dev-Tools / SaaS:* Interactive or authentic live HTML product previews (diffs, JSON trace panels, CLI snippets, interactive calculators) beat abstract illustrations.
+- Keep one radius token family locked across buttons, inputs, panels, and cards. Never stick `rounded-none` next to `rounded-3xl` boxes.
+- Adapt artifacts directly to the business:
+  - **Hospitality / Food / Physical Venue:** High-craft photography (`next/image`, real `alt`), location/hours clarity, frictionless menu/order path — zero SaaS charts or sci-fi shaders.
+  - **Dev-Tools / Infra / SaaS:** Real interactive product UI (live webhook inspector, retry/backoff timeline, interactive volume estimator, SVG pipeline diagram, honest technical limits) — zero cheesy stock handshake photos.
 
 ## 3. Copywriting Anti-Slop (Bahasa Indonesia & English)
 
-- **Banned Buzzwords & Cliché Frames:** Avoid *elevate, seamless, unlock, unleash, empower, harness, delve, tapestry, testament, cutting-edge, game-changer, solusi terbaik, di era modern/digital, tingkatkan pengalaman, rasakan sensasi*.
-- **Banned AI Structural Tics:** Never repeat *"Bukan sekadar X, melainkan Y"* / *"It's not just X, it's Y"*; avoid overusing *"Tenang / Jujur / Sederhana"* as empty self-praise when a concrete fact proves it; avoid robotic `"X. Y."` two-fragment headings on every section.
-- **Positive Rule:** Write concrete facts (`price, speed, capacity, materials, honest tradeoffs`). Headlines state **what it is + who it serves**. Every button states **`[Verb] + [Object]`** (*Lihat katalog, Uji endpoint, Pesan menu* — never vague *"Learn more"* or *"Mulai"* alone).
+- **Banned Buzzwords:** *elevate, seamless, unlock, unleash, empower, harness, delve, tapestry, cutting-edge, game-changer, next-gen, solusi komprehensif, di era digital, transformasi bisnis, tingkatkan pengalaman, rasakan sensasi*.
+- **Banned AI Tics:**
+  - *"Bukan sekadar X, melainkan Y"* / *"It's not just X, it's Y"*.
+  - Self-congratulatory adjectives (*"Jujur, Tenang, Sederhana"* repeated as headings when facts should speak instead).
+  - Staccato two-fragment headings on every section (*"Cepat. Aman. Andal."*).
+- **Write Instead:** Concrete numbers, latencies, prices, constraints (*"Batas payload 512 KB"*, *"Latensi proxy 14 ms di region Jakarta"*), specific `[Verb] + [Object]` CTAs (*"Putar Ulang Payload"*, *"Buat Rute Sandbox"*).
 
-## 4. Purposeful Motion
+## 4. Motion Choreography Standard (`animejs` v4)
 
-- Motion clarifies state transitions and gives quiet tactile feedback — never theatrics.
-- **Limit to 3 clean behaviors:** (1) subtle one-time hero entrance, (2) immediate hover/press response on links, buttons, and clickable cards (`translateY(-2px)` / `.98` press / clean border shift), and (3) user-triggered state swaps.
-- Animate cheap properties (`transform`, `opacity`, `clip-path`). Never trigger scroll-jacking, text parallax, or identical fade-up animations on 20 sibling items. Always respect `prefers-reduced-motion: reduce`.
+Motion is mandatory when building modern interactive landing pages — use **`animejs` (`v4`)** cleanly to clarify state, guide reading flow, and prove live mechanics:
 
+- **Framework & Delivery:**
+  - **Next.js / React:** Import `import { animate, stagger, svg, createTimeline } from "animejs"` inside `"use client"` leaf components or a shared client motion utility.
+  - **Static HTML:** Bundle local `anime.esm.min.js` (`<script type="module">`) rather than fragile third-party CDNs so offline audits and strict CSP environments work 100%.
+- **4 Intentional Motion Moments (No Gratuitous Circus):**
+  1. **Hero Entrance Stagger:** Sequence `[eyebrow, h1, lead, cta-pair, centerpiece]` on load (`duration: 480–560ms`, `stagger(65)`, `ease: "outQuart"`).
+  2. **Scroll-Triggered Section Reveal:** Observe sections below the fold with `IntersectionObserver`. Arm hidden initial offset (`opacity: 0; translateY: 16px`) *only* after verifying reduced motion is off and the section is actually below the fold; reveal cleanly once and **strip inline animation styles in `onComplete`** so nothing ever remains stuck at `opacity: 0`.
+  3. **Live Diagram / Centerpiece Feedback:** Animate SVG signal lines or active state transitions (`svg.createDrawable`, dot/packet pulse along `<path>`, panel transition `opacity + translateY(8 -> 0)`) whenever the user clicks a tab, simulates a replay, or switches scenarios.
+  4. **Numeric Interpolation:** Animate numeric counters/calculators cleanly on slider or tab changes using small tween objects (`tabular-nums` CSS mandatory so numbers never jitter horizontally).
+- **Accessibility:** Always short-circuit immediately when `window.matchMedia("(prefers-reduced-motion: reduce)").matches` is true, rendering final static state at full `opacity: 1`.

@@ -3,23 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KawalHook — Pencatat Webhook & Antrean Ulang untuk Tim Engineering</title>
-  <meta name="description" content="Catat setiap payload webhook masuk, verifikasi signature HMAC, dan putar ulang event yang gagal saat server target sedang deploy atau timeout.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%2315171C'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%23F6F5F0' font-family='monospace' font-weight='700' font-size='14'%3EKH%3C/text%3E%3C/svg%3E">
+  <title>KawalHook — Pencatat Webhook &amp; Antrean Ulang untuk Tim Engineering</title>
+  <meta name="description" content="Catat setiap payload webhook masuk, verifikasi signature HMAC, dan putar ulang event gagal saat server target sedang deploy atau timeout.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%2315171C'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%23F4F3EE' font-family='monospace' font-weight='700' font-size='14'%3EKH%3C/text%3E%3C/svg%3E">
   <style>
     :root {
-      --bg: #F6F5F0;
-      --surface: #ECEAE2;
-      --surface-strong: #E2DFD5;
+      --bg: #F4F3EE;
+      --surface: #EAE8E0;
+      --card: #FFFFFF;
       --ink: #15171C;
-      --muted: #525866;
+      --muted: #454B57;
+      --term-bg: #15171C;
+      --term-surface: #1E222A;
+      --term-ink: #F4F3EE;
+      --term-muted: #B4BCC8;
       --line: rgba(21, 23, 28, 0.14);
       --line-strong: rgba(21, 23, 28, 0.28);
       --accent: #1D4ED8;
       --accent-hover: #1E40AF;
       --accent-soft: rgba(29, 78, 216, 0.08);
       --ok: #15803D;
+      --ok-term: #6EE7B7;
       --err: #B91C1C;
+      --err-term: #FCA5A5;
       --radius: 4px;
       --sans: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
       --mono: "JetBrains Mono", "Cascadia Mono", ui-monospace, Consolas, monospace;
@@ -42,7 +48,8 @@
       color: var(--ink);
       font-family: var(--sans);
       font-size: 16px;
-      line-height: 1.55;
+      line-height: 1.58;
+      font-variant-numeric: tabular-nums;
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
     }
@@ -64,12 +71,12 @@
       padding-inline: var(--gutter);
     }
 
-    /* Header */
+    /* Header & Mobile Nav Drawer */
     .site-header {
       position: sticky;
       top: 0;
-      z-index: 30;
-      background: rgba(246, 245, 240, 0.94);
+      z-index: 40;
+      background: rgba(244, 243, 238, 0.94);
       backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--line);
     }
@@ -78,7 +85,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
+      gap: 12px;
       min-height: 64px;
     }
 
@@ -86,16 +93,17 @@
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
+      font-weight: 750;
+      letter-spacing: -0.025em;
       min-height: 44px;
+      padding-inline: 2px;
     }
 
     .brand-mark {
       display: grid;
       place-items: center;
-      width: 28px;
-      height: 28px;
+      width: 30px;
+      height: 30px;
       background: var(--ink);
       color: var(--bg);
       border-radius: var(--radius);
@@ -115,7 +123,7 @@
       align-items: center;
       min-height: 44px;
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 550;
       color: var(--muted);
       transition: color 140ms ease;
     }
@@ -124,20 +132,73 @@
       color: var(--ink);
     }
 
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .menu-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      min-height: 44px;
+      padding: 0;
+      background: transparent;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+
+    .mobile-drawer {
+      display: none;
+      border-top: 1px solid var(--line);
+      background: var(--bg);
+      padding-block: 10px 14px;
+    }
+
+    .mobile-drawer.is-open {
+      display: block;
+    }
+
+    .mobile-drawer nav {
+      display: grid;
+      gap: 4px;
+    }
+
+    .mobile-drawer a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 44px;
+      padding: 8px 4px;
+      font-weight: 550;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .mobile-drawer a:last-child {
+      border-bottom: 0;
+    }
+
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       min-height: 44px;
-      padding: 10px 18px;
+      padding: 10px 16px;
       border-radius: var(--radius);
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       border: 1px solid transparent;
-      transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+      transition: background-color 140ms ease, border-color 140ms ease, transform 120ms ease;
       white-space: nowrap;
+    }
+
+    .btn:active {
+      transform: scale(0.985);
     }
 
     .btn-primary {
@@ -150,7 +211,7 @@
     }
 
     .btn-secondary {
-      background: transparent;
+      background: var(--card);
       border-color: var(--line-strong);
       color: var(--ink);
     }
@@ -160,87 +221,125 @@
       border-color: var(--ink);
     }
 
-    /* Section spacing */
+    /* Typography & Section Rhythm */
     .section {
-      padding-block: clamp(48px, 7vw, 88px);
+      padding-block: clamp(52px, 7vw, 88px);
       border-bottom: 1px solid var(--line);
     }
 
     .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
       font-family: var(--mono);
       font-size: 12px;
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--accent);
-      margin: 0 0 12px;
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-block;
     }
 
     h1, h2, h3 {
       margin: 0;
-      letter-spacing: -0.025em;
-      line-height: 1.15;
+      letter-spacing: -0.03em;
+      line-height: 1.12;
     }
 
     h1 {
-      font-size: clamp(1.9rem, 4vw, 3.15rem);
-      font-weight: 750;
+      font-size: clamp(1.95rem, 4.1vw, 3.3rem);
+      font-weight: 780;
     }
 
     h2 {
       font-size: clamp(1.5rem, 2.8vw, 2.25rem);
-      font-weight: 700;
+      font-weight: 730;
     }
 
     .lead {
       margin: 16px 0 0;
       color: var(--muted);
-      font-size: clamp(1rem, 1.3vw, 1.125rem);
+      font-size: clamp(1rem, 1.25vw, 1.125rem);
       max-width: 54ch;
     }
 
-    /* 1. Hero Asymmetric Split + Live Webhook Inspector */
+    /* 1. Architectural Hero + Dark Live Terminal Inspector */
     .hero {
-      padding-block: clamp(32px, 5vw, 64px);
+      padding-block: clamp(32px, 5vw, 68px);
       border-bottom: 1px solid var(--line);
+      background-image:
+        linear-gradient(to right, rgba(21, 23, 28, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(21, 23, 28, 0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
     }
 
     .hero-grid {
       display: grid;
       grid-template-columns: 1fr;
       gap: clamp(28px, 4vw, 48px);
-      align-items: start;
+      align-items: center;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 10px;
+      margin-bottom: 16px;
+      background: var(--card);
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink);
     }
 
     .cta-pair {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, max-content));
       gap: 10px;
       margin-top: 24px;
     }
 
-    .cta-pair .btn {
-      flex: 0 1 auto;
+    .hero-specs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 26px 0 0;
+      padding: 16px 0 0;
+      border-top: 1px solid var(--line-strong);
     }
 
-    .hero-facts {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px 20px;
-      margin: 22px 0 0;
-      padding: 16px 0 0;
-      border-top: 1px solid var(--line);
-      list-style: none;
+    .hero-specs div strong {
+      display: block;
       font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .hero-specs div span {
+      display: block;
       font-size: 12px;
       color: var(--muted);
     }
 
     .inspector {
-      background: var(--surface);
-      border: 1px solid var(--line-strong);
+      background: var(--term-bg);
+      color: var(--term-ink);
+      border: 1px solid var(--ink);
       border-radius: var(--radius);
       overflow: hidden;
+      box-shadow: 0 16px 36px -18px rgba(21, 23, 28, 0.35);
     }
 
     .inspector-bar {
@@ -249,8 +348,8 @@
       justify-content: space-between;
       gap: 12px;
       padding: 10px 14px;
-      border-bottom: 1px solid var(--line);
-      background: var(--surface-strong);
+      background: #0E1014;
+      border-bottom: 1px solid rgba(244, 243, 238, 0.14);
       font-family: var(--mono);
       font-size: 12px;
     }
@@ -260,18 +359,19 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      color: var(--term-ink);
     }
 
     .inspector-bar > span:last-child {
       flex-shrink: 0;
       white-space: nowrap;
-      color: var(--muted);
+      color: var(--term-muted);
     }
 
     .event-tabs {
       display: flex;
       flex-direction: column;
-      border-bottom: 1px solid var(--line);
+      border-bottom: 1px solid rgba(244, 243, 238, 0.14);
     }
 
     .event-tab {
@@ -284,12 +384,13 @@
       padding: 10px 14px;
       background: transparent;
       border: 0;
-      border-bottom: 1px solid var(--line);
+      border-bottom: 1px solid rgba(244, 243, 238, 0.1);
+      color: var(--term-muted);
       text-align: left;
       cursor: pointer;
       font-family: var(--mono);
       font-size: 12px;
-      transition: background-color 120ms ease;
+      transition: background-color 140ms ease, color 140ms ease;
     }
 
     .event-tab:last-child {
@@ -297,39 +398,52 @@
     }
 
     .event-tab:hover {
-      background: rgba(21, 23, 28, 0.04);
+      background: rgba(244, 243, 238, 0.05);
+      color: var(--term-ink);
     }
 
     .event-tab[aria-selected="true"] {
-      background: var(--bg);
-      box-shadow: inset 3px 0 0 var(--accent);
+      background: var(--term-surface);
+      color: var(--term-ink);
+      box-shadow: inset 3px 0 0 #60A5FA;
       font-weight: 600;
     }
 
     .code-tag {
-      padding: 2px 6px;
+      padding: 2px 7px;
       border-radius: var(--radius);
-      border: 1px solid var(--line-strong);
+      border: 1px solid rgba(244, 243, 238, 0.25);
       font-family: var(--mono);
       font-size: 11px;
       font-weight: 600;
+      white-space: nowrap;
     }
 
     .code-tag.is-err {
-      color: var(--err);
-      border-color: rgba(185, 28, 28, 0.35);
-      background: rgba(185, 28, 28, 0.06);
+      color: var(--err-term);
+      border-color: rgba(252, 165, 165, 0.4);
+      background: rgba(185, 28, 28, 0.2);
     }
 
     .code-tag.is-ok {
-      color: var(--ok);
-      border-color: rgba(21, 128, 61, 0.35);
-      background: rgba(21, 128, 61, 0.06);
+      color: var(--ok-term);
+      border-color: rgba(110, 231, 183, 0.4);
+      background: rgba(21, 128, 61, 0.2);
+    }
+
+    .light-tag {
+      padding: 3px 8px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
     }
 
     .inspector-body {
       padding: 14px;
-      background: var(--bg);
     }
 
     .inspector-meta {
@@ -340,18 +454,19 @@
       margin-bottom: 10px;
       font-family: var(--mono);
       font-size: 12px;
-      color: var(--muted);
+      color: var(--term-muted);
     }
 
     pre.payload {
       margin: 0;
       padding: 12px;
-      background: var(--surface);
-      border: 1px solid var(--line);
+      background: #0E1014;
+      color: var(--term-ink);
+      border: 1px solid rgba(244, 243, 238, 0.14);
       border-radius: var(--radius);
       font-family: var(--mono);
       font-size: 12px;
-      line-height: 1.5;
+      line-height: 1.55;
       overflow-x: auto;
       white-space: pre-wrap;
       word-break: break-word;
@@ -369,15 +484,103 @@
     .replay-status {
       font-family: var(--mono);
       font-size: 12px;
+      color: var(--term-muted);
+    }
+
+    /* 2. Animated Signal Architecture Strip */
+    .arch-section {
+      padding-block: clamp(44px, 6vw, 72px);
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .arch-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px 24px;
+      margin-bottom: 24px;
+    }
+
+    .arch-head > div {
+      max-width: 680px;
+    }
+
+    .arch-frame {
+      background: var(--card);
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .arch-svg-wrap {
+      padding: clamp(14px, 3vw, 28px);
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .arch-scroll-hint {
+      padding: 8px 14px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      font-family: var(--mono);
+      font-size: 11px;
       color: var(--muted);
     }
 
-    /* 2. Master-Detail Failure Scenarios */
+    @media (min-width: 660px) {
+      .arch-scroll-hint {
+        display: none;
+      }
+    }
+
+    .arch-svg {
+      display: block;
+      width: 100%;
+      min-width: 640px;
+      height: auto;
+    }
+
+    .arch-steps {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    .arch-step {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .arch-step:last-child {
+      border-bottom: 0;
+    }
+
+    .arch-step-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+
+    .arch-step strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 14px;
+    }
+
+    .arch-step p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* 3. Master-Detail Scenarios */
     .split-head {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
       margin-bottom: 28px;
+      max-width: 60ch;
     }
 
     .master-detail {
@@ -390,23 +593,23 @@
     .scenario-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     }
 
     .scenario-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 4px;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 12px;
+      align-items: start;
       width: 100%;
-      min-height: 54px;
+      min-height: 58px;
       padding: 14px 16px;
-      background: transparent;
-      border: 1px solid var(--line);
+      background: var(--card);
+      border: 1px solid var(--line-strong);
       border-radius: var(--radius);
       text-align: left;
       cursor: pointer;
-      transition: background-color 120ms ease, border-color 120ms ease;
+      transition: background-color 140ms ease, border-color 140ms ease;
     }
 
     .scenario-btn:hover {
@@ -414,24 +617,34 @@
     }
 
     .scenario-btn[aria-selected="true"] {
-      background: var(--surface);
       border-color: var(--accent);
       box-shadow: inset 3px 0 0 var(--accent);
     }
 
+    .sc-idx {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      padding-top: 2px;
+    }
+
     .scenario-title {
-      font-weight: 650;
+      display: block;
+      font-weight: 680;
       font-size: 15px;
     }
 
     .scenario-sub {
+      display: block;
+      margin-top: 2px;
       font-size: 13px;
       color: var(--muted);
     }
 
     .detail-panel {
       padding: clamp(18px, 3vw, 28px);
-      background: var(--surface);
+      background: var(--card);
       border: 1px solid var(--line-strong);
       border-radius: var(--radius);
     }
@@ -446,8 +659,8 @@
     .hop {
       display: inline-flex;
       align-items: center;
-      padding: 6px 10px;
-      background: var(--bg);
+      padding: 7px 10px;
+      background: var(--surface);
       border: 1px solid var(--line-strong);
       border-radius: var(--radius);
       font-family: var(--mono);
@@ -455,44 +668,57 @@
       white-space: nowrap;
     }
 
-    /* 3. Honest Scope + Interactive Volume Estimator */
+    /* 4. Honest Scope + Animated Calculator */
     .scope-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 28px;
-      align-items: start;
+      gap: 24px;
+      align-items: stretch;
     }
 
     .scope-box {
-      padding: 20px;
+      padding: clamp(20px, 3vw, 28px);
+      background: var(--surface);
       border: 1px solid var(--line-strong);
       border-radius: var(--radius);
-      background: var(--surface);
     }
 
     .scope-list {
-      margin: 14px 0 0;
-      padding-left: 18px;
-      color: var(--muted);
-      font-size: 15px;
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 14px;
     }
 
-    .scope-list li + li {
-      margin-top: 8px;
+    .scope-list li {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 10px;
+      font-size: 15px;
+      color: var(--ink);
+    }
+
+    .scope-num {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      padding-top: 3px;
     }
 
     .calc-panel {
-      padding: 20px;
+      padding: clamp(20px, 3vw, 28px);
+      background: var(--card);
       border: 1px solid var(--line-strong);
       border-radius: var(--radius);
-      background: var(--bg);
     }
 
     .calc-row {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
-      align-items: baseline;
+      align-items: center;
       gap: 8px;
       margin-bottom: 10px;
     }
@@ -504,21 +730,15 @@
       cursor: pointer;
     }
 
-    .spec-table-wrap {
-      width: 100%;
-      overflow-x: auto;
-      margin-top: 16px;
-      border-top: 1px solid var(--line);
-    }
-
     table.spec-table {
       width: 100%;
       border-collapse: collapse;
+      margin-top: 12px;
       font-size: 14px;
     }
 
     .spec-table th, .spec-table td {
-      padding: 11px 8px;
+      padding: 12px 6px;
       border-bottom: 1px solid var(--line);
       text-align: left;
     }
@@ -531,10 +751,11 @@
     .spec-table td {
       font-family: var(--mono);
       font-size: 13px;
+      font-weight: 600;
       text-align: right;
     }
 
-    /* 4. 2-Tier Pricing */
+    /* 5. Pricing Pair */
     .pricing-pair {
       display: grid;
       grid-template-columns: 1fr;
@@ -546,30 +767,36 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      gap: 20px;
-      padding: clamp(20px, 3vw, 28px);
+      gap: 24px;
+      padding: clamp(22px, 3vw, 30px);
       background: var(--surface);
       border: 1px solid var(--line-strong);
       border-radius: var(--radius);
     }
 
     .tier.is-team {
-      background: var(--bg);
+      background: var(--card);
       border-color: var(--accent);
-      box-shadow: inset 0 3px 0 var(--accent);
+      box-shadow: inset 0 4px 0 var(--accent);
     }
 
     .price-val {
       margin-top: 10px;
-      font-size: clamp(1.75rem, 3vw, 2.25rem);
-      font-weight: 750;
+      font-size: clamp(1.75rem, 3vw, 2.3rem);
+      font-weight: 760;
       letter-spacing: -0.03em;
+    }
+
+    .price-unit {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
     }
 
     .tier ul {
       margin: 16px 0 0;
       padding-left: 18px;
-      color: var(--muted);
+      color: var(--ink);
       font-size: 15px;
     }
 
@@ -577,15 +804,19 @@
       margin-top: 8px;
     }
 
-    /* 5. Sandbox Request + Footer Band */
+    /* 6. Sandbox Band + Footer */
     .footer-band {
-      background: var(--ink);
-      color: var(--bg);
-      padding-block: clamp(48px, 7vw, 80px) 32px;
+      background: var(--term-bg);
+      color: var(--term-ink);
+      padding-block: clamp(52px, 7vw, 84px) 32px;
     }
 
-    .footer-band .muted {
-      color: rgba(246, 245, 240, 0.72);
+    .footer-band .eyebrow {
+      color: #93C5FD;
+    }
+
+    .footer-band .lead {
+      color: var(--term-muted);
     }
 
     .sandbox-grid {
@@ -594,15 +825,15 @@
       gap: 28px;
       align-items: start;
       padding-bottom: 40px;
-      border-bottom: 1px solid rgba(246, 245, 240, 0.16);
+      border-bottom: 1px solid rgba(244, 243, 238, 0.16);
     }
 
     .sandbox-form {
       display: grid;
-      gap: 12px;
-      padding: 20px;
-      background: rgba(246, 245, 240, 0.05);
-      border: 1px solid rgba(246, 245, 240, 0.2);
+      gap: 14px;
+      padding: clamp(18px, 3vw, 24px);
+      background: var(--term-surface);
+      border: 1px solid rgba(244, 243, 238, 0.22);
       border-radius: var(--radius);
     }
 
@@ -610,22 +841,26 @@
       display: block;
       margin-bottom: 6px;
       font-size: 13px;
-      font-weight: 500;
-      color: rgba(246, 245, 240, 0.85);
+      font-weight: 550;
+      color: var(--term-ink);
     }
 
     .field input {
       width: 100%;
       min-height: 44px;
       padding: 10px 12px;
-      background: var(--ink);
-      border: 1px solid rgba(246, 245, 240, 0.28);
+      background: #0E1014;
+      border: 1px solid rgba(244, 243, 238, 0.28);
       border-radius: var(--radius);
-      color: var(--bg);
+      color: var(--term-ink);
+    }
+
+    .field input::placeholder {
+      color: #9AA3B2;
     }
 
     .field input:focus {
-      outline: 2px solid var(--accent);
+      outline: 2px solid #60A5FA;
       outline-offset: 1px;
     }
 
@@ -633,23 +868,24 @@
       min-height: 20px;
       font-family: var(--mono);
       font-size: 12px;
-      color: rgba(246, 245, 240, 0.85);
+      color: var(--ok-term);
     }
 
     .footer-meta {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
-      gap: 14px 24px;
+      align-items: center;
+      gap: 12px 24px;
       padding-top: 24px;
       font-size: 13px;
-      color: rgba(246, 245, 240, 0.72);
+      color: var(--term-muted);
     }
 
     .footer-links {
       display: flex;
       flex-wrap: wrap;
-      gap: 16px;
+      gap: 8px 14px;
     }
 
     .footer-links a {
@@ -658,36 +894,64 @@
       justify-content: center;
       min-width: 44px;
       min-height: 44px;
-      padding-inline: 6px;
+      padding-inline: 8px;
+      color: var(--term-ink);
     }
 
     @media (min-width: 760px) {
-      .backoff-track {
-        display: flex;
-        flex-wrap: wrap;
-      }
       .nav-links {
         display: flex;
       }
 
-      .hero-grid {
-        grid-template-columns: 1.02fr 0.98fr;
+      .menu-toggle,
+      .mobile-drawer {
+        display: none !important;
+      }
+
+      .arch-steps {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .arch-step {
+        border-bottom: 0;
+        border-right: 1px solid var(--line);
+      }
+
+      .arch-step:last-child {
+        border-right: 0;
+      }
+
+      .backoff-track {
+        display: flex;
+        flex-wrap: wrap;
       }
 
       .master-detail {
-        grid-template-columns: 0.88fr 1.12fr;
+        grid-template-columns: 0.9fr 1.1fr;
       }
 
       .scope-grid {
-        grid-template-columns: 0.85fr 1.15fr;
+        grid-template-columns: 0.92fr 1.08fr;
       }
 
-      .pricing-pair {
-        grid-template-columns: 1fr 1fr;
-      }
-
+      .pricing-pair,
       .sandbox-grid {
         grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (min-width: 960px) {
+      .hero-grid {
+        grid-template-columns: 1.04fr 0.96fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+      * {
+        transition-duration: 0.01ms !important;
       }
     }
   </style>
@@ -699,12 +963,33 @@
         <span class="brand-mark" aria-hidden="true">KH</span>
         <span>KawalHook</span>
       </a>
+
       <nav class="nav-links" aria-label="Navigasi utama">
-        <a href="#skenario">Alur Replay</a>
+        <a href="#arsitektur">Arsitektur</a>
+        <a href="#skenario">Skenario</a>
         <a href="#batasan">Spesifikasi</a>
         <a href="#harga">Harga</a>
       </nav>
-      <a class="btn btn-primary" href="#sandbox">Coba Endpoint</a>
+
+      <div class="header-actions">
+        <a class="btn btn-primary" href="#sandbox">Coba Gratis</a>
+        <button type="button" class="menu-toggle" id="menu-toggle" aria-label="Buka menu navigasi" aria-expanded="false" aria-controls="mobile-drawer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="4" y1="7" x2="20" y2="7"></line>
+            <line x1="4" y1="12" x2="20" y2="12"></line>
+            <line x1="4" y1="17" x2="20" y2="17"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="wrap mobile-drawer" id="mobile-drawer">
+      <nav aria-label="Menu mobile">
+        <a href="#arsitektur">01 Arsitektur Sinyal</a>
+        <a href="#skenario">02 Skenario Replay</a>
+        <a href="#batasan">03 Batasan &amp; Estimasi</a>
+        <a href="#harga">04 Harga Transparan</a>
+      </nav>
     </div>
   </header>
 
@@ -712,42 +997,54 @@
     <section class="hero" aria-labelledby="hero-title">
       <div class="wrap hero-grid">
         <div>
-          <p class="eyebrow">Webhook &amp; Cron Queue Guard</p>
-          <h1 id="hero-title">Setiap webhook gagal tercatat lengkap, siap diputar ulang.</h1>
-          <p class="lead">
-            Saat server payment atau shipping mengirim callback tepat ketika aplikasi Anda sedang restart, KawalHook menahan payload, memverifikasi signature HMAC, dan mengirim ulang otomatis begitu endpoint kembali sehat.
+          <span class="status-chip" data-hero-stagger>
+            <span class="pulse-dot" aria-hidden="true"></span>
+            Edge CGK Aktif • Latensi 14 ms
+          </span>
+          <h1 id="hero-title" data-hero-stagger>Jangan kehilangan callback transaksi saat server restart.</h1>
+          <p class="lead" data-hero-stagger>
+            Ketika payment gateway atau kurir mengirim webhook tepat saat aplikasi Anda sedang rolling deploy, KawalHook menahan payload mentah, memverifikasi signature HMAC, dan mengirim ulang otomatis begitu service kembali sehat.
           </p>
-          <div class="cta-pair" data-cta-row>
+          <div class="cta-pair" data-cta-row data-hero-stagger>
             <a class="btn btn-primary" href="#sandbox">Buat Endpoint</a>
-            <a class="btn btn-secondary" href="#skenario">Lihat Simulasi</a>
+            <a class="btn btn-secondary" href="#arsitektur">Lihat Topologi</a>
           </div>
-          <ul class="hero-facts">
-            <li>Retensi payload: 72 jam – 30 hari</li>
-            <li>Latensi proxy rata-rata: 14 ms</li>
-            <li>Region: Jakarta (CGK)</li>
-          </ul>
+          <div class="hero-specs" data-hero-stagger>
+            <div>
+              <strong>72j – 30h</strong>
+              <span>Retensi payload</span>
+            </div>
+            <div>
+              <strong>512 KB</strong>
+              <span>Batas body/event</span>
+            </div>
+            <div>
+              <strong>Raw Bytes</strong>
+              <span>Signature utuh</span>
+            </div>
+          </div>
         </div>
 
-        <aside class="inspector" aria-label="Simulasi inspektor payload webhook">
+        <aside class="inspector" aria-label="Simulasi inspektor payload webhook" data-hero-stagger>
           <div class="inspector-bar">
             <span>ingest.kawalhook.id/v1/wh_prod_09a</span>
             <span>HMAC-SHA256</span>
           </div>
           <div class="event-tabs" role="tablist" aria-label="Pilih contoh event webhook">
             <button type="button" class="event-tab" role="tab" aria-selected="true" data-event="paid">
-              <span>invoice.paid</span>
+              <span>POST /invoice.paid</span>
               <span class="code-tag is-err">502 Bad Gateway</span>
             </button>
             <button type="button" class="event-tab" role="tab" aria-selected="false" data-event="sig">
-              <span>order.refunded</span>
+              <span>POST /order.refunded</span>
               <span class="code-tag is-err">401 Sig Mismatch</span>
             </button>
             <button type="button" class="event-tab" role="tab" aria-selected="false" data-event="cron">
-              <span>cron.reconcile_daily</span>
+              <span>POST /cron.reconcile</span>
               <span class="code-tag is-ok">200 OK</span>
             </button>
           </div>
-          <div class="inspector-body">
+          <div class="inspector-body" id="inspector-body">
             <div class="inspector-meta">
               <span id="insp-source">Sumber: Xendit Callback</span>
               <span id="insp-attempt">Percobaan: 2 / 5</span>
@@ -760,7 +1057,7 @@
   "target_error": "upstream 502 during deploy"
 }</pre>
             <div class="inspector-actions">
-              <span class="replay-status" id="insp-status">Antrean berikut dalam 40 detik</span>
+              <span class="replay-status" id="insp-status">Antrean ulang berikut: +40 detik</span>
               <button type="button" class="btn btn-primary" id="replay-btn">Putar Ulang Payload</button>
             </div>
           </div>
@@ -768,33 +1065,123 @@
       </div>
     </section>
 
-    <section class="section" id="skenario" aria-labelledby="skenario-title">
+    <section class="arch-section" id="arsitektur" aria-labelledby="arch-title">
       <div class="wrap">
-        <div class="split-head">
-          <p class="eyebrow">Penanganan Kegagalan Nyata</p>
-          <h2 id="skenario-title">Satu tempat melihat alasan gagal sebelum mengulang kirim.</h2>
+        <div class="arch-head" data-reveal>
+          <div>
+            <p class="eyebrow">01 / Alur Sinyal Real-Time</p>
+            <h2 id="arch-title">Setiap request melewati empat pos pemeriksaan sebelum menyentuh API Anda.</h2>
+          </div>
+          <button type="button" class="btn btn-secondary" id="pulse-test-btn">Kirim Sinyal Tes</button>
         </div>
 
-        <div class="master-detail">
+        <div class="arch-frame" data-reveal>
+          <div class="arch-svg-wrap">
+            <svg class="arch-svg" viewBox="0 0 960 166" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram alur webhook dari Provider ke Target API melewati KawalHook Edge, Verifikasi HMAC, dan Antrean Disk">
+              <!-- Connector tracks -->
+              <line class="flow-track" x1="150" y1="64" x2="258" y2="64" stroke="#15171C" stroke-opacity="0.24" stroke-width="2" />
+              <line class="flow-track" x1="398" y1="64" x2="496" y2="64" stroke="#15171C" stroke-opacity="0.24" stroke-width="2" />
+              <line class="flow-track" x1="636" y1="64" x2="736" y2="64" stroke="#15171C" stroke-opacity="0.24" stroke-width="2" />
+
+              <!-- Animated drawn flow overlays (anime.js svg.createDrawable) -->
+              <path class="flow-draw" d="M150 64 H258 M398 64 H496 M636 64 H736" stroke="#1D4ED8" stroke-width="2.5" stroke-linecap="round" />
+
+              <!-- Moving packet pulse -->
+              <circle id="svg-packet" cx="150" cy="64" r="6" fill="#1D4ED8" />
+
+              <!-- Nodes -->
+              <g>
+                <rect x="16" y="30" width="134" height="68" rx="4" fill="#F4F3EE" stroke="#15171C" stroke-width="1.5" />
+                <text x="30" y="57" fill="#454B57" font-family="monospace" font-size="11" font-weight="600">PROVIDER</text>
+                <text x="30" y="78" fill="#15171C" font-family="sans-serif" font-size="13" font-weight="700">Payment / Kurir</text>
+              </g>
+
+              <g>
+                <rect x="258" y="30" width="140" height="68" rx="4" fill="#15171C" />
+                <text x="272" y="57" fill="#93C5FD" font-family="monospace" font-size="11" font-weight="600">EDGE CGK</text>
+                <text x="272" y="78" fill="#F4F3EE" font-family="sans-serif" font-size="13" font-weight="700">Ack 202 (14ms)</text>
+              </g>
+
+              <g>
+                <rect x="496" y="30" width="140" height="68" rx="4" fill="#F4F3EE" stroke="#15171C" stroke-width="1.5" />
+                <text x="510" y="57" fill="#454B57" font-family="monospace" font-size="11" font-weight="600">VERIFIKASI</text>
+                <text x="510" y="78" fill="#15171C" font-family="sans-serif" font-size="13" font-weight="700">HMAC + Dedup</text>
+              </g>
+
+              <g>
+                <rect x="736" y="30" width="208" height="68" rx="4" fill="#1D4ED8" />
+                <text x="752" y="57" fill="#DBEAFE" font-family="monospace" font-size="11" font-weight="600">TARGET SERVICE</text>
+                <text x="752" y="78" fill="#FFFFFF" font-family="sans-serif" font-size="13" font-weight="700" id="svg-target-label">API /api/webhook</text>
+              </g>
+
+              <!-- Retry loop arc under Edge -> Target -->
+              <path class="flow-retry" d="M840 98 V126 H328 V98" stroke="#15171C" stroke-opacity="0.38" stroke-width="1.5" stroke-dasharray="4 4" fill="none" />
+              <text x="584" y="150" text-anchor="middle" fill="#454B57" font-family="monospace" font-size="11">Jalur Auto-Retry Eksponensial (+10d → +40d → +160d jika target 5xx/timeout)</text>
+            </svg>
+          </div>
+          <div class="arch-scroll-hint">Geser diagram ke kanan untuk melihat seluruh pos pemeriksaan →</div>
+          <div class="arch-steps">
+            <div class="arch-step">
+              <span class="arch-step-num">STEP 01</span>
+              <strong>Ack 202 Kilat</strong>
+              <p>Provider langsung mendapat respons sukses agar tidak memicu retry duplikat.</p>
+            </div>
+            <div class="arch-step">
+              <span class="arch-step-num">STEP 02</span>
+              <strong>Raw Body Utuh</strong>
+              <p>Payload JSON dan header signature disimpan byte-per-byte tanpa diubah.</p>
+            </div>
+            <div class="arch-step">
+              <span class="arch-step-num">STEP 03</span>
+              <strong>Antrean Terisolasi</strong>
+              <p>Jika server Anda 502 atau timeout, event masuk disk queue Jakarta.</p>
+            </div>
+            <div class="arch-step">
+              <span class="arch-step-num">STEP 04</span>
+              <strong>Replay Presisi</strong>
+              <p>Putar ulang satu event atau ratusan transaksi gagal hanya dengan satu klik.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="skenario" aria-labelledby="skenario-title">
+      <div class="wrap">
+        <div class="split-head" data-reveal>
+          <p class="eyebrow">02 / Penanganan Kegagalan Nyata</p>
+          <h2 id="skenario-title">Diagnosa status HTTP sebelum mengulang pengiriman ke produksi.</h2>
+        </div>
+
+        <div class="master-detail" data-reveal>
           <div class="scenario-list" role="tablist" aria-label="Skenario kegagalan webhook">
             <button type="button" class="scenario-btn" role="tab" aria-selected="true" data-sc="deploy">
-              <span class="scenario-title">1. Server 502 saat rolling deploy</span>
-              <span class="scenario-sub">Container lama mati 12 detik sebelum siap</span>
+              <span class="sc-idx">01</span>
+              <span>
+                <span class="scenario-title">Server 502 saat rolling deploy</span>
+                <span class="scenario-sub">Container lama mati 12 detik sebelum pod baru siap</span>
+              </span>
             </button>
             <button type="button" class="scenario-btn" role="tab" aria-selected="false" data-sc="hmac">
-              <span class="scenario-title">2. Rotasi secret HMAC terlewat</span>
-              <span class="scenario-sub">Signature ditolak 401 di produksi</span>
+              <span class="sc-idx">02</span>
+              <span>
+                <span class="scenario-title">Rotasi secret HMAC terlewat</span>
+                <span class="scenario-sub">Signature ditolak 401 di endpoint produksi</span>
+              </span>
             </button>
             <button type="button" class="scenario-btn" role="tab" aria-selected="false" data-sc="slow">
-              <span class="scenario-title">3. Worker timeout lebih dari 5 detik</span>
-              <span class="scenario-sub">Provider menganggap gagal dan kirim dobel</span>
+              <span class="sc-idx">03</span>
+              <span>
+                <span class="scenario-title">Worker lambat melebihi 5 detik</span>
+                <span class="scenario-sub">Provider menganggap timeout dan mengirim payload dobel</span>
+              </span>
             </button>
           </div>
 
-          <article class="detail-panel" aria-live="polite">
+          <article class="detail-panel" id="detail-panel" aria-live="polite">
             <h3 id="sc-title">Server mengembalikan 502 saat rolling deploy</h3>
             <p class="lead" id="sc-desc">
-              KawalHook menahan event ke disk queue lokal di Jakarta, lalu mencoba ulang dengan jeda eksponensial agar endpoint tidak kebanjiran tepat saat baru hidup.
+              KawalHook menahan event ke antrean Jakarta dan menjadwalkan ulang secara eksponensial agar endpoint tidak dibanjiri tepat saat container baru menyala.
             </p>
             <div class="backoff-track" id="sc-hops">
               <span class="hop">#1 Retry: +10d</span>
@@ -812,59 +1199,69 @@ Result: 200 OK (184ms)</pre>
 
     <section class="section" id="batasan" aria-labelledby="batasan-title">
       <div class="wrap scope-grid">
-        <div class="scope-box">
-          <p class="eyebrow">Batasan Jujur</p>
+        <div class="scope-box" data-reveal>
+          <p class="eyebrow">03 / Batasan Jujur</p>
           <h2 id="batasan-title">Apa yang sengaja tidak kami kerjakan.</h2>
           <ul class="scope-list">
-            <li>Bukan pengganti APM penuh seperti Datadog atau Grafana Tempo untuk tracing CPU dan SQL.</li>
-            <li>Batas ukuran satu payload 512 KB; upload file biner besar tetap langsung ke object storage.</li>
-            <li>Tidak mengubah isi JSON Anda secara diam-diam—header asli dan raw body diteruskan persis untuk validasi HMAC.</li>
+            <li>
+              <span class="scope-num">01</span>
+              <span>Bukan pengganti APM penuh seperti Datadog atau Grafana Tempo untuk tracing CPU dan query SQL.</span>
+            </li>
+            <li>
+              <span class="scope-num">02</span>
+              <span>Ukuran maksimal satu payload 512 KB; upload file biner besar tetap langsung ke object storage.</span>
+            </li>
+            <li>
+              <span class="scope-num">03</span>
+              <span>Raw JSON body tidak pernah diformat ulang secara diam-diam agar tanda tangan HMAC vendor selalu valid.</span>
+            </li>
           </ul>
         </div>
 
-        <div class="calc-panel">
+        <div class="calc-panel" data-reveal>
           <div class="calc-row">
             <label for="volume-range"><strong>Simulasi volume harian tim Anda</strong></label>
-            <span class="code-tag" id="volume-label">25.000 event / hari</span>
+            <span class="light-tag" id="volume-label">25.000 event / hari</span>
           </div>
           <input id="volume-range" class="range-input" type="range" min="1000" max="250000" step="1000" value="25000">
-          <div class="spec-table-wrap">
-            <table class="spec-table">
-              <thead>
-                <tr>
-                  <th>Parameter Operasional</th>
-                  <th style="text-align:right">Estimasi</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <th>Total payload masuk per bulan</th>
-                  <td id="calc-monthly">750.000 event</td>
-                </tr>
-                <tr>
-                  <th>Estimasi storage log (rata-rata 4 KB)</th>
-                  <td id="calc-storage">2,86 GB / bulan</td>
-                </tr>
-                <tr>
-                  <th>Paket yang sesuai</th>
-                  <td id="calc-plan">Tim Produksi (Rp 240.000/bln)</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>Parameter Operasional</th>
+                <th style="text-align:right">Estimasi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Total payload masuk per bulan</th>
+                <td id="calc-monthly">750.000 event</td>
+              </tr>
+              <tr>
+                <th>Estimasi storage log (rata-rata 4 KB)</th>
+                <td id="calc-storage">2,86 GB / bulan</td>
+              </tr>
+              <tr>
+                <th>Paket yang sesuai</th>
+                <td id="calc-plan">Tim Produksi (Rp 240.000/bln)</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
 
     <section class="section" id="harga" aria-labelledby="harga-title">
       <div class="wrap">
-        <p class="eyebrow">Harga Sederhana</p>
-        <h2 id="harga-title">Mulai tanpa kartu kredit. Naik hanya saat trafik produksi membutuhkan retensi panjang.</h2>
-        <div class="pricing-pair">
+        <div class="split-head" data-reveal>
+          <p class="eyebrow">04 / Harga Transparan</p>
+          <h2 id="harga-title">Mulai tanpa kartu kredit. Naik hanya saat trafik membutuhkan retensi 30 hari.</h2>
+        </div>
+
+        <div class="pricing-pair" data-reveal>
           <article class="tier">
             <div>
               <h3>Gratis (Dev &amp; Staging)</h3>
-              <p class="price-val">Rp 0 <span style="font-size:14px;font-weight:500;color:var(--muted)">/ selamanya</span></p>
+              <p class="price-val">Rp 0 <span class="price-unit">/ selamanya</span></p>
               <ul>
                 <li>Hingga 5.000 event per hari</li>
                 <li>Retensi payload &amp; header 72 jam</li>
@@ -878,7 +1275,7 @@ Result: 200 OK (184ms)</pre>
           <article class="tier is-team">
             <div>
               <h3>Tim Produksi</h3>
-              <p class="price-val">Rp 240.000 <span style="font-size:14px;font-weight:500;color:var(--muted)">/ bulan</span></p>
+              <p class="price-val">Rp 240.000 <span class="price-unit">/ bulan</span></p>
               <ul>
                 <li>Hingga 250.000 event per hari</li>
                 <li>Retensi 30 hari + ekspor CSV/JSON</li>
@@ -895,12 +1292,12 @@ Result: 200 OK (184ms)</pre>
 
   <footer class="footer-band" id="sandbox">
     <div class="wrap">
-      <div class="sandbox-grid">
+      <div class="sandbox-grid" data-reveal>
         <div>
-          <p class="eyebrow" style="color:#93C5FD">Endpoint Sandbox Instan</p>
+          <p class="eyebrow">05 / Endpoint Sandbox Instan</p>
           <h2>Uji kirim webhook pertama dalam satu menit.</h2>
-          <p class="lead muted">
-            Masukkan URL server tujuan (boleh staging atau localhost tunnel) untuk membuat rute sandbox terisolasi selama 7 hari.
+          <p class="lead">
+            Masukkan URL server tujuan (staging atau localhost tunnel) untuk mendapatkan rute sandbox terisolasi selama 7 hari tanpa registrasi kartu.
           </p>
         </div>
 
@@ -921,21 +1318,159 @@ Result: 200 OK (184ms)</pre>
       <div class="footer-meta">
         <span>KawalHook • Jakarta Selatan • Uptime ingest 90 hari: 99,98%</span>
         <div class="footer-links">
-          <a href="#top">Kembali ke atas</a>
-          <a href="#skenario">Alur Replay</a>
-          <a href="#batasan">Batasan Teknis</a>
+          <a href="#top">Ke Atas</a>
+          <a href="#arsitektur">Arsitektur</a>
+          <a href="#skenario">Skenario</a>
           <a href="#harga">Harga</a>
         </div>
       </div>
     </div>
   </footer>
 
-  <script>
+  <script type="module">
+    import { animate, stagger, svg } from "./vendor/anime.esm.min.js";
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const releaseStyle = (el) => {
+      el.style.removeProperty("opacity");
+      el.style.removeProperty("transform");
+      el.style.removeProperty("will-change");
+    };
+
+    // 1. Mobile navigation drawer with clean anime.js glide
+    const menuBtn = document.getElementById("menu-toggle");
+    const drawer = document.getElementById("mobile-drawer");
+    menuBtn.addEventListener("click", () => {
+      const opening = menuBtn.getAttribute("aria-expanded") !== "true";
+      menuBtn.setAttribute("aria-expanded", String(opening));
+      drawer.classList.toggle("is-open", opening);
+      if (opening && !reducedMotion) {
+        animate(drawer.querySelectorAll("a"), {
+          opacity: [0, 1],
+          x: [-8, 0],
+          duration: 240,
+          delay: stagger(35),
+          ease: "outCubic",
+          onComplete: () => drawer.querySelectorAll("a").forEach(releaseStyle),
+        });
+      }
+    });
+    drawer.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", () => {
+        menuBtn.setAttribute("aria-expanded", "false");
+        drawer.classList.remove("is-open");
+      });
+    });
+
+    // 2. Hero Entrance Stagger (runs once cleanly)
+    const heroEls = document.querySelectorAll("[data-hero-stagger]");
+    if (!reducedMotion && heroEls.length) {
+      animate(heroEls, {
+        opacity: [0, 1],
+        y: [16, 0],
+        duration: 520,
+        delay: stagger(65),
+        ease: "outQuart",
+        onComplete: () => heroEls.forEach(releaseStyle),
+      });
+    }
+
+    // 3. SVG Signal Packet Pulse & Drawable Flow Animation
+    const packetDot = document.getElementById("svg-packet");
+    const svgTargetLabel = document.getElementById("svg-target-label");
+    let packetBusy = false;
+
+    function fireSignalPulse(statusLabel) {
+      if (packetBusy || reducedMotion) {
+        if (statusLabel) svgTargetLabel.textContent = statusLabel;
+        return;
+      }
+      packetBusy = true;
+      if (statusLabel) svgTargetLabel.textContent = statusLabel;
+      animate(packetDot, {
+        cx: [150, 840],
+        r: [6, 7.5, 6],
+        duration: 780,
+        ease: "inOutCubic",
+        onComplete: () => {
+          packetDot.setAttribute("cx", "150");
+          packetBusy = false;
+        },
+      });
+    }
+
+    document.getElementById("pulse-test-btn").addEventListener("click", () => {
+      fireSignalPulse("200 OK (96ms)");
+    });
+
+    // 4. Scroll-Triggered Choreography (arms safely only for below-fold items)
+    const reveals = [...document.querySelectorAll("[data-reveal]")];
+    const showBlock = (el) => {
+      if (el.dataset.shown === "1") return;
+      el.dataset.shown = "1";
+      if (reducedMotion) {
+        releaseStyle(el);
+        return;
+      }
+      animate(el, {
+        opacity: [0, 1],
+        y: [18, 0],
+        duration: 520,
+        ease: "outQuart",
+        onComplete: () => releaseStyle(el),
+      });
+      const drawables = el.querySelectorAll(".flow-draw");
+      if (drawables.length) {
+        animate(svg.createDrawable(drawables), {
+          draw: ["0 0", "0 1"],
+          duration: 850,
+          ease: "inOutQuart",
+        });
+        setTimeout(() => fireSignalPulse(), 220);
+      }
+    };
+
+    if (!reducedMotion && "IntersectionObserver" in window) {
+      const vh = window.innerHeight || 800;
+      const io = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            showBlock(entry.target);
+            io.unobserve(entry.target);
+          }
+        }
+      }, { threshold: 0.08 });
+
+      for (const el of reveals) {
+        if (el.getBoundingClientRect().top > vh * 0.92) {
+          el.style.opacity = "0";
+          io.observe(el);
+        } else {
+          el.dataset.shown = "1";
+        }
+      }
+
+      // Guarantee scrolled visibility even on ultra-fast programmatic jumps
+      let scrollTimer;
+      window.addEventListener("scroll", () => {
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(() => {
+          for (const el of reveals) {
+            if (el.dataset.shown !== "1" && el.getBoundingClientRect().top < (window.innerHeight || 800) * 1.1) {
+              showBlock(el);
+              io.unobserve(el);
+            }
+          }
+        }, 80);
+      }, { passive: true });
+    }
+
+    // 5. Interactive Inspector Tabs & Replay
     const EVENTS = {
       paid: {
         source: "Sumber: Xendit Callback",
         attempt: "Percobaan: 2 / 5",
-        status: "Antrean berikut dalam 40 detik",
+        status: "Antrean ulang berikut: +40 detik",
         json: `{\n  "id": "evt_88219a",\n  "event": "invoice.paid",\n  "amount_idr": 240000,\n  "signature_valid": true,\n  "target_error": "upstream 502 during deploy"\n}`,
       },
       sig: {
@@ -948,28 +1483,7 @@ Result: 200 OK (184ms)</pre>
         source: "Sumber: Scheduler Jakarta",
         attempt: "Percobaan: 1 / 1",
         status: "Diterima 200 OK dalam 112 ms",
-        json: `{\n  "id": "job_reconcile_2300",\n  "event": "cron.reconcile_daily",\n  "settled_rows": 1482,\n  "signature_valid": true,\n  "target_status": 200\n}`,
-      },
-    };
-
-    const SCENARIOS = {
-      deploy: {
-        title: "Server mengembalikan 502 saat rolling deploy",
-        desc: "KawalHook menahan event ke disk queue lokal di Jakarta, lalu mencoba ulang dengan jeda eksponensial agar endpoint tidak kebanjiran tepat saat baru hidup.",
-        hops: ["#1 Retry: +10d", "#2 Retry: +40d", "#3 Retry: +160d", "Maks: 24 jam"],
-        header: "X-KawalHook-Attempt: 2\nX-KawalHook-Original-Timestamp: 2026-11-12T14:22:09Z\nResult: 200 OK (184ms)",
-      },
-      hmac: {
-        title: "Rotasi secret HMAC terlewat di environment produksi",
-        desc: "Event bertanda 401 tidak dibuang. Perbarui secret di server Anda, lalu klik replay massal tanpa kehilangan satu transaksi pun.",
-        hops: ["Status: Ditahan", "Raw Body: Utuh", "Header Asli: Utuh", "Replay: Sekali Klik"],
-        header: "X-Callback-Token: [tersimpan terenkripsi]\nX-KawalHook-Failure: 401 Unauthorized\nReplay-Mode: preserve-raw-bytes",
-      },
-      slow: {
-        title: "Worker memproses lebih dari 5 detik dan memicu kirim dobel",
-        desc: "KawalHook langsung membalas 202 Accepted ke provider dalam 14 ms, sehingga provider berhenti mengirim duplikat sementara worker Anda bekerja tenang.",
-        hops: ["Ack Provider: 14ms", "Timeout Target: 30d", "Dedup Key: id+event", "Duplikat Diblokir"],
-        header: "X-KawalHook-Dedup: evt_88219a\nUpstream-Ack: 202 Accepted (14ms)\nWorker-Duration: 8420ms (200 OK)",
+        json: `{\n  "id": "job_reconcile_2300",\n  "event": "cron.reconcile",\n  "settled_rows": 1482,\n  "signature_valid": true,\n  "target_status": 200\n}`,
       },
     };
 
@@ -978,7 +1492,7 @@ Result: 200 OK (184ms)</pre>
     const attemptEl = document.getElementById("insp-attempt");
     const jsonEl = document.getElementById("insp-json");
     const statusEl = document.getElementById("insp-status");
-    const replayBtn = document.getElementById("replay-btn");
+    const inspBody = document.getElementById("inspector-body");
     let currentKey = "paid";
 
     tabs.forEach((btn) => {
@@ -990,14 +1504,44 @@ Result: 200 OK (184ms)</pre>
         attemptEl.textContent = d.attempt;
         jsonEl.textContent = d.json;
         statusEl.textContent = d.status;
+        if (!reducedMotion) {
+          animate(inspBody, { opacity: [0.4, 1], y: [6, 0], duration: 220, ease: "outCubic", onComplete: () => releaseStyle(inspBody) });
+        }
       });
     });
 
-    replayBtn.addEventListener("click", () => {
-      statusEl.textContent = `Replay manual (${currentKey}) -> 200 OK (96ms)`;
+    document.getElementById("replay-btn").addEventListener("click", () => {
+      statusEl.textContent = `Replay (${currentKey}) -> 200 OK (96ms)`;
+      if (!reducedMotion) {
+        animate(statusEl, { opacity: [0.3, 1], x: [-6, 0], duration: 260, ease: "outCubic", onComplete: () => releaseStyle(statusEl) });
+      }
+      fireSignalPulse(`Replay ${currentKey}: 200 OK`);
     });
 
+    // 6. Interactive Failure Scenario Master-Detail
+    const SCENARIOS = {
+      deploy: {
+        title: "Server mengembalikan 502 saat rolling deploy",
+        desc: "KawalHook menahan event ke antrean Jakarta dan menjadwalkan ulang secara eksponensial agar endpoint tidak dibanjiri tepat saat container baru menyala.",
+        hops: ["#1 Retry: +10d", "#2 Retry: +40d", "#3 Retry: +160d", "Maks: 24 jam"],
+        header: "X-KawalHook-Attempt: 2\nX-KawalHook-Original-Timestamp: 2026-11-12T14:22:09Z\nResult: 200 OK (184ms)",
+      },
+      hmac: {
+        title: "Rotasi secret HMAC terlewat di environment produksi",
+        desc: "Event bertanda 401 tidak dibuang. Perbarui secret di server Anda, lalu klik replay massal tanpa kehilangan satu transaksi pun.",
+        hops: ["Status: Ditahan", "Raw Body: Utuh", "Header: Utuh", "Replay: 1 Klik"],
+        header: "X-Callback-Token: [tersimpan terenkripsi]\nX-KawalHook-Failure: 401 Unauthorized\nReplay-Mode: preserve-raw-bytes",
+      },
+      slow: {
+        title: "Worker memproses lebih dari 5 detik dan memicu kirim dobel",
+        desc: "KawalHook membalas 202 Accepted ke provider dalam 14 ms, menghentikan duplikat sambil memberi ruang hingga 30 detik ke worker Anda.",
+        hops: ["Ack: 14ms", "Timeout: 30d", "Dedup: id+event", "Duplikat Blokir"],
+        header: "X-KawalHook-Dedup: evt_88219a\nUpstream-Ack: 202 Accepted (14ms)\nWorker-Duration: 8420ms (200 OK)",
+      },
+    };
+
     const scBtns = document.querySelectorAll(".scenario-btn");
+    const detailPanel = document.getElementById("detail-panel");
     const scTitle = document.getElementById("sc-title");
     const scDesc = document.getElementById("sc-desc");
     const scHops = document.getElementById("sc-hops");
@@ -1011,25 +1555,50 @@ Result: 200 OK (184ms)</pre>
         scDesc.textContent = d.desc;
         scHops.innerHTML = d.hops.map((h) => `<span class="hop">${h}</span>`).join("");
         scHeader.textContent = d.header;
+        if (!reducedMotion) {
+          animate(detailPanel, { opacity: [0.45, 1], y: [8, 0], duration: 240, ease: "outCubic", onComplete: () => releaseStyle(detailPanel) });
+        }
       });
     });
 
+    // 7. Smooth Animated Volume Counter (anime.js object tween)
     const volInput = document.getElementById("volume-range");
     const volLabel = document.getElementById("volume-label");
     const calcMonthly = document.getElementById("calc-monthly");
     const calcStorage = document.getElementById("calc-storage");
     const calcPlan = document.getElementById("calc-plan");
+    let currentMonthly = 750000;
+    let counterAnim = null;
 
     volInput.addEventListener("input", () => {
       const daily = Number(volInput.value);
-      const monthly = daily * 30;
-      const gb = ((monthly * 4) / (1024 * 1024)).toFixed(2).replace(".", ",");
+      const targetMonthly = daily * 30;
       volLabel.textContent = `${daily.toLocaleString("id-ID")} event / hari`;
-      calcMonthly.textContent = `${monthly.toLocaleString("id-ID")} event`;
-      calcStorage.textContent = `${gb} GB / bulan`;
       calcPlan.textContent = daily <= 5000 ? "Gratis (Rp 0/selamanya)" : "Tim Produksi (Rp 240.000/bln)";
+
+      if (reducedMotion) {
+        currentMonthly = targetMonthly;
+        calcMonthly.textContent = `${targetMonthly.toLocaleString("id-ID")} event`;
+        calcStorage.textContent = `${((targetMonthly * 4) / (1024 * 1024)).toFixed(2).replace(".", ",")} GB / bulan`;
+        return;
+      }
+
+      if (counterAnim) counterAnim.cancel();
+      const state = { val: currentMonthly };
+      counterAnim = animate(state, {
+        val: targetMonthly,
+        duration: 260,
+        ease: "outCubic",
+        onUpdate: () => {
+          currentMonthly = Math.round(state.val);
+          const gb = ((currentMonthly * 4) / (1024 * 1024)).toFixed(2).replace(".", ",");
+          calcMonthly.textContent = `${currentMonthly.toLocaleString("id-ID")} event`;
+          calcStorage.textContent = `${gb} GB / bulan`;
+        },
+      });
     });
 
+    // 8. Sandbox Request Form
     const form = document.getElementById("sandbox-form");
     const formResult = document.getElementById("form-result");
     form.addEventListener("submit", (e) => {
@@ -1042,6 +1611,9 @@ Result: 200 OK (184ms)</pre>
       }
       const slug = Math.random().toString(36).slice(2, 8);
       formResult.textContent = `Siap: https://ingest.kawalhook.id/sbx_${slug} -> meneruskan ke ${url}`;
+      if (!reducedMotion) {
+        animate(formResult, { opacity: [0, 1], y: [6, 0], duration: 240, ease: "outCubic", onComplete: () => releaseStyle(formResult) });
+      }
     });
   </script>
 </body>
