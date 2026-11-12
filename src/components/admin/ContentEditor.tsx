@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { contentFields, contentOptionLabels } from "@/lib/admin-content-fields";
+import { prepareImageWebpUpload } from "@/lib/admin/image-webp";
 import type { OpeningHour } from "@/types";
 import { ParkingIcon, SignpostIcon, TransitIcon } from "@/components/ui/icons";
 import { adminRequest, adminError, adminInputClass, adminButtonClass, adminSecondaryClass } from "./admin-api";
@@ -214,7 +215,7 @@ export default function ContentEditor({ resource }: { resource: string }): React
             Unggah foto
             <input
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/avif"
+              accept="image/*,.heic,.heif,.tiff,.tif,.bmp"
               disabled={busy}
               className={adminInputClass}
               onChange={async (e) => {
@@ -223,8 +224,9 @@ export default function ContentEditor({ resource }: { resource: string }): React
                 setBusy(true);
                 setError("");
                 try {
+                  const prepared = await prepareImageWebpUpload(file, 1400);
                   const formData = new FormData();
-                  formData.set("file", file);
+                  formData.set("file", prepared);
                   formData.set("folder", "gallery");
                   const r = await adminRequest<{ url: string }>("upload?folder=gallery", { method: "POST", body: formData });
                   setEdit({ ...edit!, src: r.url });

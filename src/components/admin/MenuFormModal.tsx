@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useDialogFocus } from "./useDialogFocus";
 import type { MenuCategory, MenuCategoryMeta, MenuItem } from "@/types";
+import { prepareImageWebpUpload } from "@/lib/admin/image-webp";
 import {
   adminButtonClass,
   adminError,
@@ -67,16 +68,14 @@ export default function MenuFormModal({
   }
 
   async function upload(file: File): Promise<void> {
-    if (file.size > 5_242_880 || !/^image\/(jpeg|png|webp|avif)$/.test(file.type)) {
-      setUploadError("Foto harus JPG, PNG, WebP, atau AVIF maksimal 5 MB.");
-      return;
-    }
     setUploading(true);
     setUploadError("");
     try {
-      const form = new FormData();form.append("file",file);
-      const {url}=await adminRequest<{url:string}>("upload",{method:"POST",body:form});
-      setItem(current=>({...current,image:url}));
+      const prepared = await prepareImageWebpUpload(file, 900);
+      const form = new FormData();
+      form.append("file", prepared);
+      const { url } = await adminRequest<{ url: string }>("upload", { method: "POST", body: form });
+      patch({ image: url });
     } catch (cause: unknown) {
       setUploadError(adminError(cause));
     } finally {
@@ -237,7 +236,7 @@ export default function MenuFormModal({
             <input
               id="menu-photo-input"
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/avif"
+              accept="image/*,.heic,.heif,.tiff,.tif,.bmp"
               disabled={uploading}
               className="min-h-11 w-full rounded-xl border border-charcoal-border bg-charcoal-darkest px-3 py-2.5 text-xs text-offwhite-muted file:mr-3 file:rounded-lg file:border-0 file:bg-charcoal-light file:px-3 file:py-1.5 file:text-xs file:text-offwhite"
               onChange={(event) => {
@@ -247,7 +246,7 @@ export default function MenuFormModal({
             />
             {uploading && (
               <span role="status" className="text-xs text-offwhite-muted">
-                Mengunggah foto…
+                Mengonversi &amp; mengunggah ke WebP…
               </span>
             )}
             {uploadError && (

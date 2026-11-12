@@ -8,32 +8,48 @@ import { HttpError } from "@/lib/server/validation";
 import {isCloudPrimaryEnv} from "@/lib/server/storage-mode";
 import {cloudDb,checkCloud} from "@/lib/server/cloud-db";
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 15 * 1024 * 1024;
+const ALLOWED_SHARP_FORMATS = new Set([
+  "jpeg",
+  "png",
+  "webp",
+  "avif",
+  "heif",
+  "gif",
+  "tiff",
+  "svg",
+]);
 
-/** Deteksi tipe dari isi file (bukan dari nama/Content-Type yang bisa dipalsukan). */
-function detect(bytes: Uint8Array): "jpg" | "png" | "webp" | "avif" | null {
-  const ascii = (from: number, to: number): string => String.fromCharCode(...bytes.subarray(from, to));
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpg";
-  if (ascii(1, 4) === "PNG" && bytes[0] === 0x89) return "png";
-  if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") return "webp";
-  if (ascii(4, 8) === "ftyp" && /avif|avis/.test(ascii(8, 12))) return "avif";
-  return null;
-}
-
-/** Mode lokal: foto menu disimpan di public/uploads/menu (diabaikan git), URL-nya langsung dipakai halaman publik. */
+/** Mode lokal & cloud: setiap format gambar dikonversi wajib menjadi .webp via sharp sebelum disimpan ke storage / Supabase. */
 export async function POST(request: Request): Promise<Response> {
   try {
     const folder = new URL(request.url).searchParams.get("folder") === "gallery" ? "gallery" : "menu";
     await requireLocalAdmin(request, folder);
     const file = (await request.formData().catch(() => null))?.get("file");
     if (!(file instanceof File) || file.size === 0) throw new HttpError(400, "Pilih file foto.");
-    if (file.size > MAX_BYTES) throw new HttpError(413, "Foto maksimal 5 MB.");
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const ext = detect(bytes);
-    if (!ext) throw new HttpError(400, "Foto harus JPG, PNG, WebP, atau AVIF.");
+    if (file.size > MAX_BYTES) throw new HttpError(413, "Foto maksimal 15 MB.");
+
+    const bytes = Buffer.from(await file.arrayBuffer());
+    const pipeline = sharp(bytes, {
+      limitInputPixels: 100_000_000,
+      sequentialRead: true,
+    });
+
+    let meta;
+    try {
+      meta = await pipeline.metadata();
+    } catch {
+      throw new HttpError(400, "File harus berupa gambar yang valid.");
+    }
+    if (!meta.format || !ALLOWED_SHARP_FORMATS.has(meta.format)) {
+      throw new HttpError(400, "Format gambar tidak didukung.");
+    }
 
     const maxWidth = folder === "gallery" ? 1400 : 900;
-    const webpBuffer = await sharp(bytes)
+    const webpBuffer = await sharp(bytes, {
+      limitInputPixels: 100_000_000,
+      sequentialRead: true,
+    })
       .rotate()
       .resize({ width: maxWidth, withoutEnlargement: true })
       .webp({ quality: 82, effort: 4 })
