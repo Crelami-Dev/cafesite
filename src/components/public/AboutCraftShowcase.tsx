@@ -108,41 +108,14 @@ export function AboutCraftShowcase(): React.JSX.Element {
       className="border-t border-offwhite/10 bg-charcoal-darkest py-12 sm:py-14 lg:py-16"
     >
       <div className="public-container">
-        {/* Header bar dengan kontrol slide ringkas */}
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-terracotta-light">
-              Prinsip Kedai
-            </p>
-            <h2 id="craft-showcase-heading" className="public-h2 mt-2">
-              Tiga hal yang kami jaga
-            </h2>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="font-serif text-sm text-offwhite-muted tabular-nums">
-              <strong className="font-medium text-offwhite">{current.number}</strong>
-              {" / "}0{CHAPTERS.length}
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => goTo(active - 1)}
-                aria-label="Prinsip sebelumnya"
-                className="inline-flex size-11 items-center justify-center rounded-md border border-offwhite/20 text-offwhite transition hover:border-offwhite/45 hover:bg-charcoal-light"
-              >
-                <ChevronLeftIcon className="size-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => goTo(active + 1)}
-                aria-label="Prinsip berikutnya"
-                className="inline-flex size-11 items-center justify-center rounded-md border border-offwhite/20 text-offwhite transition hover:border-offwhite/45 hover:bg-charcoal-light"
-              >
-                <ChevronRightIcon className="size-4" />
-              </button>
-            </div>
-          </div>
+        {/* Header section */}
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-terracotta-light">
+            Prinsip Kedai
+          </p>
+          <h2 id="craft-showcase-heading" className="public-h2 mt-2">
+            Tiga hal yang kami jaga
+          </h2>
         </div>
 
         {/* Layout Utama: Daftar pemilih interaktif + Stage foto sinematik (tanpa 3 card kembar) */}
@@ -214,6 +187,32 @@ export function AboutCraftShowcase(): React.JSX.Element {
                 {current.detail}
               </p>
             </div>
+
+            {/* Kontrol slide di bawah gambar (desktop) / di bawah teks penjelasan (mobile & tablet) */}
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <span className="font-serif text-sm text-offwhite-muted tabular-nums">
+                <strong className="font-medium text-offwhite">{current.number}</strong>
+                {" / "}0{CHAPTERS.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => goTo(active - 1)}
+                  aria-label="Prinsip sebelumnya"
+                  className="inline-flex size-11 items-center justify-center rounded-md border border-offwhite/20 text-offwhite transition hover:border-offwhite/45 hover:bg-charcoal-light"
+                >
+                  <ChevronLeftIcon className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goTo(active + 1)}
+                  aria-label="Prinsip berikutnya"
+                  className="inline-flex size-11 items-center justify-center rounded-md border border-offwhite/20 text-offwhite transition hover:border-offwhite/45 hover:bg-charcoal-light"
+                >
+                  <ChevronRightIcon className="size-4" />
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Desktop: Daftar bab editorial interaktif di kiri */}
@@ -283,18 +282,18 @@ export function AboutCraftShowcase(): React.JSX.Element {
           </div>
         </div>
 
-        {/* Mobile/Tablet footer CTA */}
-        <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 lg:hidden">
+        {/* Mobile/Tablet footer CTA — tetap kanan-kiri meski di layar ramping */}
+        <div className="mt-7 grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:items-center sm:gap-4 lg:hidden">
           <Link
             href="/order"
-            className="btn btn--primary w-full gap-2 sm:w-auto"
+            className="btn btn--primary w-full whitespace-nowrap !px-3 !text-[13px] !gap-1.5 sm:w-auto sm:!px-6 sm:!text-sm sm:!gap-2"
           >
             <span>Pesan menu</span>
-            <ArrowRightIcon className="size-4" />
+            <ArrowRightIcon className="size-4 shrink-0" />
           </Link>
           <Link
             href="/location"
-            className="btn btn--secondary w-full text-offwhite transition hover:border-offwhite/45 hover:bg-charcoal-light sm:w-auto"
+            className="btn btn--secondary w-full whitespace-nowrap !px-3 !text-[13px] text-offwhite transition hover:border-offwhite/45 hover:bg-charcoal-light sm:w-auto sm:!px-6 sm:!text-sm"
           >
             Lokasi & jam buka
           </Link>
