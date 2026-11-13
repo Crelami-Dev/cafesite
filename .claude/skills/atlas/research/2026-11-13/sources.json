@@ -1,0 +1,122 @@
+[
+  {
+    "id": "linear",
+    "url": "https://linear.app/",
+    "category": "software/product",
+    "checkedOn": "2026-11-13",
+    "evidence": "visual-and-content",
+    "inspected": [
+      "follow-up/03-linear.app-1440.png",
+      "follow-up/03-linear.app-390.png",
+      "follow-up/03-linear.app-1440-mid.png"
+    ],
+    "observation": "Product-workflow imagery is treated as evidence below the proposition. The mobile capture keeps the message readable while the product view is cropped.",
+    "adapt": "Show the actual operation or artifact when evaluating a tool.",
+    "reject": "Copying the dark palette, recognizable UI, partner logos or copy cadence.",
+    "limitations": "Homepage states only; no signup or application workflow tested. Initial capture was blurred during entrance; a later capture resolved it."
+  },
+  {
+    "id": "teenage",
+    "url": "https://teenage.engineering/",
+    "category": "hardware/product",
+    "checkedOn": "2026-11-13",
+    "evidence": "visual-and-content",
+    "inspected": [
+      "captures/02-teenage.engineering-1440.png",
+      "captures/02-teenage.engineering-390.png"
+    ],
+    "observation": "The object and its lighting dominate the scene. Desktop navigation is dense while mobile reduces the chrome.",
+    "adapt": "Let a strong actual product asset carry identity before adding explanatory ornament.",
+    "reject": "Copying iconography, language, dramatic shadows or sparse information when another product needs clear specifications.",
+    "limitations": "No commerce actions or navigation were exercised."
+  },
+  {
+    "id": "potato-head",
+    "url": "https://seminyak.potatohead.co/",
+    "category": "hospitality/culture/Indonesia",
+    "checkedOn": "2026-11-13",
+    "evidence": "visual-and-content",
+    "inspected": [
+      "follow-up/05-seminyak.potatohead.co-1440.png",
+      "follow-up/05-seminyak.potatohead.co-390.png",
+      "follow-up/05-seminyak.potatohead.co-1440-mid.png"
+    ],
+    "observation": "A programme-led scene connects the place to cultural activity. Mobile keeps a booking action near the bottom while the content continues below.",
+    "adapt": "Connect atmosphere to a concrete activity and next action rather than showing place photography alone.",
+    "reject": "Automatically adopting a carousel, floating controls, uppercase identity or persistent bar.",
+    "limitations": "No booking or programme action was tested; no accessibility/performance claim."
+  },
+  {
+    "id": "pentagram",
+    "url": "https://www.pentagram.com/",
+    "category": "creative-work/portfolio",
+    "checkedOn": "2026-11-13",
+    "evidence": "visual-partial-and-content",
+    "inspected": [
+      "captures/05-www.pentagram.com-1440.png",
+      "captures/05-www.pentagram.com-390.png"
+    ],
+    "observation": "Project evidence and a discipline/sector expression lead the visible composition.",
+    "adapt": "Let actual work and useful taxonomy explain a practice.",
+    "reject": "Copying its signature layout or assuming all portfolios need the same treatment.",
+    "limitations": "Consent notice obscures part of the view, especially mobile. No filter or navigation behavior verified."
+  },
+  {
+    "id": "muuto",
+    "url": "https://www.muuto.com/",
+    "category": "furniture",
+    "checkedOn": "2026-11-13",
+    "evidence": "visual-partial-and-content",
+    "inspected": [
+      "follow-up/01-www.muuto.com-1440.png",
+      "follow-up/01-www.muuto.com-390.png"
+    ],
+    "observation": "The visible campaign combines a domestic scene, product-family emphasis and a sofa exploration path.",
+    "adapt": "Connect objects to context and a real product choice.",
+    "reject": "Treating its large type, colors or presentation as a furniture template.",
+    "limitations": "Consent dialog obscures substantial content. The full campaign and interactions were not verified."
+  },
+  {
+    "id": "hem",
+    "url": "https://us.hem.com/",
+    "category": "furniture/commerce",
+    "checkedOn": "2026-11-13",
+    "evidence": "gate-and-content",
+    "inspected": [
+      "follow-up/02-us.hem.com-1440.png"
+    ],
+    "observation": "The captured first view is a customer/region gate over an interior scene.",
+    "adapt": "Recognize entry barriers as part of the actual visitor experience.",
+    "reject": "Claiming the catalogue was visually reviewed from this gate.",
+    "limitations": "No region selection or catalogue interaction performed; mobile image captured but not used for visual conclusions."
+  },
+  {
+    "id": "vitra",
+    "url": "https://www.vitra.com/en-us/home",
+    "category": "furniture",
+    "checkedOn": "2026-11-13",
+    "evidence": "content-and-browser-blocked",
+    "inspected": [
+      "captures/01-www.vitra.com-1440.png"
+    ],
+    "observation": "Content extraction exposed product and material taxonomy, but browser access returned HTTP 403 and a security challenge.",
+    "adapt": "Content taxonomy can be investigated separately from composition.",
+    "reject": "Claiming knowledge of the current visual arrangement from extracted text.",
+    "limitations": "Not a usable visual reference in this session."
+  },
+  {
+    "id": "aman",
+    "url": "https://www.aman.com/",
+    "category": "hospitality",
+    "checkedOn": "2026-11-13",
+    "evidence": "content-and-render-incomplete",
+    "inspected": [
+      "captures/04-www.aman.com-1440.png",
+      "follow-up/04-www.aman.com-1440.png"
+    ],
+    "observation": "The captured page shows navigation but the main visual region did not render, including after a longer settling interval.",
+    "adapt": "A successful HTTP status is not proof of a successfully inspected visual state.",
+    "reject": "Describing unseen photography or animation from brand reputation.",
+    "limitations": "Not retained as a full visual reference; content/navigation extraction only."
+  }
+]

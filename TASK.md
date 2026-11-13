@@ -413,3 +413,60 @@ Update status di setiap task seiring progress.
 - [x] Render browser pada 375/390/1440px; tidak ditemukan overflow horizontal. Foto ruang mobile sejajar dan daftar menu tanpa titik-titik.
 - [ ] Perbandingan FigCraft belum dilakukan. Gate keseluruhan halaman masih `FAIL 76` (round 1): antara lain tinggi section, foto contoh beresolusi rendah, caption overlay, dan false positive shader-lint pada bundle webpack; lihat `.taste-skill/gate/consistency/report.json`.
 - [x] Rekomendasi menu: pilihan rasa mengikuti kategori (`CRAVING_FLAVORS` di `data/menu-picker.ts`), tidak ada lagi pasangan janggal seperti kopi gurih; pilihan dan kartu hasil dianimasikan.
+
+
+## Atlas Skill dan demo Codex SELA (2026-11-13)
+
+- [x] Tambah entry point Atlas, revisi lima modul, template brief/review, dan panduan visual, aksesibilitas serta motion.
+- [x] Upgrade checker: viewport 375, CSS Color 4 contrast, resource failures, full scroll traversal, JSON evidence dan self-test kegagalan.
+- [x] Buat demo Next.js terpisah di `Atlas-Skill/demo-codex`, memakai Atlas saja tanpa FigCraft; typecheck, lint dan production build lolos.
+- [x] Inspeksi screenshot desktop/mobile/tablet, perbaiki temuan, audit final 6 viewport (0 FAIL / 0 WARN), dan 20 pemeriksaan interaksi lolos.
+- [x] Deploy demo ke proyek Vercel terpisah `https://atlas-sela-codex.vercel.app`; bukti dan catatan pemeriksaan di `Atlas-Skill/demo-codex/ATLAS-REVIEW.md`.
+
+
+## Atlas: proportional scale and theme revision (2026-11-13)
+
+- [x] Reduce SELA heading/media scale and measure the hero on short desktop and phone screens.
+- [x] Introduce furniture-appropriate corner tokens and replace the giant-logo footer with useful navigation.
+- [x] Update Atlas planning, design and review rules; add 1366x768 to the checker.
+- [x] Production build, lint, seven-viewport local audit and 20 live interaction checks pass; deploy dpl_48zm8tiJeACaZ2qM8H19rjJcxbFk.
+
+
+## Atlas and SELA: environmental scene redesign (2026-11-13)
+
+- [x] Replace split-card hero with a full-screen room scene; remove decorative numbering, rounded frames and repeated step layouts.
+- [x] Rebuild object catalogue, story, local brief and footer around the room/catalogue concept.
+- [x] Add Atlas composition-selection guide and explicit checks against ornamental numbering and automatic split heroes.
+- [x] Production build, lint, seven-viewport local audit and 20 interaction checks pass; measure 100svh hero and visible action at short phone sizes.
+- [x] Deploy dpl_BCv2hkCfumueBmhQuPyqBEtrsxqw; current review in Atlas-Skill/demo-codex/SCENE-REVIEW.md.
+
+
+## Atlas 4: skill-only research and quality expansion (2026-11-13)
+
+- [x] Expand all Atlas modules and add a dedicated current-reference research workflow.
+- [x] Add detailed typography, interaction, domain reasoning, idea development, engineering, critical review and working templates.
+- [x] Research current primary sites with retained observations, screenshots and explicit blocked/partial evidence.
+- [x] Review instructions twice and assess S01-S18 scenarios without claiming an independent-model benchmark.
+- [x] Upgrade checker evidence: short phones, actual visible hero action, opt-in clicks, visible panel state and honest SKIP outcomes.
+- [x] Pass 18 checker regression cases, structural validation and six portable-export integration checks.
+- [x] Verify 60 protected demo files are unchanged; no website build or deployment in this task.
+- [x] Complete requirement audit: Atlas-Skill/maintenance/2026-11-13/completion-audit.md.
+
+
+## Atlas repository replacement and installer (2026-11-13)
+
+- [x] Clone Crelami-Dev/atlas-skill separately to D:/tes/atlas-skill-release-20261113; preserve existing commit history and repository visibility.
+- [x] Replace legacy Python/preset/demo/archive payload with current allowlisted Atlas 4 package.
+- [x] Add dependency-free Node CLI install/update/doctor, project-agent paths, dry run and complete-update backups.
+- [x] Pass installer tests, 18 browser checker regressions, six export checks, package validation and packed CLI install/doctor smoke checks.
+- [x] Push commit 5392dc7c2ada9d3b531f8187818a6d474298485c to main; GitHub validation run 43361895547 succeeded on Node 22/24.
+- [x] Keep repo private and npm publishing disabled; no demo or application deployment performed.
+
+- [x] Atlas installer: menu interaktif Agents (.agents/skills) atau Claude (.claude/skills), tanpa instalasi global; kompatibilitas flag lama dipertahankan. Diuji dengan 18 tes installer, 6 pemeriksaan export, dan terminal interaktif. Dipush ke repo atlas-skill pada commit 929a129.
+
+## Pembersihan cache lokal (2026-11-13)
+
+- [x] Audit proyek; cache build dan profil browser pengujian lama berukuran sekitar 2,46 GiB.
+- [x] Penghapusan permanen ditolak pemeriksaan otomatis. Sebagai alternatif yang bisa dipulihkan, 13 target cache dipindah ke D:/tes/CafeSite-cleanup-20261113 dan diverifikasi tidak ada di lokasi asal.
+- [x] Source, dependensi, aset, database, sesi WhatsApp, konfigurasi, skill dan bukti review dipertahankan. Tidak mengubah aplikasi atau deploy.
+

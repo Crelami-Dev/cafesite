@@ -1,0 +1,51 @@
+<!doctype html>
+<!-- Controlled tool regression fixture, not a website demonstration. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Atlas audit fixture</title><link rel="icon" href="data:,">
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; background:#f1eee8; color:#20201e; font:16px/1.5 system-ui; }
+    [data-hero] { min-height:100svh; display:flex; flex-direction:column; padding:16px; }
+    header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; }
+    button,a { color:inherit; font:inherit; min-height:44px; min-width:44px; padding:10px; }
+    button { background:transparent; border:1px solid currentColor; }
+    nav { width:100%; }
+    nav a { display:inline-flex; }
+    [hidden] { display:none !important; }
+    h1 { font-size:32px; line-height:1.15; }
+    [data-primary] { align-self:flex-start; margin-top:auto; }
+    #target { padding:16px; }
+    [role=tabpanel] { padding:16px; }
+    @media(min-width:900px) { #menu-toggle { display:none; } }
+  </style>
+</head>
+<body>
+<main>
+  <section data-hero aria-labelledby="title">
+    <header><span>Fixture</span><button id="menu-toggle" aria-expanded="false" aria-controls="fixture-nav" type="button">Menu</button><nav id="fixture-nav" aria-label="Fixture navigation" hidden><a href="#target">Hidden destination alias</a></nav></header>
+    <h1 id="title">Controlled audit fixture</h1>
+    <p>Geometry and behavior checks use known, reversible local state.</p>
+    <a data-primary href="#target">Visible primary action</a>
+  </section>
+  <section id="target" aria-label="Selection fixture">
+    <div role="tablist" aria-label="Fixture tabs"><button id="first-tab" type="button" role="tab" aria-selected="true" aria-controls="first-panel">First</button><button id="second-tab" type="button" role="tab" aria-selected="false" aria-controls="second-panel">Second</button></div>
+    <div id="first-panel" role="tabpanel" aria-labelledby="first-tab">First content</div><div id="second-panel" role="tabpanel" aria-labelledby="second-tab" hidden>Second content</div>
+  </section>
+</main>
+<script>
+  const trigger = document.getElementById('menu-toggle');
+  trigger.addEventListener('click', () => {
+    const open = trigger.getAttribute('aria-expanded') !== 'true';
+    trigger.setAttribute('aria-expanded', String(open));
+    document.getElementById('fixture-nav').hidden = !open;
+  });
+  const tabs = [...document.querySelectorAll('[role=tab]')];
+  tabs.forEach(tab => tab.addEventListener('click', () => tabs.forEach(item => {
+    const active = item === tab;
+    item.setAttribute('aria-selected', String(active));
+    document.getElementById(item.getAttribute('aria-controls')).hidden = !active;
+  })));
+</script>
+</body></html>

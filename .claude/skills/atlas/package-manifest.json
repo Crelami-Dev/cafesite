@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "version": "4.0.0",
+  "entrypoint": "SKILL.md",
+  "skills": [
+    { "name": "atlas", "path": "SKILL.md" },
+    { "name": "atlas-plan", "path": "skills/atlas-plan/SKILL.md" },
+    { "name": "atlas-research", "path": "skills/atlas-research/SKILL.md" },
+    { "name": "atlas-design", "path": "skills/atlas-design/SKILL.md" },
+    { "name": "atlas-anti-slop", "path": "skills/atlas-anti-slop/SKILL.md" },
+    { "name": "atlas-lean-code", "path": "skills/atlas-lean-code/SKILL.md" },
+    { "name": "atlas-checker", "path": "skills/atlas-checker/SKILL.md" }
+  ],
+  "include": [
+    "SKILL.md",
+    "README.md",
+    "package-manifest.json",
+    "plugin.json",
+    "skills",
+    "references",
+    "scripts",
+    "evals",
+    "research/2026-11-13/README.md",
+    "research/2026-11-13/sources.json"
+  ],
+  "excludedContext": [
+    "demo-*",
+    "maintenance",
+    "research/*/captures",
+    "research/*/follow-up",
+    "node_modules",
+    ".next",
+    "out",
+    ".env*",
+    "local databases"
+  ]
+}

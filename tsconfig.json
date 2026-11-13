@@ -41,6 +41,7 @@
   "exclude": [
     "node_modules",
     "server",
-    "Atlas-Skill/demo-school"
+    "Atlas-Skill/demo-school",
+    "Atlas-Skill/demo-codex"
   ]
 }
